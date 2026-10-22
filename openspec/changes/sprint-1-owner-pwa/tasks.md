@@ -218,11 +218,11 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 17: UI de cierre (commit 17)
 
-- [ ] 17.1 `ClosureDialog`: Completada o No asistió con paso de confirmación explícita. Spec: UI-R6, CL-R1. Verif: RED con MSW.
-- [ ] 17.2 Cierre anticipado: motivo obligatorio y segundo paso de confirmación reforzada para citas futuras. Spec: UI-R6, CL-R2. Verif: RED, sin motivo no avanza.
-- [ ] 17.3 `CorrectionDialog`: cambio entre Completada y No asistió, edición de la fecha de completado y devolución a Confirmada con motivo y confirmación reforzada. Spec: UI-R6, CL-R4. Verif: RED con MSW.
-- [ ] 17.4 Acciones por estado en el detalle de la cita (canceladas sin acciones de reapertura, con indicación de crear una cita nueva). Spec: CL-R5, UI-R4. Verif: RED.
-- [ ] 17.5 Documentar en `app/README.md` los flujos de cierre y actualizar `openspec/config.yaml` final. Spec: n/a. Verif: manual.
+- [x] 17.1 `ClosureDialog`: Completada o No asistió con paso de confirmación explícita. Spec: UI-R6, CL-R1. Verif: RED con MSW.
+- [x] 17.2 Cierre anticipado: motivo obligatorio y segundo paso de confirmación reforzada para citas futuras. Spec: UI-R6, CL-R2. Verif: RED, sin motivo no avanza.
+- [x] 17.3 `CorrectionDialog`: cambio entre Completada y No asistió, edición de la fecha de completado y devolución a Confirmada con motivo y confirmación reforzada. Spec: UI-R6, CL-R4. Verif: RED con MSW.
+- [x] 17.4 Acciones por estado en el detalle de la cita (canceladas sin acciones de reapertura, con indicación de crear una cita nueva). Spec: CL-R5, UI-R4. Verif: RED.
+- [x] 17.5 Documentar en `app/README.md` los flujos de cierre y actualizar `openspec/config.yaml` final. Spec: n/a. Verif: manual.
 
 ## Fase 18: Criterios de aceptación y deudas fuera de este sprint
 

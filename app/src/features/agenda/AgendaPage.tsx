@@ -263,5 +263,6 @@ function toAgendaAppointment(appointment: Appointment): AgendaAppointment {
     customerName: customerLabel(appointment.customer),
     serviceName: appointment.service_name_snapshot,
     technicianChanged: appointment.technician_changed,
+    closedEarly: appointment.closed_early,
   };
 }

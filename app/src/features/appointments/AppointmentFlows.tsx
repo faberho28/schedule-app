@@ -1,7 +1,10 @@
+import { STATUS_STYLES } from '@/features/agenda/appointment-status';
 import type { components } from '@/shared/api/schema';
 import type { LocalDate } from '@/shared/lib/dates';
 import { AppointmentDetailDialog } from './AppointmentDetailDialog';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
+import { ClosureDialog } from './ClosureDialog';
+import { CorrectionDialog } from './CorrectionDialog';
 import { CreateAppointmentDialog } from './CreateAppointmentDialog';
 import { MoveAppointmentDialog } from './MoveAppointmentDialog';
 import { ReassignDialog } from './ReassignDialog';
@@ -12,7 +15,29 @@ type Technician = components['schemas']['Technician'];
 /** Diálogo de cita abierto. Es estado local de la agenda: no vive en la URL ni en un store. */
 export type AppointmentFlow =
   | { kind: 'create'; day?: LocalDate; technicianId?: string }
-  | { kind: 'detail' | 'move' | 'reassign' | 'cancel'; id: string };
+  | { kind: 'detail' | 'move' | 'reassign' | 'cancel' | 'close' | 'correct'; id: string };
+
+const FOLLOWUP_NOTICE =
+  'Si el cliente autorizó seguimientos y el servicio tiene intervalo, se programa un mensaje de seguimiento; en esta versión no se envían mensajes.';
+
+/** Anuncio tras cerrar una cita. El seguimiento solo se menciona al completar. */
+function closedMessage(status: Appointment['status']): string {
+  const label = STATUS_STYLES[status].label;
+  return status === 'completed'
+    ? `Cita cerrada como ${label}. ${FOLLOWUP_NOTICE}`
+    : `Cita cerrada como ${label}.`;
+}
+
+/** Anuncio tras corregir un cierre; al reabrir se avisa que el seguimiento se anuló. */
+function correctedMessage(status: Appointment['status']): string {
+  if (status === 'confirmed') {
+    return 'Cita devuelta a Confirmada. Se anuló el seguimiento programado.';
+  }
+  const label = STATUS_STYLES[status].label;
+  return status === 'completed'
+    ? `Cierre corregido: la cita quedó como ${label}. ${FOLLOWUP_NOTICE}`
+    : `Cierre corregido: la cita quedó como ${label}.`;
+}
 
 type AppointmentFlowsProps = {
   flow: AppointmentFlow | null;
@@ -101,6 +126,26 @@ export function AppointmentFlows({
           timeZone={timeZone}
           onClose={close}
           onCancelled={() => onDone('Cita cancelada.')}
+        />
+      );
+    case 'close':
+      return (
+        <ClosureDialog
+          key={key}
+          appointment={appointment}
+          timeZone={timeZone}
+          onClose={close}
+          onClosed={(closed) => onDone(closedMessage(closed.status))}
+        />
+      );
+    case 'correct':
+      return (
+        <CorrectionDialog
+          key={key}
+          appointment={appointment}
+          timeZone={timeZone}
+          onClose={close}
+          onCorrected={(corrected) => onDone(correctedMessage(corrected.status))}
         />
       );
   }

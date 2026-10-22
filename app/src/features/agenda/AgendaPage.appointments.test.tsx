@@ -89,6 +89,23 @@ function serve(initial: Appointment[] = [appointment()]) {
       state.commands.push('cancel');
       return HttpResponse.json(replace(IDS.apt1, { status: 'cancelled' }));
     }),
+    http.post(apiUrl(`/appointments/${IDS.apt1}/close`), async ({ request }) => {
+      const body = (await request.json()) as { outcome: 'completed' | 'no_show' };
+      state.commands.push('close');
+      const early = Date.now() < Date.parse(state.appointments[0]!.starts_at);
+      return HttpResponse.json(
+        replace(IDS.apt1, {
+          status: body.outcome,
+          closed_early: early,
+          completed_at: body.outcome === 'completed' ? new Date().toISOString() : null,
+        }),
+      );
+    }),
+    http.post(apiUrl(`/appointments/${IDS.apt1}/correct-closure`), async ({ request }) => {
+      const body = (await request.json()) as { outcome: 'completed' | 'no_show' | 'confirmed' };
+      state.commands.push('correct');
+      return HttpResponse.json(replace(IDS.apt1, { status: body.outcome }));
+    }),
   );
   return state;
 }
@@ -234,5 +251,129 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     expect(await screen.findByText('Cupo ocupado')).toBeInTheDocument();
     expect(state.commands).toEqual([]);
     expect(screen.getByRole('dialog', { name: 'Mover cita' })).toBeInTheDocument();
+  });
+});
+
+describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
+  const PAST_DAY = '2020-01-02';
+  const PAST = { starts_at: '2020-01-02T13:00:00.000Z', ends_at: '2020-01-02T14:30:00.000Z' };
+  const FUTURE_DAY = '2099-01-02';
+  const FUTURE = { starts_at: '2099-01-02T13:00:00.000Z', ends_at: '2099-01-02T14:30:00.000Z' };
+  const open = async (user: ReturnType<typeof userEvent.setup>, action: string) => {
+    await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
+    await user.click(await screen.findByRole('button', { name: action }));
+  };
+
+  it('cierra una cita pasada como Completada con confirmación y la agenda lo refleja', async () => {
+    const user = userEvent.setup();
+    const state = serve([appointment(PAST)]);
+    const { queryClient } = renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
+    queryClient.setQueryData(['customers', 'detail', IDS.customer], customer());
+    await open(user, 'Cerrar cita');
+    const listingsBefore = state.listings;
+
+    await user.click(await screen.findByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(state.commands).toEqual([]);
+    await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
+
+    const notice = await screen.findByText(/^Cita cerrada como Completada\./);
+    expect(notice).toHaveAttribute('role', 'status');
+    expect(notice).toHaveTextContent(/seguimiento.*no se envían mensajes/);
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*Completada/ })).toBeVisible();
+    expect(state.listings).toBeGreaterThan(listingsBefore);
+    expect(queryClient.getQueryState(['customers', 'detail', IDS.customer])?.isInvalidated).toBe(
+      true,
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('marca No asistió y no promete seguimiento', async () => {
+    const user = userEvent.setup();
+    serve([appointment(PAST)]);
+    renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
+    await open(user, 'Cerrar cita');
+
+    await user.click(await screen.findByRole('radio', { name: 'No asistió' }));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
+
+    expect(await screen.findByText('Cita cerrada como No asistió.')).toHaveAttribute(
+      'role',
+      'status',
+    );
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*No asistió/ })).toBeVisible();
+  });
+
+  it('cierra una cita futura solo con motivo y confirmación reforzada, y la marca como anticipada', async () => {
+    const user = userEvent.setup();
+    const state = serve([appointment(FUTURE)]);
+    renderAgenda(`/agenda?view=day&date=${FUTURE_DAY}`);
+    await open(user, 'Cerrar cita');
+
+    await user.click(await screen.findByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(state.commands).toEqual([]);
+    await user.type(screen.getByLabelText('Motivo del cierre anticipado'), 'Servicio adelantado');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Confirmar cierre anticipado' }));
+
+    expect(await screen.findByText(/^Cita cerrada como Completada\./)).toBeInTheDocument();
+    const block = await screen.findByRole('button', { name: /Ana Pérez.*Completada/ });
+    expect(block).toHaveTextContent('Cierre anticipado');
+  });
+
+  it('corrige el cierre de Completada a No asistió', async () => {
+    const user = userEvent.setup();
+    serve([appointment({ ...PAST, status: 'completed', completed_at: PAST.starts_at })]);
+    renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
+    await open(user, 'Corregir cierre');
+
+    await user.click(await screen.findByRole('radio', { name: 'Cambiar a No asistió' }));
+    await user.type(screen.getByLabelText('Motivo de la corrección'), 'No llegó');
+    await user.click(screen.getByRole('button', { name: 'Guardar corrección' }));
+
+    expect(
+      await screen.findByText('Cierre corregido: la cita quedó como No asistió.'),
+    ).toHaveAttribute('role', 'status');
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*No asistió/ })).toBeVisible();
+  });
+
+  it('devuelve una cita cerrada a Confirmada y anuncia que el seguimiento se anuló', async () => {
+    const user = userEvent.setup();
+    serve([appointment({ ...PAST, status: 'completed', completed_at: PAST.starts_at })]);
+    renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
+    await open(user, 'Corregir cierre');
+
+    await user.click(await screen.findByRole('radio', { name: 'Devolver a Confirmada' }));
+    await user.type(screen.getByLabelText('Motivo de la corrección'), 'Error de registro');
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmada' }));
+
+    expect(
+      await screen.findByText('Cita devuelta a Confirmada. Se anuló el seguimiento programado.'),
+    ).toHaveAttribute('role', 'status');
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*Confirmada/ })).toBeVisible();
+  });
+
+  it('si la cita ya cambió de estado, muestra el error y refresca la agenda', async () => {
+    const user = userEvent.setup();
+    const state = serve([appointment(PAST)]);
+    server.use(
+      http.post(apiUrl(`/appointments/${IDS.apt1}/close`), () =>
+        problem('invalid_transition', 422),
+      ),
+    );
+    renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
+    await open(user, 'Cerrar cita');
+    const listingsBefore = state.listings;
+
+    await user.click(await screen.findByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
+
+    expect(await screen.findByText('La cita no admite ese cambio de estado.')).toBeInTheDocument();
+    await waitFor(() => expect(state.listings).toBeGreaterThan(listingsBefore));
   });
 });

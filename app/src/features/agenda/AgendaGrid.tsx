@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Plus } from 'lucide-react';
+import { ArrowLeftRight, FastForward, Plus } from 'lucide-react';
 import { useId, useState, type CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -23,6 +23,8 @@ export type AgendaAppointment = {
   customerName: string;
   serviceName: string;
   technicianChanged: boolean;
+  /** La cita se cerró antes de su hora de inicio (cierre anticipado). */
+  closedEarly?: boolean;
 };
 
 export type AgendaTechnician = {
@@ -330,6 +332,7 @@ function AppointmentBlock({
     style.label,
     technicianName,
     ...(appointment.technicianChanged ? ['técnico cambiado'] : []),
+    ...(appointment.closedEarly ? ['cierre anticipado'] : []),
     ...(bufferMinutes > 0 ? [`incluye ${bufferMinutes} min de traslado`] : []),
   ].join(', ');
 
@@ -368,6 +371,12 @@ function AppointmentBlock({
             <span className="flex items-center gap-1">
               <ArrowLeftRight aria-hidden="true" className="size-3.5 shrink-0" />
               Técnico cambiado
+            </span>
+          ) : null}
+          {appointment.closedEarly ? (
+            <span className="flex items-center gap-1">
+              <FastForward aria-hidden="true" className="size-3.5 shrink-0" />
+              Cierre anticipado
             </span>
           ) : null}
         </span>

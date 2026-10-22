@@ -260,6 +260,28 @@ describe('AgendaGrid: citas', () => {
     expect(screen.getByRole('button', { name: /Luis Gómez.*No asistió/ })).toBeInTheDocument();
   });
 
+  it('marca una cita cerrada antes de su hora y no marca las demás', () => {
+    renderGrid({
+      appointments: [
+        appointment({ status: 'completed', closedEarly: true }),
+        appointment({
+          id: 'apt-2',
+          status: 'completed',
+          customerName: 'Luis Gómez',
+          startsAt: '2026-11-06T16:00:00Z',
+          endsAt: '2026-11-06T17:00:00Z',
+          occupiedUntil: '2026-11-06T17:00:00Z',
+        }),
+      ],
+    });
+
+    const early = screen.getByRole('button', { name: /Ana Pérez/ });
+    expect(within(early).getByText('Cierre anticipado')).toBeInTheDocument();
+    expect(early).toHaveAccessibleName(expect.stringContaining('cierre anticipado'));
+    const regular = screen.getByRole('button', { name: /Luis Gómez/ });
+    expect(within(regular).queryByText('Cierre anticipado')).not.toBeInTheDocument();
+  });
+
   it('muestra las dos citas cuando se solapan por el buffer', () => {
     renderGrid({
       appointments: [

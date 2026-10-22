@@ -79,9 +79,13 @@ function refreshAfterRejection(queryClient: QueryClient, error: unknown) {
   }
 }
 
-/** Después de un comando exitoso se refrescan la agenda y los cupos sin recargar la página. */
+/**
+ * Después de un comando exitoso se refrescan la agenda y los cupos sin recargar la página. Con
+ * `alsoCustomers` también el historial de los clientes, que cambia al cerrar o corregir un servicio.
+ */
 function useAppointmentCommand<TVariables>(
   command: (variables: TVariables) => Promise<Schemas['Appointment']>,
+  { alsoCustomers = false }: { alsoCustomers?: boolean } = {},
 ) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -90,6 +94,7 @@ function useAppointmentCommand<TVariables>(
       Promise.all([
         queryClient.invalidateQueries({ queryKey: appointmentKeys.all }),
         queryClient.invalidateQueries({ queryKey: slotKeys.all }),
+        ...(alsoCustomers ? [queryClient.invalidateQueries({ queryKey: ['customers'] })] : []),
       ]),
     onError: (error) => refreshAfterRejection(queryClient, error),
   });
@@ -120,6 +125,27 @@ export function useReassignAppointment() {
         body: { technician_id: technicianId },
       }),
     ),
+  );
+}
+
+export type CloseAppointmentBody = Schemas['CloseAppointmentDto'];
+export type CorrectClosureBody = Schemas['CorrectClosureDto'];
+
+export function useCloseAppointment() {
+  return useAppointmentCommand(
+    ({ id, body }: { id: string; body: CloseAppointmentBody }) =>
+      unwrap(apiClient.POST('/appointments/{id}/close', { params: { path: { id } }, body })),
+    { alsoCustomers: true },
+  );
+}
+
+export function useCorrectClosure() {
+  return useAppointmentCommand(
+    ({ id, body }: { id: string; body: CorrectClosureBody }) =>
+      unwrap(
+        apiClient.POST('/appointments/{id}/correct-closure', { params: { path: { id } }, body }),
+      ),
+    { alsoCustomers: true },
   );
 }
 

@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { Check, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,11 +13,16 @@ import { STATUS_STYLES } from '@/features/agenda/appointment-status';
 import type { components } from '@/shared/api/schema';
 import { formatDateTime, formatTime } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
-import { isModifiable, unmodifiableReason } from './appointment-rules';
+import {
+  closureBlockedReason,
+  correctionBlockedReason,
+  isModifiable,
+  unmodifiableReason,
+} from './appointment-rules';
 
 type Appointment = components['schemas']['Appointment'];
 
-export type AppointmentAction = 'move' | 'reassign' | 'cancel';
+export type AppointmentAction = 'move' | 'reassign' | 'cancel' | 'close' | 'correct';
 
 type AppointmentDetailDialogProps = {
   appointment: Appointment;
@@ -36,7 +42,11 @@ export function AppointmentDetailDialog({
   onClose,
 }: AppointmentDetailDialogProps) {
   const reasonId = useId();
+  const closureReasonId = useId();
+  const correctionReasonId = useId();
   const reason = unmodifiableReason(appointment.status);
+  const closureReason = closureBlockedReason(appointment.status);
+  const correctionReason = correctionBlockedReason(appointment.status);
   const status = STATUS_STYLES[appointment.status];
   const StatusIcon = status.icon;
   const actionProps = {
@@ -79,11 +89,56 @@ export function AppointmentDetailDialog({
         {appointment.status === 'cancelled' && appointment.cancel_reason ? (
           <p className="text-sm">Motivo de la cancelación: {appointment.cancel_reason}</p>
         ) : null}
+        {appointment.completed_at ? (
+          <p className="text-sm">
+            Completada el {formatDateTime(appointment.completed_at, timeZone)}.
+          </p>
+        ) : null}
+        {appointment.closed_early ? (
+          <p className="text-sm">
+            Cierre anticipado{appointment.closure_reason ? `: ${appointment.closure_reason}` : ''}
+          </p>
+        ) : null}
         {reason ? (
           <p id={reasonId} className="text-sm text-muted-foreground">
             {reason}
           </p>
         ) : null}
+
+        <div role="group" aria-label="Cierre del servicio" className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={closureReason !== null}
+              aria-describedby={closureReason ? closureReasonId : undefined}
+              onClick={() => onAction('close')}
+            >
+              <Check aria-hidden="true" />
+              Cerrar cita
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={correctionReason !== null}
+              aria-describedby={correctionReason ? correctionReasonId : undefined}
+              onClick={() => onAction('correct')}
+            >
+              <Undo2 aria-hidden="true" />
+              Corregir cierre
+            </Button>
+          </div>
+          {closureReason ? (
+            <p id={closureReasonId} className="text-sm text-muted-foreground">
+              {closureReason}
+            </p>
+          ) : null}
+          {correctionReason ? (
+            <p id={correctionReasonId} className="text-sm text-muted-foreground">
+              {correctionReason}
+            </p>
+          ) : null}
+        </div>
 
         <DialogFooter>
           <Button type="button" variant="outline" {...actionProps} onClick={() => onAction('move')}>

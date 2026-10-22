@@ -55,7 +55,7 @@ testing:
         component: true
         e2e: false
       integration_requires: none
-      note: "Strict TDD active since work unit 12. Config-only pieces (Vite, PWA, Tailwind) are checked with a build plus config tests."
+      note: "Strict TDD active since work unit 12 through work unit 17 (service closure UI). Config-only pieces (Vite, PWA, Tailwind) are checked with a build plus config tests."
 
 rules:
   proposal:
