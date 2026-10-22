@@ -1,6 +1,11 @@
 import { DatabaseError } from 'pg';
 import { describe, expect, it } from 'vitest';
-import { CustomerPhoneTakenError, DomainError, SlotTakenError } from '../../domain/errors';
+import {
+  CustomerPhoneTakenError,
+  DomainError,
+  ServiceNameTakenError,
+  SlotTakenError,
+} from '../../domain/errors';
 import { translatePgError } from './pg-error-translator';
 
 function pgError(code: string, constraint?: string): DatabaseError {
@@ -34,6 +39,13 @@ describe('translatePgError', () => {
     const translated = translatePgError(original);
     expect(translated).toBeInstanceOf(CustomerPhoneTakenError);
     expect(translated).toMatchObject({ code: 'customer_phone_taken', cause: original });
+  });
+
+  it('traduce 23505 sobre el nombre único de servicio a service_name_taken', () => {
+    const original = pgError('23505', 'uq_services_business_name');
+    const translated = translatePgError(original);
+    expect(translated).toBeInstanceOf(ServiceNameTakenError);
+    expect(translated).toMatchObject({ code: 'service_name_taken', cause: original });
   });
 
   it('deja intactos los errores de pg que no tienen traducción', () => {

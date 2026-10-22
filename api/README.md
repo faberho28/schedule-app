@@ -95,8 +95,42 @@ Reglas que garantiza la base de datos:
 | ------------------------------------------- | ---------------------- |
 | `23P01` sobre `appointments_no_overlap`     | `slot_taken`           |
 | `23505` sobre `uq_customers_business_phone` | `customer_phone_taken` |
+| `23505` sobre `uq_services_business_name`   | `service_name_taken`   |
 
 Cualquier otro error se devuelve sin cambios; el uso previsto es `throw translatePgError(error)`.
+
+## API HTTP
+
+### Errores (`application/problem+json`)
+
+El filtro global `ProblemDetailsFilter` (`src/shared/http/problem-details.filter.ts`) responde todo error como `application/problem+json` con los campos `type`, `title`, `status`, `detail` y `code`. Los errores de validación agregan `errors: [{ field, messages }]`.
+
+| `code`                                                                                                                                           | Estado |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| `validation_error`, `bad_request`                                                                                                                | 400    |
+| `not_found` (incluye rutas inexistentes)                                                                                                         | 404    |
+| `slot_taken`, `schedule_conflict`, `proposal_stale`, `customer_phone_taken`, `service_name_taken`                                                | 409    |
+| `invalid_transition`, `slot_not_offered`, `early_closure_reason_required`, `early_closure_confirmation_required`, `reopen_confirmation_required` | 422    |
+| `internal_error` (y cualquier `DomainError` sin estado asignado)                                                                                 | 500    |
+
+Los errores inesperados no exponen su mensaje interno; solo se registran en el log del servidor. La validación de cuerpos usa `class-validator` con `whitelist` y `forbidNonWhitelisted`: una propiedad desconocida (por ejemplo `timezone` en `PATCH /business`) se rechaza con 400.
+
+### Negocio y servicios
+
+`BusinessContext` resuelve siempre `DEFAULT_BUSINESS_ID` hasta que exista autenticación. Los repositorios reciben el `businessId` en cada método y filtran por él. Los campos del cuerpo y de las respuestas usan `snake_case` (como en las especificaciones) y los parámetros de consulta usan `camelCase`.
+
+| Método y ruta         | Descripción                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `GET /business`       | `id`, `name`, `timezone` (solo lectura), `travel_buffer_min` y `followup_send_time` (por defecto `09:00`).          |
+| `PATCH /business`     | Edita `travel_buffer_min` (entero 0 a 240) y `followup_send_time` (`HH:MM`). Cualquier otro campo se rechaza (400). |
+| `GET /services`       | Servicios activos. `?includeInactive=true` suma los inactivos. Los servicios con `deleted_at` nunca se listan.      |
+| `GET /services/:id`   | Un servicio (activo o inactivo); 404 si no existe o tiene `deleted_at`.                                             |
+| `POST /services`      | Crea un servicio (`name`, `duration_min`, `price`, `followup_interval_days` opcional). 409 si el nombre se repite.  |
+| `PATCH /services/:id` | Edita campos y reactiva o desactiva con `active`. Si cambia `duration_min`, la respuesta incluye `warning`.         |
+
+No existe `DELETE` de servicios: se desactivan con `PATCH { "active": false }`. Editar un servicio nunca modifica las citas existentes, que conservan sus copias de precio, nombre y duración.
+
+La advertencia de `PATCH /services/:id` es informativa y no bloquea el cambio: `warning: { code: 'future_appointments_keep_previous_duration', count }` cuando hay `count` citas futuras `pending` o `confirmed`, o `warning: null` si no las hay.
 
 ### Transacciones por negocio
 

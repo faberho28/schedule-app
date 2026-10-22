@@ -85,13 +85,13 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 3: Configuración del negocio y servicios (commit 3)
 
-- [ ] 3.1 Crear `api/src/shared/http/problem-details.filter.ts` (`application/problem+json`) y `business-context.ts` (resuelve `DEFAULT_BUSINESS_ID`). Spec: BS-R1. Verif: RED con supertest, un `DomainError` responde problem+json con su `code` y estado.
-- [ ] 3.2 Crear módulo `api/src/modules/business-settings/` con `GET /business` y `PATCH /business` (`travel_buffer_min` entero 0-240, `followup_send_time` `HH:MM`; la zona horaria se rechaza). Spec: BS-R2, BS-R3, BS-R4. Verif: RED, pruebas HTTP con -5, 7.5, 241, `25:61`, `9am`, cambio a `America/Mexico_City`, y valor por defecto `09:00`.
-- [ ] 3.3 Verificar aislamiento por negocio en repositorios (todos reciben `businessId`). Spec: BS-R1. Verif: RED, prueba de integración con dos negocios.
-- [ ] 3.4 Crear módulo `api/src/modules/services/` con `POST/GET/GET:id/PATCH /services`, DTO validado, sin `DELETE`. Spec: SC-R1, SC-R3. Verif: RED, validación por campo (duración 0, nombre vacío, precio negativo), servicio sin `followup_interval_days`, `DELETE /services/:id` responde 404.
-- [ ] 3.5 Implementar `active` (desactivar y reactivar por `PATCH`) y filtro por defecto `deleted_at IS NULL` con `includeInactive`. Spec: SC-R3. Verif: RED, servicio inactivo oculto de los ofrecidos y visible con `includeInactive`; servicio con `deleted_at` oculto.
-- [ ] 3.6 Devolver en la respuesta de `PATCH /services/:id` la advertencia informativa con el número de citas futuras `pending|confirmed` que conservan la duración anterior, sin bloquear. Spec: SC-R4. Verif: RED, 5 citas futuras producen advertencia 5; sin citas, sin advertencia.
-- [ ] 3.7 Probar que editar precio o duración no altera citas existentes. Spec: SC-R2. Verif: RED, cita con precio 100000 conserva el valor tras cambiar el servicio a 130000.
+- [x] 3.1 Crear `api/src/shared/http/problem-details.filter.ts` (`application/problem+json`) y `business-context.ts` (resuelve `DEFAULT_BUSINESS_ID`). Spec: BS-R1. Verif: RED con supertest, un `DomainError` responde problem+json con su `code` y estado.
+- [x] 3.2 Crear módulo `api/src/modules/business-settings/` con `GET /business` y `PATCH /business` (`travel_buffer_min` entero 0-240, `followup_send_time` `HH:MM`; la zona horaria se rechaza). Spec: BS-R2, BS-R3, BS-R4. Verif: RED, pruebas HTTP con -5, 7.5, 241, `25:61`, `9am`, cambio a `America/Mexico_City`, y valor por defecto `09:00`.
+- [x] 3.3 Verificar aislamiento por negocio en repositorios (todos reciben `businessId`). Spec: BS-R1. Verif: RED, prueba de integración con dos negocios.
+- [x] 3.4 Crear módulo `api/src/modules/services/` con `POST/GET/GET:id/PATCH /services`, DTO validado, sin `DELETE`. Spec: SC-R1, SC-R3. Verif: RED, validación por campo (duración 0, nombre vacío, precio negativo), servicio sin `followup_interval_days`, `DELETE /services/:id` responde 404.
+- [x] 3.5 Implementar `active` (desactivar y reactivar por `PATCH`) y filtro por defecto `deleted_at IS NULL` con `includeInactive`. Spec: SC-R3. Verif: RED, servicio inactivo oculto de los ofrecidos y visible con `includeInactive`; servicio con `deleted_at` oculto.
+- [x] 3.6 Devolver en la respuesta de `PATCH /services/:id` la advertencia informativa con el número de citas futuras `pending|confirmed` que conservan la duración anterior, sin bloquear. Spec: SC-R4. Verif: RED, 5 citas futuras producen advertencia 5; sin citas, sin advertencia.
+- [x] 3.7 Probar que editar precio o duración no altera citas existentes. Spec: SC-R2. Verif: RED, cita con precio 100000 conserva el valor tras cambiar el servicio a 130000.
 
 ## Fase 4: Técnicos, disponibilidad y días libres (commit 4)
 

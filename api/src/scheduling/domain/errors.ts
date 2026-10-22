@@ -20,6 +20,20 @@ export class SlotTakenError extends DomainError {
   }
 }
 
+/** El recurso pedido no existe en el negocio actual. */
+export class NotFoundError extends DomainError {
+  constructor(message = 'Recurso no encontrado', options?: ErrorOptions) {
+    super('not_found', message, options);
+  }
+}
+
+/** Ya existe un servicio activo con ese nombre dentro del negocio. */
+export class ServiceNameTakenError extends DomainError {
+  constructor(options?: ErrorOptions) {
+    super('service_name_taken', 'Ya existe un servicio con ese nombre', options);
+  }
+}
+
 /** Ya existe un cliente con ese teléfono dentro del negocio. */
 export class CustomerPhoneTakenError extends DomainError {
   constructor(options?: ErrorOptions) {

@@ -1,4 +1,8 @@
-import { CustomerPhoneTakenError, SlotTakenError } from '../../domain/errors';
+import {
+  CustomerPhoneTakenError,
+  ServiceNameTakenError,
+  SlotTakenError,
+} from '../../domain/errors';
 
 /** Códigos SQLSTATE de Postgres que se traducen. */
 const EXCLUSION_VIOLATION = '23P01';
@@ -7,6 +11,7 @@ const UNIQUE_VIOLATION = '23505';
 /** Nombres de las restricciones definidas en las migraciones. */
 const APPOINTMENTS_NO_OVERLAP = 'appointments_no_overlap';
 const CUSTOMERS_PHONE_UNIQUE = 'uq_customers_business_phone';
+const SERVICES_NAME_UNIQUE = 'uq_services_business_name';
 
 type PgErrorShape = { code: string; constraint?: string };
 
@@ -30,6 +35,9 @@ export function translatePgError(error: unknown): unknown {
   }
   if (error.code === UNIQUE_VIOLATION && error.constraint === CUSTOMERS_PHONE_UNIQUE) {
     return new CustomerPhoneTakenError({ cause: error });
+  }
+  if (error.code === UNIQUE_VIOLATION && error.constraint === SERVICES_NAME_UNIQUE) {
+    return new ServiceNameTakenError({ cause: error });
   }
   return error;
 }
