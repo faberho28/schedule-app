@@ -1,6 +1,6 @@
 import { NotFoundError } from '../domain/errors';
 import type { Clock } from '../domain/model/clock';
-import type { Instant, LocalDate } from '../domain/model/time';
+import { type Instant, type LocalDate, msToMinutes } from '../domain/model/time';
 import type { SchedulingPorts } from '../domain/ports/command-executor';
 import { assignTechnician } from '../domain/services/assign-technician';
 import { generateSlots } from '../domain/services/generate-slots';
@@ -48,6 +48,7 @@ export class ListSlots {
     if (!service) throw new NotFoundError('El servicio no existe');
     if (!service.active) return { slots: [], hasAvailability: false };
 
+    const durationMin = await this.durationFor(businessId, service.durationMin, query);
     const days = Array.from({ length: query.days }, (_, offset) => addDays(query.from, offset));
     const schedule = await loadDaySchedule(this.ports, {
       businessId,
@@ -62,7 +63,7 @@ export class ListSlots {
       days,
       timeZone: config.timeZone,
       now: this.clock.now(),
-      durationMin: service.durationMin,
+      durationMin,
       bufferMin: config.travelBufferMin,
       technicians: schedule.technicians,
     });
@@ -85,5 +86,21 @@ export class ListSlots {
       });
     }
     return { slots, hasAvailability: slots.length > 0 };
+  }
+
+  /**
+   * Duración con la que se dimensionan los cupos. Al mover (`excludeAppointmentId`) es la propia
+   * de la cita (`ends_at - starts_at`), igual que en `MoveAppointment`: el servicio pudo cambiar
+   * de duración desde que se creó y mover no la recalcula. Si la cita no existe en el negocio, se
+   * usa la del servicio. El buffer es siempre el vigente del negocio, como al mover.
+   */
+  private async durationFor(
+    businessId: string,
+    serviceDurationMin: number,
+    query: ListSlotsQuery,
+  ): Promise<number> {
+    if (query.excludeAppointmentId === undefined) return serviceDurationMin;
+    const record = await this.ports.appointments.findRecord(businessId, query.excludeAppointmentId);
+    return record ? msToMinutes(record.endsAt - record.startsAt) : serviceDurationMin;
   }
 }

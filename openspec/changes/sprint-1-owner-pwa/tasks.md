@@ -202,11 +202,11 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 15: Diálogos de cita (commit 15)
 
-- [ ] 15.1 `CreateAppointmentDialog`: cliente, servicio activo, lista de cupos de `GET /slots` con el técnico asignado, reasignación manual, dirección obligatoria precargada y editable; sin campo de hora libre. Spec: UI-R4, AM-R1, CR-R4. Verif: RED con MSW, solo cupos ofrecidos, dirección precargada, dirección vacía bloquea el envío.
-- [ ] 15.2 Manejo de `slot_taken` en la interfaz: mensaje "Cupo ocupado", recarga de cupos y opción de elegir otro. Spec: UI-R2, SA-R6. Verif: RED con MSW.
-- [ ] 15.3 `MoveAppointmentDialog` con `excludeAppointmentId` y `preferredTechnicianId`, e indicación de cambio de técnico. Spec: UI-R4, AM-R3, SA-R5. Verif: RED con MSW.
-- [ ] 15.4 `CancelAppointmentDialog` con confirmación y motivo opcional, y `ReassignDialog` para reasignación manual. Spec: UI-R4, AM-R4, AM-R5. Verif: RED con MSW, la cita se muestra cancelada y el cupo se libera.
-- [ ] 15.5 Invalidar las consultas de agenda y cupos tras cada comando. Spec: UI-R4. Verif: RED, la agenda se actualiza sin recarga.
+- [x] 15.1 `CreateAppointmentDialog`: cliente, servicio activo, lista de cupos de `GET /slots` con el técnico asignado, reasignación manual, dirección obligatoria precargada y editable; sin campo de hora libre. Spec: UI-R4, AM-R1, CR-R4. Verif: RED con MSW, solo cupos ofrecidos, dirección precargada, dirección vacía bloquea el envío.
+- [x] 15.2 Manejo de `slot_taken` en la interfaz: mensaje "Cupo ocupado", recarga de cupos y opción de elegir otro. Spec: UI-R2, SA-R6. Verif: RED con MSW.
+- [x] 15.3 `MoveAppointmentDialog` con `excludeAppointmentId` y `preferredTechnicianId`, e indicación de cambio de técnico. Spec: UI-R4, AM-R3, SA-R5. Verif: RED con MSW.
+- [x] 15.4 `CancelAppointmentDialog` con confirmación y motivo opcional, y `ReassignDialog` para reasignación manual. Spec: UI-R4, AM-R4, AM-R5. Verif: RED con MSW, la cita se muestra cancelada y el cupo se libera.
+- [x] 15.5 Invalidar las consultas de agenda y cupos tras cada comando. Spec: UI-R4. Verif: RED, la agenda se actualiza sin recarga.
 
 ## Fase 16: Clientes en la interfaz (commit 16)
 

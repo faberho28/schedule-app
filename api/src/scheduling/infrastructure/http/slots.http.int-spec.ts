@@ -347,6 +347,53 @@ describe('GET /slots (SA-R1, SA-R4, SA-R5)', () => {
       expect(withExclusion.body.slots[0].technician_id).toBe(older);
     });
 
+    it('con excludeAppointmentId dimensiona los cupos con la duración propia de la cita, no la del servicio', async () => {
+      const technicianId = await technicianWorking();
+      const appointmentId = await createAppointment(pool, {
+        businessId: BUSINESS,
+        customerId,
+        serviceId,
+        technicianId,
+        startsAt: `${MONDAY}T10:00:00-05:00`,
+        durationMin: 60,
+        bufferMin: 15,
+      });
+      // El servicio pasó de 60 a 105 minutos después de crear la cita (mover sigue usando 60).
+      await pool.query(`UPDATE services SET duration_min = 105 WHERE id = $1`, [serviceId]);
+
+      const withExclusion = await slots({ excludeAppointmentId: appointmentId }).expect(200);
+      const withoutExclusion = await slots().expect(200);
+
+      expect(startsAt(withExclusion.body)).toEqual([
+        bogota(MONDAY, '08:00'),
+        bogota(MONDAY, '09:15'),
+        bogota(MONDAY, '10:30'),
+      ]);
+      expect(withExclusion.body.slots[0].ends_at).toBe(bogota(MONDAY, '09:00'));
+      // Sin excluir ninguna cita se usa la duración vigente del servicio.
+      expect(startsAt(withoutExclusion.body)).toEqual([bogota(MONDAY, '08:00')]);
+      expect(withoutExclusion.body.slots[0].ends_at).toBe(bogota(MONDAY, '09:45'));
+    });
+
+    it('con excludeAppointmentId de otro negocio usa la duración del servicio', async () => {
+      await technicianWorking();
+      const foreignTechnician = await createTechnician(pool, OTHER_BUSINESS);
+      const foreignService = await createService(pool, OTHER_BUSINESS);
+      const foreignCustomer = await createCustomer(pool, OTHER_BUSINESS);
+      const foreignAppointment = await createAppointment(pool, {
+        businessId: OTHER_BUSINESS,
+        customerId: foreignCustomer,
+        serviceId: foreignService,
+        technicianId: foreignTechnician,
+        startsAt: `${MONDAY}T10:00:00-05:00`,
+        durationMin: 30,
+      });
+
+      const response = await slots({ excludeAppointmentId: foreignAppointment }).expect(200);
+
+      expect(response.body.slots[0].ends_at).toBe(bogota(MONDAY, '09:00'));
+    });
+
     it('con preferredTechnicianId el técnico preferido tiene prioridad si está libre', async () => {
       const older = await technicianWorking(['08:00', '12:00'], {
         created_at: new Date('2026-01-01T00:00:00Z'),

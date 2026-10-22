@@ -60,6 +60,38 @@ export function service(overrides: Partial<Schemas['Service']> = {}): Schemas['S
   };
 }
 
+export function customer(overrides: Partial<Schemas['Customer']> = {}): Schemas['Customer'] {
+  return {
+    id: IDS.customer,
+    name: 'Ana Pérez',
+    alias: null,
+    phone: '+573001234567',
+    address: 'Calle 10 # 5-20',
+    notes: null,
+    consent_status: 'pending',
+    consent_at: null,
+    anonymized_at: null,
+    created_at: '2026-10-01T12:00:00.000Z',
+    ...overrides,
+  };
+}
+
+/** Cupo de 90 minutos; por defecto lo atiende Carlos (el único disponible). */
+export function slot(
+  startsAt = '2026-11-06T13:00:00.000Z',
+  overrides: Partial<Schemas['Slot']> = {},
+): Schemas['Slot'] {
+  const start = new Date(startsAt).getTime();
+  return {
+    starts_at: startsAt,
+    ends_at: new Date(start + 90 * 60_000).toISOString(),
+    occupied_until: new Date(start + 90 * 60_000).toISOString(),
+    technician_id: IDS.carlos,
+    available_technician_ids: [IDS.carlos],
+    ...overrides,
+  };
+}
+
 export function technician(overrides: Partial<Schemas['Technician']> = {}): Schemas['Technician'] {
   return {
     id: IDS.carlos,

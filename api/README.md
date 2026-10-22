@@ -215,6 +215,8 @@ Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos)
 
 Cada cupo de `GET /slots` es `{ starts_at, ends_at, occupied_until, technician_id, available_technician_ids }`: un inicio aparece una sola vez con el técnico asignado, y `available_technician_ids` (por antigüedad) alimenta la reasignación manual. Sin técnicos, con un servicio inactivo o sin huecos, `slots` es `[]` y `has_availability` es `false`. Los instantes se devuelven en ISO 8601 UTC.
 
+Duración al mover: con `excludeAppointmentId`, `GET /slots` dimensiona los cupos con la duración de esa cita (`ends_at - starts_at`), igual que `POST /appointments/:id/move`, y no con la actual del servicio, que pudo cambiar desde que se creó la cita. Así el diálogo de mover nunca ofrece un cupo que mover rechace con `slot_not_offered`. El buffer es el vigente del negocio en ambos casos. Si la cita indicada no existe en el negocio, se usa la duración del servicio.
+
 Con `excludeAppointmentId` (mover una cita) su bloque y su carga no cuentan: `loadDaySchedule` retira la cita antes de calcular ocupación y minutos agendados, porque `bookedMinutesByTechnician` del dominio no conoce ese parámetro. `MoveAppointment` y `ReassignAppointment` usan esa misma función y no calculan la carga por su cuenta; `day-schedule.spec.ts` verifica que los minutos de la cita movida no se cuentan a nadie. Como el técnico actual tiene prioridad cuando está libre, esta exclusión solo cambia el resultado cuando se consultan cupos sin `preferredTechnicianId`.
 
 ### Flujo de `POST /appointments`

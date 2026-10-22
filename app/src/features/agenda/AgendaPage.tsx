@@ -1,7 +1,9 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AppointmentFlows, type AppointmentFlow } from '@/features/appointments/AppointmentFlows';
 import { useBusiness } from '@/features/settings/business-api';
 import { useTechnicians } from '@/features/settings/technicians-api';
 import type { components } from '@/shared/api/schema';
@@ -18,9 +20,9 @@ type Appointment = components['schemas']['Appointment'];
 type Technician = components['schemas']['Technician'];
 
 type AgendaPageProps = {
-  /** Se llama al tocar una cita; los diálogos de cita se conectan aquí. */
+  /** Sustituye la apertura de la ficha de la cita al tocarla (por defecto abre sus diálogos). */
   onAppointmentSelect?(id: string): void;
-  /** Se llama al pedir una cita nueva en la columna de un técnico y un día. */
+  /** Sustituye la apertura de "Nueva cita" al pedirla en la columna de un técnico y un día. */
   onEmptyCellSelect?(technicianId: string, day: LocalDate): void;
 };
 
@@ -53,8 +55,15 @@ function AgendaScreen({
 
   const technicians = useTechnicians(true);
   const appointments = useAppointments(from, to);
+  const [flow, setFlow] = useState<AppointmentFlow | null>(null);
+  const [notice, setNotice] = useState('');
   const go = (next: { view?: AgendaView; date?: LocalDate }) =>
     setSearchParams({ view: next.view ?? view, date: next.date ?? date });
+  const open = (next: AppointmentFlow | null) => {
+    setNotice('');
+    setFlow(next);
+  };
+  const canCreate = technicians.data?.some((technician) => technician.active) ?? false;
 
   return (
     <>
@@ -102,7 +111,18 @@ function AgendaScreen({
             }}
           />
         </label>
+
+        {canCreate ? (
+          <Button type="button" className="ml-auto" onClick={() => open({ kind: 'create' })}>
+            <Plus aria-hidden="true" />
+            Nueva cita
+          </Button>
+        ) : null}
       </div>
+
+      <p role="status" className="min-h-5 text-sm font-medium">
+        {notice}
+      </p>
 
       <p aria-live="polite" className="text-sm font-medium text-muted-foreground">
         {view === 'day' ? formatDayLabel(from) : `${formatDayLabel(from)} – ${formatDayLabel(to)}`}
@@ -125,15 +145,29 @@ function AgendaScreen({
           timeZone={timeZone}
           technicians={technicians.data}
           appointments={appointments.data}
-          onAppointmentSelect={onAppointmentSelect ?? noop}
-          onEmptyCellSelect={onEmptyCellSelect}
+          onAppointmentSelect={onAppointmentSelect ?? ((id) => open({ kind: 'detail', id }))}
+          onEmptyCellSelect={
+            onEmptyCellSelect ??
+            ((technicianId, day) => open({ kind: 'create', technicianId, day }))
+          }
         />
       ) : null}
+
+      <AppointmentFlows
+        flow={flow}
+        appointments={appointments.data ?? []}
+        technicians={technicians.data ?? []}
+        timeZone={timeZone}
+        defaultDay={date}
+        onFlowChange={setFlow}
+        onDone={(message) => {
+          setFlow(null);
+          setNotice(message);
+        }}
+      />
     </>
   );
 }
-
-function noop() {}
 
 function ViewButton({
   current,
@@ -165,7 +199,7 @@ type AgendaContentProps = {
   technicians: Technician[];
   appointments: Appointment[];
   onAppointmentSelect(id: string): void;
-  onEmptyCellSelect: AgendaPageProps['onEmptyCellSelect'];
+  onEmptyCellSelect(technicianId: string, day: LocalDate): void;
 };
 
 function AgendaContent({

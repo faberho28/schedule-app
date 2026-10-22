@@ -37,7 +37,8 @@ export class ListSlotsQueryDto {
 
   @ApiPropertyOptional({
     format: 'uuid',
-    description: 'Cita que se está moviendo: no ocupa cupo en la consulta.',
+    description:
+      'Cita que se está moviendo: no ocupa cupo en la consulta y los cupos se dimensionan con la duración de la propia cita, no con la actual del servicio.',
   })
   @IsOptional()
   @IsUUID(undefined, { message: 'excludeAppointmentId debe ser un UUID' })
