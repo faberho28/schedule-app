@@ -103,13 +103,13 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 5: Dominio puro de cupos y asignación (commit 5)
 
-- [ ] 5.1 Crear `api/src/scheduling/domain/model/` (`LocalDate`, `LocalTime`, `Instant`, `Range`, `SlotCandidate`, `Clock` como puerto) y la máquina de estados `domain/services/appointment-status.ts` según D11. Spec: AM-R5, CL-R5. Verif: RED, tabla de transiciones válidas e `invalid_transition` (incluida cualquier transición desde `cancelled`).
-- [ ] 5.2 Crear `domain/time/zoned-clock.ts` (Luxon), único punto de conversión zona-instante. Spec: SA-R3, BS-R2. Verif: RED, `America/Bogota` 08:00 es 13:00 UTC; `America/New_York` hora inexistente avanza y hora ambigua toma la primera ocurrencia.
-- [ ] 5.3 Implementar `generateSlots` (huecos libres, cupos encadenados, primer cupo en el inicio del hueco, límites de franja, días libres, cupos pasados omitidos). Spec: SA-R1, SA-R2. Verif: RED, escenarios 08:00 y 09:15; posterior a cita; hueco insuficiente; cupo que excede la franja; día libre.
-- [ ] 5.4 Verificar en `generateSlots` que el bloque ocupado de `completed`, `no_show` y cerradas anticipadamente se trata como ocupado y que `excludeAppointmentId` libera el bloque propio. Spec: SA-R2, SA-R5. Verif: RED, escenarios de bloque con buffer, cierre anticipado y cupo adyacente al propio bloque.
-- [ ] 5.5 Implementar `assignTechnician` (filtrar disponibles, menos minutos agendados sin buffer ni cancelados, desempate por `created_at` y `id`, técnico preferido). Spec: SA-R4, SA-R5. Verif: RED, escenarios menos cargado, filtro previo, empate, carga sin buffer ni canceladas, preferido, sin técnicos.
-- [ ] 5.6 Agrupar candidatos por `startsAt` para que cada inicio aparezca una sola vez con el técnico asignado. Spec: SA-R4. Verif: RED, dos técnicos libres producen un solo cupo.
-- [ ] 5.7 Prueba de propiedades: ningún cupo generado se solapa con el bloque ocupado de un técnico. Spec: AM-R2. Verif: prueba generativa (casos aleatorios con semilla fija).
+- [x] 5.1 Crear `api/src/scheduling/domain/model/` (`LocalDate`, `LocalTime`, `Instant`, `Range`, `SlotCandidate`, `Clock` como puerto) y la máquina de estados `domain/services/appointment-status.ts` según D11. Spec: AM-R5, CL-R5. Verif: RED, tabla de transiciones válidas e `invalid_transition` (incluida cualquier transición desde `cancelled`).
+- [x] 5.2 Crear `domain/time/zoned-clock.ts` (Luxon), único punto de conversión zona-instante. Spec: SA-R3, BS-R2. Verif: RED, `America/Bogota` 08:00 es 13:00 UTC; `America/New_York` hora inexistente avanza y hora ambigua toma la primera ocurrencia.
+- [x] 5.3 Implementar `generateSlots` (huecos libres, cupos encadenados, primer cupo en el inicio del hueco, límites de franja, días libres, cupos pasados omitidos). Spec: SA-R1, SA-R2. Verif: RED, escenarios 08:00 y 09:15; posterior a cita; hueco insuficiente; cupo que excede la franja; día libre.
+- [x] 5.4 Verificar en `generateSlots` que el bloque ocupado de `completed`, `no_show` y cerradas anticipadamente se trata como ocupado y que `excludeAppointmentId` libera el bloque propio. Spec: SA-R2, SA-R5. Verif: RED, escenarios de bloque con buffer, cierre anticipado y cupo adyacente al propio bloque.
+- [x] 5.5 Implementar `assignTechnician` (filtrar disponibles, menos minutos agendados sin buffer ni cancelados, desempate por `created_at` y `id`, técnico preferido). Spec: SA-R4, SA-R5. Verif: RED, escenarios menos cargado, filtro previo, empate, carga sin buffer ni canceladas, preferido, sin técnicos.
+- [x] 5.6 Agrupar candidatos por `startsAt` para que cada inicio aparezca una sola vez con el técnico asignado. Spec: SA-R4. Verif: RED, dos técnicos libres producen un solo cupo.
+- [x] 5.7 Prueba de propiedades: ningún cupo generado se solapa con el bloque ocupado de un técnico. Spec: AM-R2. Verif: prueba generativa (casos aleatorios con semilla fija).
 
 ## Fase 6: `GET /slots`, crear y cancelar citas (commit 6)
 

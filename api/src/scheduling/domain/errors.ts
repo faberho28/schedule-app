@@ -20,6 +20,13 @@ export class SlotTakenError extends DomainError {
   }
 }
 
+/** La transición de estado pedida no está permitida por la máquina de estados de la cita. */
+export class InvalidTransitionError extends DomainError {
+  constructor(message = 'Transición de estado no permitida', options?: ErrorOptions) {
+    super('invalid_transition', message, options);
+  }
+}
+
 /** El recurso pedido no existe en el negocio actual. */
 export class NotFoundError extends DomainError {
   constructor(message = 'Recurso no encontrado', options?: ErrorOptions) {
