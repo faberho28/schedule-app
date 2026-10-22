@@ -20,6 +20,13 @@ export class SlotTakenError extends DomainError {
   }
 }
 
+/** La hora pedida no pertenece a la grilla de cupos generada y no choca con ninguna cita. */
+export class SlotNotOfferedError extends DomainError {
+  constructor(message = 'La hora pedida no es un cupo ofrecido', options?: ErrorOptions) {
+    super('slot_not_offered', message, options);
+  }
+}
+
 /** La transición de estado pedida no está permitida por la máquina de estados de la cita. */
 export class InvalidTransitionError extends DomainError {
   constructor(message = 'Transición de estado no permitida', options?: ErrorOptions) {

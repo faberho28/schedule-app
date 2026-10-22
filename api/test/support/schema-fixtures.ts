@@ -129,7 +129,19 @@ export async function insertAppointment(pool: Pool, input: AppointmentFixture): 
   );
   const row = result.rows[0];
   if (!row) throw new Error('INSERT en appointments no devolvió fila');
+  await applyOverrides(pool, row.id, input.overrides ?? {});
   return row.id;
+}
+
+/** Aplica con un `UPDATE` las columnas indicadas en `overrides` (cierre, cancelación, etc.). */
+async function applyOverrides(pool: Pool, appointmentId: string, overrides: Row): Promise<void> {
+  const columns = Object.keys(overrides);
+  if (columns.length === 0) return;
+  const assignments = columns.map((column, index) => `${assertIdentifier(column)} = $${index + 2}`);
+  await pool.query(`UPDATE appointments SET ${assignments.join(', ')} WHERE id = $1`, [
+    appointmentId,
+    ...columns.map((column) => overrides[column]),
+  ]);
 }
 
 /** Devuelve el negocio con un servicio, un técnico y un cliente listos para citas. */

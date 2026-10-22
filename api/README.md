@@ -153,14 +153,16 @@ La advertencia de `PATCH /services/:id` es informativa y no bloquea el cambio: `
 
 `src/scheduling/domain/` contiene funciones puras de TypeScript, sin Nest, Kysely ni Postgres (una prueba lo verifica). Los instantes son milisegundos desde la época Unix y los rangos son semiabiertos `[start, end)`.
 
-| Archivo                          | Responsabilidad                                                                                                                                             |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `time/zoned-clock.ts`            | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia. |
-| `services/generate-slots.ts`     | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                   |
-| `services/occupied-blocks.ts`    | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.        |
-| `services/assign-technician.ts`  | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                       |
-| `services/technician-load.ts`    | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                               |
-| `services/appointment-status.ts` | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                 |
+| Archivo                          | Responsabilidad                                                                                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time/zoned-clock.ts`            | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia.     |
+| `services/generate-slots.ts`     | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                       |
+| `services/occupied-blocks.ts`    | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.            |
+| `services/assign-technician.ts`  | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                           |
+| `services/technician-load.ts`    | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                                   |
+| `services/appointment-status.ts` | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                     |
+| `services/book-slot.ts`          | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede.                                                            |
+| `ports/`                         | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`) y `CommandExecutor`. Solo tipos: el dominio no importa adaptadores. |
 
 Reglas de `generateSlots`:
 
@@ -169,6 +171,56 @@ Reglas de `generateSlots`:
 - Los cupos anteriores a `now` se omiten sin mover la cadena; un cupo que empieza exactamente en `now` se ofrece.
 - `SlotCandidate.technicianIds` lista a los técnicos libres en ese inicio, ordenados por antigüedad (`createdAt`, luego `id`). `assignTechnician` desempata por esa posición.
 - Las franjas se convierten a instantes reales: en el retroceso de otoño una franja `00:00-03:00` dura cuatro horas reales y cada instante se ofrece una sola vez.
+
+## Cupos y citas
+
+Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos), `application/` (casos de uso sin Nest: `ListSlots`, `CreateAppointment`, `CancelAppointment`, `QueryAppointments` y `loadDaySchedule`), `infrastructure/` (adaptadores de Kysely, controladores, DTO) y `scheduling.module.ts`, que cablea todo con los tokens de `application/tokens.ts` (`CLOCK`, `COMMAND_EXECUTOR`, `READ_PORTS`). Las pruebas fijan el reloj con `createTestApp({ now })`.
+
+### Ejecutor de comandos y bloqueo del negocio
+
+`BusinessLockExecutor` (`infrastructure/persistence/business-lock-executor.ts`) ejecuta cada comando de agenda en una transacción `READ COMMITTED` que empieza con `SELECT id FROM businesses WHERE id = $1 FOR UPDATE`. Dos comandos del mismo negocio se serializan; negocios distintos no se bloquean entre sí. Si el comando falla, la transacción se revierte y el bloqueo se libera. `appointments_no_overlap` sigue siendo la última defensa: aun sin el bloqueo, una colisión falla con `23P01` y se traduce a `slot_taken`. El bloqueo evita además el falso conflicto entre dos solicitudes automáticas que elegirían al mismo técnico libre.
+
+### Endpoints
+
+| Método y ruta                   | Descripción                                                                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /slots`                    | Cupos de un servicio. Consulta: `serviceId`, `from` (`AAAA-MM-DD`, día local), `days` (1 a 31, por defecto 1), `excludeAppointmentId` y `preferredTechnicianId` opcionales. Responde `{ slots, has_availability }`. |
+| `POST /appointments`            | Crea una cita `confirmed` (201). Cuerpo: `customer_id`, `service_id`, `starts_at` (ISO 8601 con zona), `address` (obligatoria) y `technician_id` opcional.                                                          |
+| `POST /appointments/:id/cancel` | Cancela una cita `pending` o `confirmed` (200). Cuerpo opcional: `reason`. Libera el bloque y anula sus mensajes programados pendientes.                                                                            |
+| `GET /appointments`             | Citas de cualquier estado con técnico, cliente y servicio. Consulta: `from` y `to` (días locales, ambos incluidos, hasta 62 días), ordenadas por inicio.                                                            |
+| `GET /appointments/:id`         | Detalle de una cita (404 si no existe en el negocio).                                                                                                                                                               |
+
+Cada cupo de `GET /slots` es `{ starts_at, ends_at, occupied_until, technician_id, available_technician_ids }`: un inicio aparece una sola vez con el técnico asignado, y `available_technician_ids` (por antigüedad) alimenta la reasignación manual. Sin técnicos, con un servicio inactivo o sin huecos, `slots` es `[]` y `has_availability` es `false`. Los instantes se devuelven en ISO 8601 UTC.
+
+Con `excludeAppointmentId` (mover una cita) su bloque y su carga no cuentan: `loadDaySchedule` retira la cita antes de calcular ocupación y minutos agendados, porque `bookedMinutesByTechnician` del dominio no conoce ese parámetro. **Nota para la fase 7:** mover y reasignar deben reutilizar `loadDaySchedule` con `excludeAppointmentId` y no calcular la carga por su cuenta.
+
+### Flujo de `POST /appointments`
+
+```
+BEGIN (READ COMMITTED); SELECT ... FROM businesses WHERE id = $1 FOR UPDATE
+  leer zona horaria y buffer del negocio, servicio y cliente  (404 si no existen)
+  servicio inactivo                                         -> slot_not_offered (422)
+  cargar técnicos reservables, días libres y bloques ocupados del día local
+  bookSlot: regenerar los cupos del día con la agenda ya confirmada
+    la hora es un cupo y hay técnico libre                   -> asignar (menos cargado; técnico pedido si está libre)
+    no es un cupo y choca con el bloque de una cita          -> slot_taken (409)
+    cualquier otro caso                                      -> slot_not_offered (422)
+  INSERT appointments (confirmed, snapshots, buffer_min, slot = [inicio, fin + buffer))
+  UPDATE customers SET address = <dirección usada> si cambió
+COMMIT
+```
+
+La colisión se evalúa antes que la pertenencia a la grilla. "Choca" significa que todos los técnicos relevantes (los que trabajan a esa hora o tienen un bloque que se solapa) tienen una cita no cancelada encima; con `technician_id` solo cuenta ese técnico. El bloque de `completed`, `no_show` y las citas cerradas antes de tiempo se conserva; solo `cancelled` lo libera. La dirección se copia en `address_snapshot` y la última dirección usada reemplaza a `customers.address`; el precio, el nombre del servicio y el buffer también se copian y no cambian con ediciones posteriores.
+
+### Códigos de error del flujo
+
+| Código               | Estado | Cuándo                                                                                                       |
+| -------------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
+| `validation_error`   | 400    | Dirección ausente o vacía, UUID o fecha inválidos, `starts_at` sin zona, rango de agenda inválido.           |
+| `not_found`          | 404    | Cliente, servicio, cita o técnico de la ruta inexistente en el negocio.                                      |
+| `slot_taken`         | 409    | La hora pedida choca con el bloque (duración más buffer) de una cita no cancelada, incluida una concurrente. |
+| `slot_not_offered`   | 422    | La hora no es un cupo generado y no choca con ninguna cita; también servicio o técnico pedido no reservable. |
+| `invalid_transition` | 422    | Cancelar una cita `cancelled`, `completed` o `no_show`. Una cancelada no se reabre: se crea una cita nueva.  |
 
 ## Pruebas
 

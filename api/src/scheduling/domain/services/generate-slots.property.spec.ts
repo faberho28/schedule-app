@@ -135,7 +135,8 @@ function isValidStart(
   );
 }
 
-describe('generateSlots: propiedades (semilla fija)', () => {
+// El oráculo minuto a minuto es costoso en CPU: el límite por defecto (5 s) falla bajo carga.
+describe('generateSlots: propiedades (semilla fija)', { timeout: 60_000 }, () => {
   const random = mulberry32(SEED);
   const scenarios = Array.from({ length: CASES }, () => scenario(random));
 

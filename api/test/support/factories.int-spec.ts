@@ -52,6 +52,35 @@ describe('factories de datos de prueba', () => {
     ]);
   });
 
+  it('createAppointment aplica las columnas de overrides (cierre, cancelación)', async () => {
+    const businessId = await createBusiness(pool);
+    const technicianId = await createTechnician(pool, businessId);
+    const serviceId = await createService(pool, businessId);
+    const customerId = await createCustomer(pool, businessId);
+    const cancelledAt = new Date('2099-01-09T12:00:00Z');
+    const base = { businessId, customerId, serviceId, technicianId, startsAt: '' };
+
+    const cancelled = await createAppointment(pool, {
+      ...base,
+      startsAt: '2099-01-10T08:00:00-05:00',
+      status: 'cancelled',
+      overrides: { cancel_reason: 'Viaje', cancelled_at: cancelledAt },
+    });
+    const plain = await createAppointment(pool, {
+      ...base,
+      startsAt: '2099-01-10T10:00:00-05:00',
+    });
+
+    const { rows } = await pool.query(
+      `SELECT id, cancel_reason, cancelled_at FROM appointments WHERE id = ANY($1) ORDER BY starts_at`,
+      [[cancelled, plain]],
+    );
+    expect(rows).toEqual([
+      { id: cancelled, cancel_reason: 'Viaje', cancelled_at: cancelledAt },
+      { id: plain, cancel_reason: null, cancelled_at: null },
+    ]);
+  });
+
   it('createAvailability inserta una franja en hora local', async () => {
     const businessId = await createBusiness(pool);
     const technicianId = await createTechnician(pool, businessId);

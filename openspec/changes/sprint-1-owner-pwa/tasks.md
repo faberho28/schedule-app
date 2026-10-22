@@ -113,15 +113,15 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 6: `GET /slots`, crear y cancelar citas (commit 6)
 
-- [ ] 6.1 Definir puertos y adaptadores Kysely en `api/src/scheduling/` (repositorio de citas, lectura de horarios) y el ejecutor de comandos que abre transacción `READ COMMITTED` con `SELECT id FROM businesses WHERE id = $1 FOR UPDATE`. Spec: AM-R2. Verif: RED, prueba de integración de que dos comandos del mismo negocio se serializan.
-- [ ] 6.2 Implementar `ListSlots` y `GET /slots` (`serviceId`, `from`, `days`, `excludeAppointmentId`, `preferredTechnicianId`). Spec: SA-R1, SA-R4, SA-R5. Verif: RED con supertest, técnicos inactivos o anonimizados y servicios inactivos no generan cupos; sin técnicos informa que no hay cupo.
-- [ ] 6.3 Implementar `CreateAppointment` y `POST /appointments` (estado `confirmed`, snapshots de dirección, precio y nombre del servicio, `buffer_min`, `slot`, regeneración de cupos dentro de la transacción, orden `slot_taken` luego `slot_not_offered`). Spec: AM-R1, SA-R6. Verif: RED, escenarios cita en cupo ofrecido, dirección ausente (400), hora fuera de grilla (422), colisión (409).
-- [ ] 6.4 Actualizar `customers.address` con la dirección usada al crear la cita. Spec: CR-R4. Verif: RED, escenario "Dirección actualizada al agendar" y snapshot inmune a cambios posteriores.
-- [ ] 6.5 Implementar `CancelAppointment` y `POST /appointments/:id/cancel` (motivo opcional, libera bloque, `cancelled` no se reabre). Spec: AM-R5. Verif: RED, cancelar con y sin motivo; reabrir responde `invalid_transition`; el cupo vuelve a ofrecerse.
-- [ ] 6.6 Agregar `GET /appointments?from&to` y `GET /appointments/:id` con técnico, cliente y servicio para la agenda. Spec: UI-R3 (datos de la agenda). Verif: RED, filtra por rango y negocio.
-- [ ] 6.7 Prueba de concurrencia con conexiones reales: dos solicitudes simultáneas para el mismo cupo producen una cita y un `slot_taken` (409). Spec: AM-R2, SA-R6. Verif: integración con Testcontainers.
-- [ ] 6.8 Pruebas de bloqueo absoluto: solape por buffer (11:10), bloque conservado por `completed` y `no_show`, liberación al cancelar. Spec: AM-R2, SA-R2. Verif: RED, escenarios del spec.
-- [ ] 6.9 Documentar en `api/README.md` el flujo de creación y los códigos de error. Spec: n/a. Verif: manual.
+- [x] 6.1 Definir puertos y adaptadores Kysely en `api/src/scheduling/` (repositorio de citas, lectura de horarios) y el ejecutor de comandos que abre transacción `READ COMMITTED` con `SELECT id FROM businesses WHERE id = $1 FOR UPDATE`. Spec: AM-R2. Verif: RED, prueba de integración de que dos comandos del mismo negocio se serializan.
+- [x] 6.2 Implementar `ListSlots` y `GET /slots` (`serviceId`, `from`, `days`, `excludeAppointmentId`, `preferredTechnicianId`). Spec: SA-R1, SA-R4, SA-R5. Verif: RED con supertest, técnicos inactivos o anonimizados y servicios inactivos no generan cupos; sin técnicos informa que no hay cupo.
+- [x] 6.3 Implementar `CreateAppointment` y `POST /appointments` (estado `confirmed`, snapshots de dirección, precio y nombre del servicio, `buffer_min`, `slot`, regeneración de cupos dentro de la transacción, orden `slot_taken` luego `slot_not_offered`). Spec: AM-R1, SA-R6. Verif: RED, escenarios cita en cupo ofrecido, dirección ausente (400), hora fuera de grilla (422), colisión (409).
+- [x] 6.4 Actualizar `customers.address` con la dirección usada al crear la cita. Spec: CR-R4. Verif: RED, escenario "Dirección actualizada al agendar" y snapshot inmune a cambios posteriores.
+- [x] 6.5 Implementar `CancelAppointment` y `POST /appointments/:id/cancel` (motivo opcional, libera bloque, `cancelled` no se reabre). Spec: AM-R5. Verif: RED, cancelar con y sin motivo; reabrir responde `invalid_transition`; el cupo vuelve a ofrecerse.
+- [x] 6.6 Agregar `GET /appointments?from&to` y `GET /appointments/:id` con técnico, cliente y servicio para la agenda. Spec: UI-R3 (datos de la agenda). Verif: RED, filtra por rango y negocio.
+- [x] 6.7 Prueba de concurrencia con conexiones reales: dos solicitudes simultáneas para el mismo cupo producen una cita y un `slot_taken` (409). Spec: AM-R2, SA-R6. Verif: integración con Testcontainers.
+- [x] 6.8 Pruebas de bloqueo absoluto: solape por buffer (11:10), bloque conservado por `completed` y `no_show`, liberación al cancelar. Spec: AM-R2, SA-R2. Verif: RED, escenarios del spec.
+- [x] 6.9 Documentar en `api/README.md` el flujo de creación y los códigos de error. Spec: n/a. Verif: manual.
 
 ## Fase 7: Mover y reasignar citas (commit 7)
 
