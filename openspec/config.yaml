@@ -1,0 +1,54 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Project: schedule-app (greenfield; only README.md and a PRD exist).
+  Product: automatic WhatsApp scheduling for service businesses (see PRD*.md at repo root).
+  Planned stack (NOT final): Node (Fastify) or Python (FastAPI) backend, Postgres 16, PWA (SvelteKit or React+Vite).
+  Architecture: not yet defined; decide during sdd-design.
+  Testing: no runner detected; strict_tdd disabled until a runner is chosen.
+  Style: no linter/formatter/type checker configured yet.
+
+strict_tdd: false
+
+testing:
+  detected: 2026-10-21
+  runner:
+    command: ""
+    framework: none
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage:
+    available: false
+    command: ""
+  quality:
+    linter: ""
+    type_checker: ""
+    formatter: ""
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Do not assume backend or frontend stack until a decision is recorded
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale, including the stack choice
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - Include test runner setup early; re-run sdd-init afterwards to enable strict TDD
+  apply:
+    - Follow existing code patterns
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
