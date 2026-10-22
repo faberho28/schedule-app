@@ -195,10 +195,10 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 14: `AgendaGrid` (commit 14)
 
-- [ ] 14.1 Crear `app/src/features/agenda/AgendaGrid.tsx` con el contrato de props de D8, CSS Grid propio, vista de día (columna por técnico) y de semana (columnas por día con carriles por técnico), cola rayada de buffer, citas como `button` con `aria-label`, estado con ícono y texto. Spec: UI-R3. Verif: RED, dos columnas en vista de día; siete días en vista de semana.
-- [ ] 14.2 Garantizar que no hay arrastrar y soltar. Spec: UI-R3. Verif: RED, simular arrastre no dispara callbacks ni cambia datos.
-- [ ] 14.3 Filtro por técnico en móvil y colores de estado accesibles (tokens D8). Spec: UI-R3. Verif: RED, filtro y atributos accesibles; manual, contraste.
-- [ ] 14.4 Ruta `/agenda?view=day|week&date=YYYY-MM-DD` con carga de técnicos y citas, navegación entre fechas y `onEmptyCellSelect`. Spec: UI-R3. Verif: RED con MSW, cambiar a semana actualiza la URL.
+- [x] 14.1 Crear `app/src/features/agenda/AgendaGrid.tsx` con el contrato de props de D8, CSS Grid propio, vista de día (columna por técnico) y de semana (columnas por día con carriles por técnico), cola rayada de buffer, citas como `button` con `aria-label`, estado con ícono y texto. Spec: UI-R3. Verif: RED, dos columnas en vista de día; siete días en vista de semana.
+- [x] 14.2 Garantizar que no hay arrastrar y soltar. Spec: UI-R3. Verif: RED, simular arrastre no dispara callbacks ni cambia datos.
+- [x] 14.3 Filtro por técnico en móvil y colores de estado accesibles (tokens D8). Spec: UI-R3. Verif: RED, filtro y atributos accesibles; manual, contraste.
+- [x] 14.4 Ruta `/agenda?view=day|week&date=YYYY-MM-DD` con carga de técnicos y citas, navegación entre fechas y `onEmptyCellSelect`. Spec: UI-R3. Verif: RED con MSW, cambiar a semana actualiza la URL.
 
 ## Fase 15: Diálogos de cita (commit 15)
 

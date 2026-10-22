@@ -89,6 +89,16 @@ El horario semanal, los días libres, el estado `active` y la eliminación de un
 
 Los límites de un día libre se envían como instantes calculados con `zonedInstant` (`src/shared/lib/dates.ts`) en la zona horaria del negocio.
 
+## Agenda
+
+Vive en `src/features/agenda/`. La ruta `/agenda?view=day|week&date=YYYY-MM-DD` guarda la vista y la fecha en la URL; un valor ausente o inválido se reemplaza por la vista de día y por hoy en la zona horaria del negocio.
+
+- `AgendaPage.tsx`: carga el negocio, los técnicos (`includeAnonymized=true`) y las citas del rango con `GET /appointments?from&to` (fechas locales, ambas incluidas). Ofrece Día/Semana, anterior/siguiente, "Hoy" y un selector de fecha. Muestra las columnas de los técnicos activos y, además, las de los inactivos o eliminados que tengan citas en el rango. Solo los activos ofrecen citas nuevas.
+- `AgendaGrid.tsx`: grilla con CSS propio, sin librería de calendario y sin arrastrar y soltar. La vista de día tiene una columna por técnico; la de semana, una sección por día con un carril por técnico. El filtro "Técnico" limita las columnas a una (útil en móvil). Cada cita es un `button` con `aria-label` (hora, cliente, servicio, estado, técnico, cambio de técnico y traslado). El estado se indica con ícono, texto y el color del token `--status-*`. El buffer se dibuja como una cola rayada. Las canceladas se muestran atenuadas y tachadas, sin cola de buffer. Props: ver `AgendaGridProps` (contrato de D8; `technicians[].active` es opcional).
+- `agenda-layout.ts`: funciones puras con las posiciones (`blockGeometry`), el reparto de ancho de bloques solapados (`packOverlaps`) y la ventana horaria (`visibleHoursFor`: 07:00 a 19:00, ampliada a horas en punto para que quepan todas las citas). Mide en hora de pared de la zona del negocio: en un día con cambio de horario la hora que no existe queda como hueco y la repetida se superpone.
+- `agenda-params.ts`: lectura de `view` y `date` de la URL y navegación entre fechas.
+- Las consultas usan la clave `['appointments', ...]` (`agenda-api.ts`), así que `invalidateQueries({ queryKey: ['appointments'] })` refresca la agenda. `AgendaPage` recibe `onAppointmentSelect` y `onEmptyCellSelect`; los diálogos de cita (fase 15) se conectan ahí.
+
 ## Tema
 
 Los colores son variables CSS en `src/index.css` (convención de shadcn/ui): azul primario `#2563EB`, neutros slate y un par fondo/texto por cada estado de la cita (`pending`, `confirmed`, `completed`, `no_show`, `cancelled`). Hay tema claro y oscuro (clase `.dark`, que `index.html` activa según `prefers-color-scheme`). `src/theme/tokens.test.ts` verifica que todos los pares cumplan contraste AA (4,5:1).

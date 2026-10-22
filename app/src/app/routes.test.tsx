@@ -27,6 +27,7 @@ describe('rutas de la aplicación', () => {
       http.get(apiUrl('/technicians/:id'), () => HttpResponse.json(technician())),
       http.get(apiUrl('/technicians/:id/availability'), () => HttpResponse.json([])),
       http.get(apiUrl('/technicians/:id/time-off'), () => HttpResponse.json([])),
+      http.get(apiUrl('/appointments'), () => HttpResponse.json([])),
     );
   });
 
