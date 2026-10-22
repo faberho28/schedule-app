@@ -95,11 +95,11 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 4: Técnicos, disponibilidad y días libres (commit 4)
 
-- [ ] 4.1 Crear módulo `api/src/modules/technicians/` con `POST/GET/GET:id/PATCH /technicians` (solo `name` y `phone`; `active` y horarios no se escriben aquí). Spec: TS-R1. Verif: RED, nombre vacío rechazado, técnico nuevo queda activo.
-- [ ] 4.2 Agregar `GET /technicians/:id/availability` y `GET /technicians/:id/time-off`. Spec: TS-R2, TS-R3. Verif: RED, devuelven las franjas y períodos del técnico del negocio actual.
-- [ ] 4.3 Rechazar con 400 que `PATCH /technicians/:id` incluya `active` (la escritura pasa por el flujo de la fase 8). Spec: TS-R5. Verif: RED, prueba HTTP.
-- [ ] 4.4 Excluir técnicos anonimizados por defecto de los listados (`includeAnonymized`). Spec: TS-R6. Verif: RED con fila anonimizada insertada directamente.
-- [ ] 4.5 Crear fábricas de datos de prueba en `api/test/support/factories.ts` para negocios, técnicos, clientes, servicios y citas. Spec: n/a. Verif: se usan en las pruebas de las fases siguientes.
+- [x] 4.1 Crear módulo `api/src/modules/technicians/` con `POST/GET/GET:id/PATCH /technicians` (solo `name` y `phone`; `active` y horarios no se escriben aquí). Spec: TS-R1. Verif: RED, nombre vacío rechazado, técnico nuevo queda activo.
+- [x] 4.2 Agregar `GET /technicians/:id/availability` y `GET /technicians/:id/time-off`. Spec: TS-R2, TS-R3. Verif: RED, devuelven las franjas y períodos del técnico del negocio actual.
+- [x] 4.3 Rechazar con 400 que `PATCH /technicians/:id` incluya `active` (la escritura pasa por el flujo de la fase 8). Spec: TS-R5. Verif: RED, prueba HTTP.
+- [x] 4.4 Excluir técnicos anonimizados por defecto de los listados (`includeAnonymized`). Spec: TS-R6. Verif: RED con fila anonimizada insertada directamente.
+- [x] 4.5 Crear fábricas de datos de prueba en `api/test/support/factories.ts` para negocios, técnicos, clientes, servicios y citas. Spec: n/a. Verif: se usan en las pruebas de las fases siguientes.
 
 ## Fase 5: Dominio puro de cupos y asignación (commit 5)
 
