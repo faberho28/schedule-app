@@ -1,4 +1,4 @@
-import { NotFoundError, SlotNotOfferedError } from '../domain/errors';
+import { CustomerAnonymizedError, NotFoundError, SlotNotOfferedError } from '../domain/errors';
 import type { Clock } from '../domain/model/clock';
 import { type Instant, minutesToMs } from '../domain/model/time';
 import type { AppointmentView } from '../domain/ports/appointment-repository';
@@ -40,6 +40,7 @@ export class CreateAppointment {
       if (!service) throw new NotFoundError('El servicio no existe');
       const customer = await ports.customers.find(businessId, command.customerId);
       if (!customer) throw new NotFoundError('El cliente no existe');
+      if (customer.anonymizedAt !== null) throw new CustomerAnonymizedError();
       if (!service.active) throw new SlotNotOfferedError('El servicio no está activo');
 
       const day = localDateOf(command.startsAt, config.timeZone);

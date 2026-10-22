@@ -115,4 +115,7 @@ export interface AppointmentRepository {
 
   /** Citas de cualquier estado cuyo inicio cae en `[range.start, range.end)`, por inicio. */
   listViews(businessId: string, range: Range): Promise<AppointmentView[]>;
+
+  /** Historial del cliente: todas sus citas, de la más reciente a la más antigua. */
+  listByCustomer(businessId: string, customerId: string): Promise<AppointmentView[]>;
 }

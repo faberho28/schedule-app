@@ -109,7 +109,7 @@ El filtro global `ProblemDetailsFilter` (`src/shared/http/problem-details.filter
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
 | `validation_error`, `bad_request`                                                                                                                | 400    |
 | `not_found` (incluye rutas inexistentes)                                                                                                         | 404    |
-| `slot_taken`, `schedule_conflict`, `schedule_overlap`, `proposal_stale`, `customer_phone_taken`, `service_name_taken`                            | 409    |
+| `slot_taken`, `schedule_conflict`, `schedule_overlap`, `proposal_stale`, `customer_phone_taken`, `customer_anonymized`, `service_name_taken`     | 409    |
 | `invalid_transition`, `slot_not_offered`, `early_closure_reason_required`, `early_closure_confirmation_required`, `reopen_confirmation_required` | 422    |
 | `internal_error` (y cualquier `DomainError` sin estado asignado)                                                                                 | 500    |
 
@@ -161,21 +161,24 @@ Las rutas de escritura de horario viven en `ScheduleChangesController` (`schedul
 
 `src/scheduling/domain/` contiene funciones puras de TypeScript, sin Nest, Kysely ni Postgres (una prueba lo verifica). Los instantes son milisegundos desde la época Unix y los rangos son semiabiertos `[start, end)`.
 
-| Archivo                               | Responsabilidad                                                                                                                                                    |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `time/zoned-clock.ts`                 | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia.        |
-| `services/generate-slots.ts`          | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                          |
-| `services/occupied-blocks.ts`         | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.               |
-| `services/assign-technician.ts`       | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                              |
-| `services/technician-load.ts`         | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                                      |
-| `services/appointment-status.ts`      | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                        |
-| `services/book-slot.ts`               | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede. Acepta un técnico pedido (restringe) o preferido (prioridad). |
-| `services/technician-availability.ts` | `isTechnicianFree`: el técnico trabaja en un horario exacto y su bloque ocupado no choca con el de la cita (reasignación manual).                                  |
-| `services/schedule-change.ts`         | `findAffectedAppointments`: citas `pending`/`confirmed` desde `now` que un `ScheduleChange` (modelo en `model/schedule-change.ts`) deja sin cobertura.             |
-| `services/plan-reassignments.ts`      | `planReassignments` (propuesta cronológica con carga y ocupación en memoria) y `findUnavailableTargets` (verifica los destinos al aplicar).                        |
-| `services/availability-windows.ts`    | `validateAvailabilityWindows`: día 1 a 7, horas `HH:MM` hasta 23:59, fin posterior al inicio y sin solapes por día.                                                |
-| `services/alias.ts`                   | `generateAlias`: alias aleatorio `palabra_número` que no esté ya usado en el negocio.                                                                              |
-| `ports/`                              | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`) y `CommandExecutor`. Solo tipos: el dominio no importa adaptadores.    |
+| Archivo                               | Responsabilidad                                                                                                                                                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time/zoned-clock.ts`                 | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia.             |
+| `services/generate-slots.ts`          | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                               |
+| `services/occupied-blocks.ts`         | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.                    |
+| `services/assign-technician.ts`       | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                                   |
+| `services/technician-load.ts`         | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                                           |
+| `services/appointment-status.ts`      | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                             |
+| `services/book-slot.ts`               | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede. Acepta un técnico pedido (restringe) o preferido (prioridad).      |
+| `services/technician-availability.ts` | `isTechnicianFree`: el técnico trabaja en un horario exacto y su bloque ocupado no choca con el de la cita (reasignación manual).                                       |
+| `services/schedule-change.ts`         | `findAffectedAppointments`: citas `pending`/`confirmed` desde `now` que un `ScheduleChange` (modelo en `model/schedule-change.ts`) deja sin cobertura.                  |
+| `services/plan-reassignments.ts`      | `planReassignments` (propuesta cronológica con carga y ocupación en memoria) y `findUnavailableTargets` (verifica los destinos al aplicar).                             |
+| `services/availability-windows.ts`    | `validateAvailabilityWindows`: día 1 a 7, horas `HH:MM` hasta 23:59, fin posterior al inicio y sin solapes por día.                                                     |
+| `services/alias.ts`                   | `generateAlias`: alias aleatorio `palabra_número` que no esté ya usado en el negocio. Listas de palabras de técnicos (`tiger_1`) y de clientes (`bear_1`).              |
+| `services/followup-policy.ts`         | `followupSendAt` (fecha local de cierre más intervalo, a la hora de envío del negocio), `canScheduleFollowups` y `selectBackfillFollowups` (consentimiento tardío).     |
+| `services/customer-anonymization.ts`  | `anonymizedPhone` (`anon-` más 26 hexadecimales, nunca un E.164), `isAnonymizedPhone` y el texto neutro que reemplaza motivos libres.                                   |
+| `model/consent.ts`                    | Tipos de consentimiento: estado, tipo de evento y medio (`in_person`, `phone_call`, `whatsapp`, `written`, `other`).                                                    |
+| `ports/`                              | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`, `ConsentRepository`, `FollowupRepository`) y `CommandExecutor`. Solo tipos. |
 
 Reglas de `generateSlots`:
 
@@ -263,13 +266,14 @@ COMMIT
 
 ### Códigos de error del flujo
 
-| Código               | Estado | Cuándo                                                                                                                         |
-| -------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `validation_error`   | 400    | Dirección ausente o vacía, UUID o fecha inválidos, `starts_at` sin zona, rango de agenda inválido.                             |
-| `not_found`          | 404    | Cliente, servicio, cita o técnico de la ruta inexistente en el negocio.                                                        |
-| `slot_taken`         | 409    | La hora pedida choca con el bloque (duración más buffer) de una cita no cancelada, incluida una concurrente.                   |
-| `slot_not_offered`   | 422    | La hora no es un cupo generado y no choca con ninguna cita; también servicio o técnico pedido no reservable.                   |
-| `invalid_transition` | 422    | Cancelar, mover o reasignar una cita `cancelled`, `completed` o `no_show`. Una cancelada no se reabre: se crea una cita nueva. |
+| Código                | Estado | Cuándo                                                                                                                         |
+| --------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `validation_error`    | 400    | Dirección ausente o vacía, UUID o fecha inválidos, `starts_at` sin zona, rango de agenda inválido.                             |
+| `not_found`           | 404    | Cliente, servicio, cita o técnico de la ruta inexistente en el negocio.                                                        |
+| `slot_taken`          | 409    | La hora pedida choca con el bloque (duración más buffer) de una cita no cancelada, incluida una concurrente.                   |
+| `customer_anonymized` | 409    | `POST /appointments` para un cliente anonimizado; la cita no se crea.                                                          |
+| `slot_not_offered`    | 422    | La hora no es un cupo generado y no choca con ninguna cita; también servicio o técnico pedido no reservable.                   |
+| `invalid_transition`  | 422    | Cancelar, mover o reasignar una cita `cancelled`, `completed` o `no_show`. Una cancelada no se reabre: se crea una cita nueva. |
 
 ## Cambios de horario y eliminación de técnicos
 
@@ -335,6 +339,78 @@ sequenceDiagram
 ### Eliminación de técnicos
 
 `DELETE /technicians/:id` invoca el mismo caso de uso con `change = erase`. Con citas futuras activas responde `schedule_conflict` (409) y el técnico conserva su nombre y teléfono. Cuando no queda ninguna (el cuerpo trae las `reassignments` de la propuesta, aplicadas en la misma transacción), anonimiza en sitio: `name` y `phone` en nulo, `anonymized_at`, `active = false` y un alias aleatorio único por negocio (por ejemplo `tiger_1`), que la interfaz muestra como "Técnico eliminado (tiger_1)". Las citas y el historial se conservan atribuidos al alias. El alias sale de `crypto.randomInt` y de una lista fija de palabras, nunca de datos de la persona, y no se guarda ninguna correspondencia persona-alias (una prueba revisa que el nombre y el teléfono originales no queden en ninguna tabla). El registro de supresiones con HMAC es deuda técnica fuera del sprint 1.
+
+## Clientes, consentimiento y anonimización
+
+El módulo `src/modules/customers/` expone la ficha (controlador, servicio, repositorio y DTO). El registro de consentimiento y la supresión ejecutan casos de uso de `scheduling` (`RegisterConsent`, `AnonymizeCustomer`) dentro de la transacción que bloquea la fila del negocio (D1). Cuerpos en `snake_case`, consultas en `camelCase`.
+
+| Método y ruta                  | Descripción                                                                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /customers`              | Crea un cliente (201) con consentimiento `pending`. `name` y `phone` obligatorios; `address` y `notes` opcionales.               |
+| `GET /customers`               | Lista por nombre. Excluye anonimizados; `?includeAnonymized=true` los suma. `?search=` filtra por nombre o dígitos del teléfono. |
+| `GET /customers/:id`           | Ficha más `appointments`: historial de la más reciente a la más antigua, con snapshots de dirección y precio y técnico o alias.  |
+| `PATCH /customers/:id`         | Edita `name`, `phone`, `address` y `notes` (`null` borra dirección o notas). 409 `customer_anonymized` si está anonimizado.      |
+| `POST /customers/:id/consents` | Registra un evento de consentimiento (201). Ver abajo.                                                                           |
+| `GET /customers/:id/consents`  | Auditoría: tipo, fecha declarada, medio, origen, actor y registro; el más reciente primero.                                      |
+| `DELETE /customers/:id`        | Anonimiza al cliente en sitio (204). Idempotente.                                                                                |
+
+### Teléfono
+
+El DTO normaliza el teléfono a E.164 con `libphonenumber-js` y asume `+57` si llega sin código de país: "300 123 4567" se guarda como `+573001234567`. Un texto que no sea un número válido (`abc`, vacío, demasiado corto) responde 400 con el error en el campo `phone`. Un teléfono repetido dentro del negocio responde 409 `customer_phone_taken`, también al editar. El `CHECK` de la tabla es la última defensa.
+
+### Registro de consentimiento
+
+Cuerpo de `POST /customers/:id/consents`: `kind` (`granted` o `revoked`), `occurred_at` (instante ISO 8601 con zona, no posterior a ahora), `medium` (`in_person`, `phone_call`, `whatsapp`, `written` u `other`; la interfaz los muestra como "En persona", "Llamada telefónica", "WhatsApp", "Formulario o documento escrito" y "Otro") y `notes` opcional. El origen (`owner_panel`) y el actor (`owner`) los fija el servidor; enviarlos se rechaza con 400.
+
+Respuesta: `{ event, customer: { id, consent_status, consent_at }, followups_scheduled }`. El evento se inserta en `consent_events` (solo inserción: un trigger impide `UPDATE` y `DELETE`, salvo vaciar `notes` al anonimizar) y la proyección (`consent_status`, `consent_at`) se actualiza en la misma transacción. Un cliente anonimizado responde 409 `customer_anonymized`.
+
+```mermaid
+sequenceDiagram
+  participant UI as app
+  participant C as CustomersController
+  participant R as RegisterConsent
+  participant DB as Postgres
+  UI->>C: POST /customers/:id/consents {kind, occurred_at, medium}
+  C->>R: execute
+  R->>DB: BEGIN; SELECT ... FROM businesses FOR UPDATE
+  R->>DB: INSERT consent_events; UPDATE customers (consent_status, consent_at)
+  alt kind = revoked
+    R->>DB: scheduled_messages pending -> cancelled (consent_revoked)
+  else kind = granted
+    R->>DB: citas completed, citas futuras y seguimientos pendientes del cliente
+    R->>R: selectBackfillFollowups (dominio puro)
+    R->>DB: INSERT scheduled_messages ... ON CONFLICT (appointment_id, kind)
+  end
+  R->>DB: COMMIT
+  R-->>UI: 201 {event, customer, followups_scheduled}
+```
+
+### Revocación y consentimiento tardío
+
+- Revocar anula de inmediato los seguimientos `pending` del cliente (`cancel_reason = 'consent_revoked'`). La ficha, las citas y el historial se conservan: no es una supresión.
+- Al otorgarse el consentimiento, `selectBackfillFollowups` revisa el historial. Solo cuenta la última cita `completed` de cada servicio con `followup_interval_days`. La fecha de envío es la fecha local de completado más el intervalo, a la hora `followup_send_time` del negocio, y se omite si ya pasó (o es igual a ahora), si el cliente tiene una cita futura `pending|confirmed` de ese servicio o si ya tiene un seguimiento pendiente de ese servicio.
+- La inserción es idempotente por `uq_scheduled_messages_appointment_kind` (`ON CONFLICT (appointment_id, kind)`): repetir el consentimiento no crea otra fila (`followups_scheduled: 0`). La única fila existente que se modifica es la cancelada por `consent_revoked`, que se reactiva con la nueva fecha cuando el cliente vuelve a consentir. Las canceladas por otro motivo (`superseded`, `customer_erased`, `reopened`, `closure_corrected`) y las ya enviadas no se tocan.
+- Sin consentimiento otorgado no hay mensajes (CR-R6). Dos barreras: `canScheduleFollowups` en el dominio y el trigger `scheduled_messages_consent_required`, que rechaza una fila `pending` de un cliente que no esté en `granted`.
+
+### Anonimización en sitio
+
+`DELETE /customers/:id` no borra la fila: reemplaza todo dato personal por valores neutros y aleatorios, en una sola transacción bajo el bloqueo del negocio. El `id` y todo el historial (citas, cierres, seguimientos, eventos de consentimiento) se conservan.
+
+| Dato                                                                          | Después de anonimizar                                                                           |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `name` y `alias`                                                              | Alias aleatorio único por negocio (`bear_1`); la interfaz muestra "Cliente eliminado (bear_1)". |
+| `phone`                                                                       | Marcador aleatorio `anon-` más 26 hexadecimales: no empieza con `+`, nunca es un E.164.         |
+| `address`, `notes`                                                            | Nulos.                                                                                          |
+| `address_snapshot`, `cancel_reason` de todas sus citas (también las borradas) | Nulos.                                                                                          |
+| `closure_reason` de sus citas                                                 | Nulo; en un cierre anticipado, `Dato eliminado` (el `CHECK` exige un motivo).                   |
+| `appointment_closures.reason`, `consent_events.notes`                         | Nulos (los triggers de solo inserción permiten vaciar esas columnas).                           |
+| `consent_status`, `anonymized_at`                                             | `revoked` e instante de la anonimización.                                                       |
+| `scheduled_messages` `pending`                                                | `cancelled` con `cancel_reason = 'customer_erased'`.                                            |
+
+- Idempotente: sobre un cliente ya anonimizado no cambia nada, no genera valores aleatorios y responde 204. Un cliente inexistente o de otro negocio responde 404.
+- Un cliente anonimizado no aparece en `GET /customers` (salvo `includeAnonymized`), no se edita, no recibe consentimiento y no puede recibir citas nuevas: las tres operaciones responden 409 `customer_anonymized`. Su ficha y su historial se siguen leyendo.
+- Si la misma persona vuelve a escribir, se registra como un cliente nuevo con consentimiento `pending`; el teléfono original ya no está en ninguna tabla.
+- No se guarda ninguna correspondencia entre la persona y el alias. El alias y el token del teléfono salen de `crypto` y no dependen de datos de la persona. El registro de supresiones (HMAC del teléfono) y su comprobación tras restaurar respaldos son deuda técnica fuera del sprint 1.
 
 ## Pruebas
 

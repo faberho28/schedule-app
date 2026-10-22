@@ -16,6 +16,24 @@ export const TECHNICIAN_ALIAS_WORDS: readonly string[] = [
   'puma',
 ];
 
+/** Palabras de los alias de clientes eliminados (`bear_1`). Distintas de las de los técnicos. */
+export const CUSTOMER_ALIAS_WORDS: readonly string[] = [
+  'bear',
+  'deer',
+  'hare',
+  'seal',
+  'crane',
+  'moose',
+  'bison',
+  'zebra',
+  'koala',
+  'panda',
+  'llama',
+  'ibis',
+  'gecko',
+  'marten',
+];
+
 const MAX_ALIAS_NUMBER = 999;
 const DEFAULT_MAX_ATTEMPTS = 100;
 

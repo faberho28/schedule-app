@@ -77,10 +77,24 @@ export class ProposalStaleError extends DomainError {
   }
 }
 
+/** El registro de consentimiento no es válido (por ejemplo, con una fecha futura). */
+export class InvalidConsentError extends DomainError {
+  constructor(message: string) {
+    super('validation_error', message);
+  }
+}
+
 /** Ya existe un servicio activo con ese nombre dentro del negocio. */
 export class ServiceNameTakenError extends DomainError {
   constructor(options?: ErrorOptions) {
     super('service_name_taken', 'Ya existe un servicio con ese nombre', options);
+  }
+}
+
+/** El cliente fue anonimizado: no admite ediciones, citas nuevas ni cambios de consentimiento. */
+export class CustomerAnonymizedError extends DomainError {
+  constructor(options?: ErrorOptions) {
+    super('customer_anonymized', 'El cliente fue eliminado y no admite cambios', options);
   }
 }
 

@@ -9,6 +9,9 @@ import type {
   ServiceInfo,
 } from '../../domain/ports/schedule-reader';
 
+/** Hora de envío de los seguimientos cuando el negocio no configuró una (BS-R4). */
+const DEFAULT_FOLLOWUP_SEND_TIME = '09:00';
+
 const timestamp = (instant: number) => sql<Date>`${new Date(instant)}::timestamptz`;
 
 /** Lectura de configuración y horarios con Kysely; filtra por `business_id` en cada consulta. */
@@ -18,10 +21,19 @@ export class KyselyScheduleReader implements ScheduleReader {
   async getBusinessConfig(businessId: string): Promise<BusinessConfig | null> {
     const row = await this.db
       .selectFrom('businesses')
-      .select(['timezone', 'travel_buffer_min'])
+      .select([
+        'timezone',
+        'travel_buffer_min',
+        sql<string | null>`settings ->> 'followup_send_time'`.as('followup_send_time'),
+      ])
       .where('id', '=', businessId)
       .executeTakeFirst();
-    return row ? { timeZone: row.timezone, travelBufferMin: row.travel_buffer_min } : null;
+    if (!row) return null;
+    return {
+      timeZone: row.timezone,
+      travelBufferMin: row.travel_buffer_min,
+      followupSendTime: row.followup_send_time ?? DEFAULT_FOLLOWUP_SEND_TIME,
+    };
   }
 
   async getService(businessId: string, serviceId: string): Promise<ServiceInfo | null> {

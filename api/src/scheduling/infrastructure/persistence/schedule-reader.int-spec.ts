@@ -40,15 +40,24 @@ describe('KyselyScheduleReader', () => {
   });
 
   describe('getBusinessConfig', () => {
-    it('devuelve la zona horaria y el buffer vigentes', async () => {
+    it('devuelve la zona horaria, el buffer y la hora de envío vigentes', async () => {
       expect(await schedule.getBusinessConfig(BUSINESS)).toEqual({
         timeZone: 'America/Mexico_City',
         travelBufferMin: 20,
+        followupSendTime: '09:00',
       });
       expect(await schedule.getBusinessConfig(OTHER_BUSINESS)).toEqual({
         timeZone: 'America/Bogota',
         travelBufferMin: 0,
+        followupSendTime: '09:00',
       });
+    });
+
+    it('devuelve la hora de envío configurada en settings', async () => {
+      const configured = await createBusiness(pool, {
+        settings: JSON.stringify({ followup_send_time: '14:30' }),
+      });
+      expect((await schedule.getBusinessConfig(configured))?.followupSendTime).toBe('14:30');
     });
 
     it('devuelve null si el negocio no existe', async () => {
@@ -185,17 +194,42 @@ describe('KyselyScheduleReader', () => {
   describe('CustomerDirectory', () => {
     it('encuentra clientes solo dentro de su negocio', async () => {
       const id = await createCustomer(pool, BUSINESS, { address: 'Calle 1' });
-      expect(await customers.find(BUSINESS, id)).toEqual({ id, address: 'Calle 1' });
+      expect(await customers.find(BUSINESS, id)).toEqual({
+        id,
+        address: 'Calle 1',
+        consentStatus: 'pending',
+        anonymizedAt: null,
+      });
       expect(await customers.find(OTHER_BUSINESS, id)).toBeNull();
+    });
+
+    it('expone el consentimiento y la fecha de anonimización', async () => {
+      const granted = await createCustomer(pool, BUSINESS, {
+        consent_status: 'granted',
+        consent_at: new Date('2026-10-15T00:00:00-05:00'),
+      });
+      const erased = await createCustomer(pool, BUSINESS, {
+        consent_status: 'revoked',
+        anonymized_at: new Date('2026-10-20T12:00:00Z'),
+        phone: 'anon-0123456789abcdef0123456789',
+      });
+      expect(await customers.find(BUSINESS, granted)).toMatchObject({
+        consentStatus: 'granted',
+        anonymizedAt: null,
+      });
+      expect(await customers.find(BUSINESS, erased)).toMatchObject({
+        consentStatus: 'revoked',
+        anonymizedAt: Date.parse('2026-10-20T12:00:00Z'),
+      });
     });
 
     it('actualiza la dirección sin tocar clientes de otro negocio', async () => {
       const id = await createCustomer(pool, BUSINESS, { address: 'Calle 1' });
       await customers.updateAddress(OTHER_BUSINESS, id, 'No debe cambiar');
-      expect(await customers.find(BUSINESS, id)).toEqual({ id, address: 'Calle 1' });
+      expect((await customers.find(BUSINESS, id))?.address).toBe('Calle 1');
 
       await customers.updateAddress(BUSINESS, id, 'Carrera 7 # 1-1');
-      expect(await customers.find(BUSINESS, id)).toEqual({ id, address: 'Carrera 7 # 1-1' });
+      expect((await customers.find(BUSINESS, id))?.address).toBe('Carrera 7 # 1-1');
     });
   });
 });

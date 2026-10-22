@@ -6,7 +6,9 @@ import { dayRange } from '../domain/time/zoned-clock';
 
 /** Lecturas de citas para la agenda. No bloquean el negocio. */
 export class QueryAppointments {
-  constructor(private readonly ports: Pick<SchedulingPorts, 'appointments' | 'schedule'>) {}
+  constructor(
+    private readonly ports: Pick<SchedulingPorts, 'appointments' | 'schedule' | 'customers'>,
+  ) {}
 
   /**
    * Citas de cualquier estado cuyo inicio cae entre `from` y `to`, ambos días locales del negocio
@@ -22,6 +24,14 @@ export class QueryAppointments {
       start: dayRange(range.from, config.timeZone).start,
       end: dayRange(range.to, config.timeZone).end,
     });
+  }
+
+  /** Historial de citas del cliente, de la más reciente a la más antigua (CR-R8). */
+  async listForCustomer(businessId: string, customerId: string): Promise<AppointmentView[]> {
+    if (!(await this.ports.customers.find(businessId, customerId))) {
+      throw new NotFoundError('El cliente no existe');
+    }
+    return this.ports.appointments.listByCustomer(businessId, customerId);
   }
 
   async get(businessId: string, id: string): Promise<AppointmentView> {

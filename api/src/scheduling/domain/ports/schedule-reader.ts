@@ -5,6 +5,8 @@ export interface BusinessConfig {
   readonly timeZone: string;
   /** Buffer de desplazamiento vigente del negocio. */
   readonly travelBufferMin: number;
+  /** Hora local `HH:MM` a la que se envían los seguimientos (por defecto `09:00`). */
+  readonly followupSendTime: string;
 }
 
 export interface ServiceInfo {

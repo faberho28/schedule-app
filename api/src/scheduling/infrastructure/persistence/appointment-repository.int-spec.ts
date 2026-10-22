@@ -574,4 +574,48 @@ describe('KyselyAppointmentRepository', () => {
       expect(views.map((v) => v.status)).toEqual(['confirmed', 'cancelled', 'confirmed']);
     });
   });
+
+  describe('listByCustomer (CR-R8)', () => {
+    it('devuelve todas las citas del cliente de la más reciente a la más antigua', async () => {
+      const make = (who: string, startsAt: string, status: string, overrides = {}) =>
+        createAppointment(pool, {
+          businessId: BUSINESS,
+          customerId: who,
+          serviceId,
+          technicianId,
+          startsAt,
+          status,
+          overrides,
+        });
+      const oldest = await make(customerId, '2026-09-01T08:00:00-05:00', 'completed');
+      const newest = await make(customerId, '2026-11-09T08:00:00-05:00', 'cancelled');
+      const middle = await make(customerId, '2026-10-01T08:00:00-05:00', 'no_show');
+      const deleted = await make(customerId, '2026-10-05T08:00:00-05:00', 'confirmed', {
+        deleted_at: new Date(),
+      });
+      const other = await createCustomer(pool, BUSINESS);
+      await make(other, '2026-10-15T08:00:00-05:00', 'confirmed');
+
+      const views = await appointments.listByCustomer(BUSINESS, customerId);
+
+      expect(views.map((v) => v.id)).toEqual([newest, middle, oldest]);
+      expect(views.map((v) => v.id)).not.toContain(deleted);
+      expect(views.map((v) => v.status)).toEqual(['cancelled', 'no_show', 'completed']);
+      expect(views[0]).toMatchObject({
+        technician: { id: technicianId, name: 'Carlos', alias: null },
+        service: { id: serviceId, name: 'Limpieza' },
+      });
+    });
+
+    it('no devuelve citas si el cliente es de otro negocio', async () => {
+      await createAppointment(pool, {
+        businessId: BUSINESS,
+        customerId,
+        serviceId,
+        technicianId,
+        startsAt: '2026-10-01T08:00:00-05:00',
+      });
+      expect(await appointments.listByCustomer(OTHER_BUSINESS, customerId)).toEqual([]);
+    });
+  });
 });

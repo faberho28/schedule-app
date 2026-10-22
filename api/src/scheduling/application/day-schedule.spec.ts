@@ -8,7 +8,7 @@ import { loadDaySchedule } from './day-schedule';
 
 const ZONE = 'America/Bogota';
 const MONDAY = '2026-11-02';
-const config: BusinessConfig = { timeZone: ZONE, travelBufferMin: 15 };
+const config: BusinessConfig = { timeZone: ZONE, travelBufferMin: 15, followupSendTime: '09:00' };
 const at = (time: string) => toInstant(MONDAY, time, ZONE);
 
 const bookable = (id: string): BookableTechnician => ({

@@ -1,5 +1,7 @@
 import type { AppointmentRepository } from './appointment-repository';
+import type { ConsentRepository } from './consent-repository';
 import type { CustomerDirectory } from './customer-directory';
+import type { FollowupRepository } from './followup-repository';
 import type { ScheduleReader } from './schedule-reader';
 import type { TechnicianScheduleRepository } from './technician-schedule-repository';
 
@@ -9,6 +11,8 @@ export interface SchedulingPorts {
   readonly schedule: ScheduleReader;
   readonly technicians: TechnicianScheduleRepository;
   readonly customers: CustomerDirectory;
+  readonly consents: ConsentRepository;
+  readonly followups: FollowupRepository;
 }
 
 /**

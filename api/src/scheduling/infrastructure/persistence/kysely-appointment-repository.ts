@@ -185,6 +185,15 @@ export class KyselyAppointmentRepository implements AppointmentRepository {
     return rows.map(toView);
   }
 
+  async listByCustomer(businessId: string, customerId: string): Promise<AppointmentView[]> {
+    const rows = await this.viewQuery(businessId)
+      .where('a.customer_id', '=', customerId)
+      .orderBy('a.starts_at', 'desc')
+      .orderBy('a.id', 'desc')
+      .execute();
+    return rows.map(toView);
+  }
+
   private viewQuery(businessId: string) {
     return viewQuery(this.db, businessId);
   }

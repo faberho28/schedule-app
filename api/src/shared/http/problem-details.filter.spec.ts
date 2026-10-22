@@ -4,6 +4,7 @@ import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  CustomerAnonymizedError,
   DomainError,
   NotFoundError,
   ScheduleOverlapError,
@@ -48,6 +49,11 @@ class ProbeController {
   @Get('overlap')
   overlap(): never {
     throw new ScheduleOverlapError();
+  }
+
+  @Get('anonymized')
+  anonymized(): never {
+    throw new CustomerAnonymizedError();
   }
 
   @Get('missing')
@@ -133,6 +139,16 @@ describe('ProblemDetailsFilter (BS-R1)', () => {
       status: 409,
       code: 'schedule_overlap',
       title: 'Horario solapado',
+    });
+  });
+
+  it('customer_anonymized responde 409 con su título', async () => {
+    const response = await request(app.getHttpServer()).get('/probe/anonymized').expect(409);
+    expect(response.body).toMatchObject({
+      status: 409,
+      code: 'customer_anonymized',
+      title: 'Cliente eliminado',
+      detail: 'El cliente fue eliminado y no admite cambios',
     });
   });
 

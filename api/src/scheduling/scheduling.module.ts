@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DATABASE, type Database } from '../database/kysely.provider';
+import { AnonymizeCustomer } from './application/anonymize-customer';
 import { ApplyScheduleChange } from './application/apply-schedule-change';
 import { CancelAppointment } from './application/cancel-appointment';
 import { CreateAppointment } from './application/create-appointment';
@@ -8,6 +9,7 @@ import { MoveAppointment } from './application/move-appointment';
 import { PreviewScheduleChange } from './application/preview-schedule-change';
 import { QueryAppointments } from './application/query-appointments';
 import { ReassignAppointment } from './application/reassign-appointment';
+import { RegisterConsent } from './application/register-consent';
 import { CLOCK, COMMAND_EXECUTOR, READ_PORTS } from './application/tokens';
 import type { Clock } from './domain/model/clock';
 import type { CommandExecutor, SchedulingPorts } from './domain/ports/command-executor';
@@ -76,6 +78,19 @@ import { SystemClock } from './infrastructure/system-clock';
         new CreateAppointment(executor, clock),
       inject: [COMMAND_EXECUTOR, CLOCK],
     },
+    {
+      provide: RegisterConsent,
+      useFactory: (executor: CommandExecutor, clock: Clock) => new RegisterConsent(executor, clock),
+      inject: [COMMAND_EXECUTOR, CLOCK],
+    },
+    {
+      provide: AnonymizeCustomer,
+      useFactory: (executor: CommandExecutor, clock: Clock) =>
+        new AnonymizeCustomer(executor, clock),
+      inject: [COMMAND_EXECUTOR, CLOCK],
+    },
   ],
+  // Los controladores del módulo `customers` invocan estos casos de uso (D6).
+  exports: [QueryAppointments, RegisterConsent, AnonymizeCustomer],
 })
 export class SchedulingModule {}

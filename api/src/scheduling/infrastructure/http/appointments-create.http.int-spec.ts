@@ -433,6 +433,24 @@ describe('POST /appointments (AM-R1, AM-R2, SA-R2, SA-R6, CR-R4)', () => {
       expect(other.body).toMatchObject({ code: 'not_found', detail: 'El cliente no existe' });
     });
 
+    it('rechaza con customer_anonymized crear una cita para un cliente anonimizado (CR-R2)', async () => {
+      await technicianWorking(pool, BUSINESS);
+      const erased = await createCustomer(pool, BUSINESS, {
+        name: 'bear_1',
+        alias: 'bear_1',
+        phone: 'anon-0123456789abcdef0123456789',
+        anonymized_at: new Date('2026-10-30T12:00:00Z'),
+        consent_status: 'revoked',
+      });
+
+      const response = await create({ customer_id: erased }).expect(409);
+
+      expect(response.body).toMatchObject({ code: 'customer_anonymized', status: 409 });
+      expect((await pool.query(`SELECT 1 FROM appointments`)).rowCount).toBe(0);
+      // Un cliente normal sigue pudiendo agendar el mismo cupo.
+      await create().expect(201);
+    });
+
     it('responde 404 si el servicio no existe o es de otro negocio', async () => {
       await technicianWorking(pool, BUSINESS);
       const foreign = await createService(pool, OTHER_BUSINESS);
