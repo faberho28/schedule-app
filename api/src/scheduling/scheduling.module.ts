@@ -3,7 +3,9 @@ import { DATABASE, type Database } from '../database/kysely.provider';
 import { CancelAppointment } from './application/cancel-appointment';
 import { CreateAppointment } from './application/create-appointment';
 import { ListSlots } from './application/list-slots';
+import { MoveAppointment } from './application/move-appointment';
 import { QueryAppointments } from './application/query-appointments';
+import { ReassignAppointment } from './application/reassign-appointment';
 import { CLOCK, COMMAND_EXECUTOR, READ_PORTS } from './application/tokens';
 import type { Clock } from './domain/model/clock';
 import type { CommandExecutor, SchedulingPorts } from './domain/ports/command-executor';
@@ -43,6 +45,16 @@ import { SystemClock } from './infrastructure/system-clock';
       useFactory: (executor: CommandExecutor, clock: Clock) =>
         new CancelAppointment(executor, clock),
       inject: [COMMAND_EXECUTOR, CLOCK],
+    },
+    {
+      provide: MoveAppointment,
+      useFactory: (executor: CommandExecutor, clock: Clock) => new MoveAppointment(executor, clock),
+      inject: [COMMAND_EXECUTOR, CLOCK],
+    },
+    {
+      provide: ReassignAppointment,
+      useFactory: (executor: CommandExecutor) => new ReassignAppointment(executor),
+      inject: [COMMAND_EXECUTOR],
     },
     {
       provide: CreateAppointment,

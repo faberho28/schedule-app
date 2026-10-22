@@ -17,6 +17,18 @@ export interface NewAppointment {
   readonly serviceNameSnapshot: string;
 }
 
+/** Nuevo horario de una cita que se mueve; conserva servicio, dirección y precio. */
+export interface Reschedule {
+  readonly technicianId: string;
+  readonly startsAt: Instant;
+  /** Fin del servicio, sin buffer. */
+  readonly endsAt: Instant;
+  /** Buffer vigente del negocio al mover; reemplaza el que tenía la cita (D1). */
+  readonly bufferMin: number;
+  /** `true` marca la cita con cambio de técnico; `false` deja la marca como estaba. */
+  readonly markTechnicianChanged: boolean;
+}
+
 /** Lo mínimo de una cita para decidir sobre su estado. */
 export interface AppointmentRecord {
   readonly id: string;
@@ -70,6 +82,15 @@ export interface AppointmentRepository {
   insert(businessId: string, appointment: NewAppointment): Promise<string>;
 
   findRecord(businessId: string, id: string): Promise<AppointmentRecord | null>;
+
+  /**
+   * Cambia técnico, horario, buffer y bloque en una sola sentencia. Una colisión se traduce a
+   * `SlotTakenError`; la cita no choca con su propio bloque anterior.
+   */
+  reschedule(businessId: string, id: string, change: Reschedule): Promise<void>;
+
+  /** Cambia solo el técnico y marca el cambio de técnico. Una colisión es `SlotTakenError`. */
+  reassign(businessId: string, id: string, technicianId: string): Promise<void>;
 
   markCancelled(
     businessId: string,

@@ -3,6 +3,7 @@ import { InvalidTransitionError } from '../errors';
 import {
   APPOINTMENT_STATUSES,
   type AppointmentStatus,
+  assertOpen,
   assertTransition,
   canTransition,
   isOpen,
@@ -93,6 +94,34 @@ describe('occupiesBlock', () => {
     ['cancelled', false],
   ] as const)('%s conserva el bloque: %s', (status, expected) => {
     expect(occupiesBlock(status)).toBe(expected);
+  });
+});
+
+describe('assertOpen', () => {
+  it.each(['pending', 'confirmed'] as const)('%s admite mover sin lanzar', (status) => {
+    expect(() => assertOpen(status, 'mover')).not.toThrow();
+  });
+
+  it.each(['completed', 'no_show', 'cancelled'] as const)(
+    '%s lanza invalid_transition y nombra la acción y el estado',
+    (status) => {
+      let error: unknown;
+      try {
+        assertOpen(status, 'reasignar');
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error).toBeInstanceOf(InvalidTransitionError);
+      expect((error as InvalidTransitionError).code).toBe('invalid_transition');
+      expect((error as InvalidTransitionError).message).toContain('reasignar');
+      expect((error as InvalidTransitionError).message).toContain(status);
+    },
+  );
+
+  it('una cita cancelada indica crear una cita nueva y una cerrada indica reabrirla', () => {
+    expect(() => assertOpen('cancelled', 'mover')).toThrow(/cita nueva/);
+    expect(() => assertOpen('completed', 'mover')).toThrow(/reabre la cita/);
+    expect(() => assertOpen('no_show', 'mover')).toThrow(/reabre la cita/);
   });
 });
 

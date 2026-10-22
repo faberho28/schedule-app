@@ -42,6 +42,16 @@ export class KyselyScheduleReader implements ScheduleReader {
     };
   }
 
+  async technicianExists(businessId: string, technicianId: string): Promise<boolean> {
+    const row = await this.db
+      .selectFrom('technicians')
+      .select('id')
+      .where('business_id', '=', businessId)
+      .where('id', '=', technicianId)
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
   async listBookableTechnicians(businessId: string, window: Range): Promise<BookableTechnician[]> {
     const technicians = await this.db
       .selectFrom('technicians')

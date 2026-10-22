@@ -42,3 +42,14 @@ export function occupiesBlock(status: AppointmentStatus): boolean {
 export function isOpen(status: AppointmentStatus): boolean {
   return status === 'pending' || status === 'confirmed';
 }
+
+/**
+ * Mover y reasignar solo aplican a citas abiertas (D11). Una cerrada debe reabrirse antes y una
+ * cancelada no se reabre: se crea una cita nueva.
+ */
+export function assertOpen(status: AppointmentStatus, action: 'mover' | 'reasignar'): void {
+  if (isOpen(status)) return;
+  const hint =
+    status === 'cancelled' ? '; crea una cita nueva' : '; reabre la cita antes de modificarla';
+  throw new InvalidTransitionError(`No se puede ${action} una cita ${status}${hint}`);
+}

@@ -25,6 +25,9 @@ export interface ScheduleReader {
   /** `null` si el servicio no existe o tiene `deleted_at`; un servicio inactivo sí se devuelve. */
   getService(businessId: string, serviceId: string): Promise<ServiceInfo | null>;
 
+  /** El técnico pertenece al negocio, sin importar si está inactivo o anonimizado. */
+  technicianExists(businessId: string, technicianId: string): Promise<boolean>;
+
   /**
    * Técnicos activos y no anonimizados, con su disponibilidad semanal y los días libres que se
    * solapan con la ventana.

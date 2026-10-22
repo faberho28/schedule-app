@@ -125,11 +125,11 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 7: Mover y reasignar citas (commit 7)
 
-- [ ] 7.1 Implementar `MoveAppointment` y `POST /appointments/:id/move` (solo cupos generados, `excludeAppointmentId`, `preferredTechnicianId`, `buffer_min` recalculado, `technician_changed`, atómico). Spec: AM-R3, SA-R5, BS-R3. Verif: RED, mover a cupo libre libera el bloque anterior.
-- [ ] 7.2 Cubrir prioridad del técnico actual, cambio de técnico con marca, cupo adyacente al propio bloque y cupo ocupado durante el movimiento (la cita conserva su horario). Spec: SA-R5, AM-R3. Verif: RED, escenarios del spec.
-- [ ] 7.3 Rechazar mover citas `completed`, `no_show` o `cancelled`. Spec: AM-R3, CL-R5. Verif: RED, `invalid_transition` (422).
-- [ ] 7.4 Implementar `ReassignAppointment` y `POST /appointments/:id/reassign` (mismo horario, destino disponible, `technician_changed = true`). Spec: AM-R4. Verif: RED, destino libre y destino ocupado (`slot_taken`).
-- [ ] 7.5 Rechazar como destino técnicos inactivos, anonimizados o sin disponibilidad en el horario. Spec: AM-R4, TS-R5. Verif: RED.
+- [x] 7.1 Implementar `MoveAppointment` y `POST /appointments/:id/move` (solo cupos generados, `excludeAppointmentId`, `preferredTechnicianId`, `buffer_min` recalculado, `technician_changed`, atómico). Spec: AM-R3, SA-R5, BS-R3. Verif: RED, mover a cupo libre libera el bloque anterior.
+- [x] 7.2 Cubrir prioridad del técnico actual, cambio de técnico con marca, cupo adyacente al propio bloque y cupo ocupado durante el movimiento (la cita conserva su horario). Spec: SA-R5, AM-R3. Verif: RED, escenarios del spec.
+- [x] 7.3 Rechazar mover citas `completed`, `no_show` o `cancelled`. Spec: AM-R3, CL-R5. Verif: RED, `invalid_transition` (422).
+- [x] 7.4 Implementar `ReassignAppointment` y `POST /appointments/:id/reassign` (mismo horario, destino disponible, `technician_changed = true`). Spec: AM-R4. Verif: RED, destino libre y destino ocupado (`slot_taken`).
+- [x] 7.5 Rechazar como destino técnicos inactivos, anonimizados o sin disponibilidad en el horario. Spec: AM-R4, TS-R5. Verif: RED.
 
 ## Fase 8: Cambios de horario y propuesta de reasignación (commit 8)
 

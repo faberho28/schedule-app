@@ -6,6 +6,7 @@ import type {
   AppointmentRepository,
   AppointmentView,
   NewAppointment,
+  Reschedule,
 } from '../../domain/ports/appointment-repository';
 import type { AppointmentStatus } from '../../domain/services/appointment-status';
 import type { BlockingAppointment } from '../../domain/services/occupied-blocks';
@@ -86,6 +87,40 @@ export class KyselyAppointmentRepository implements AppointmentRepository {
       endsAt: row.ends_at.getTime(),
       bufferMin: row.buffer_min,
     };
+  }
+
+  async reschedule(businessId: string, id: string, change: Reschedule): Promise<void> {
+    const blockEnd = change.endsAt + change.bufferMin * MS_PER_MINUTE;
+    try {
+      await this.db
+        .updateTable('appointments')
+        .set({
+          technician_id: change.technicianId,
+          starts_at: new Date(change.startsAt),
+          ends_at: new Date(change.endsAt),
+          buffer_min: change.bufferMin,
+          slot: sql<string>`tstzrange(${timestamp(change.startsAt)}, ${timestamp(blockEnd)})`,
+          ...(change.markTechnicianChanged && { technician_changed: true }),
+        })
+        .where('business_id', '=', businessId)
+        .where('id', '=', id)
+        .execute();
+    } catch (error) {
+      throw translatePgError(error);
+    }
+  }
+
+  async reassign(businessId: string, id: string, technicianId: string): Promise<void> {
+    try {
+      await this.db
+        .updateTable('appointments')
+        .set({ technician_id: technicianId, technician_changed: true })
+        .where('business_id', '=', businessId)
+        .where('id', '=', id)
+        .execute();
+    } catch (error) {
+      throw translatePgError(error);
+    }
   }
 
   async markCancelled(

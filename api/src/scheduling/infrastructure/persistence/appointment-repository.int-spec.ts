@@ -257,6 +257,192 @@ describe('KyselyAppointmentRepository', () => {
     });
   });
 
+  describe('reschedule', () => {
+    const slotOf = async (id: string) =>
+      (
+        await pool.query(
+          `SELECT technician_id, technician_changed, buffer_min, status, address_snapshot,
+                  price_snapshot::float AS price, service_name_snapshot, starts_at, ends_at,
+                  lower(slot) AS slot_start, upper(slot) AS slot_end
+             FROM appointments WHERE id = $1`,
+          [id],
+        )
+      ).rows[0];
+
+    const move = (startsAt: string, minutes = 60) => ({
+      startsAt: at(startsAt),
+      endsAt: at(startsAt) + minutes * MINUTE,
+    });
+
+    it('cambia horario y bloque con el buffer nuevo y conserva técnico, estado y copias', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+
+      await appointments.reschedule(BUSINESS, id, {
+        technicianId,
+        ...move('2026-11-02T14:00:00-05:00'),
+        bufferMin: 30,
+        markTechnicianChanged: false,
+      });
+
+      const row = await slotOf(id);
+      expect(row).toMatchObject({
+        technician_id: technicianId,
+        technician_changed: false,
+        buffer_min: 30,
+        status: 'confirmed',
+        address_snapshot: 'Calle 10 # 5-20',
+        price: 100000,
+        service_name_snapshot: 'Limpieza',
+      });
+      expect(row.starts_at.getTime()).toBe(at('2026-11-02T14:00:00-05:00'));
+      expect(row.ends_at.getTime()).toBe(at('2026-11-02T15:00:00-05:00'));
+      expect(row.slot_start.getTime()).toBe(at('2026-11-02T14:00:00-05:00'));
+      expect(row.slot_end.getTime()).toBe(at('2026-11-02T15:30:00-05:00'));
+    });
+
+    it('libera el bloque anterior: otra cita puede ocupar el horario que se dejó', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      await appointments.reschedule(BUSINESS, id, {
+        technicianId,
+        ...move('2026-11-02T14:00:00-05:00'),
+        bufferMin: 15,
+        markTechnicianChanged: false,
+      });
+
+      await expect(appointments.insert(BUSINESS, newAppointment())).resolves.toEqual(
+        expect.any(String),
+      );
+    });
+
+    it('permite un horario que solapa el bloque propio (la cita no choca consigo misma)', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      await expect(
+        appointments.reschedule(BUSINESS, id, {
+          technicianId,
+          ...move('2026-11-02T10:30:00-05:00'),
+          bufferMin: 15,
+          markTechnicianChanged: false,
+        }),
+      ).resolves.toBeUndefined();
+      expect((await slotOf(id)).starts_at.getTime()).toBe(at('2026-11-02T10:30:00-05:00'));
+    });
+
+    it('con otro técnico lo asigna y marca el cambio de técnico', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      await appointments.reschedule(BUSINESS, id, {
+        technicianId: otherTechnicianId,
+        ...move('2026-11-02T14:00:00-05:00'),
+        bufferMin: 15,
+        markTechnicianChanged: true,
+      });
+      expect(await slotOf(id)).toMatchObject({
+        technician_id: otherTechnicianId,
+        technician_changed: true,
+      });
+    });
+
+    it('una marca de cambio de técnico previa no se borra al mover con el mismo técnico', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      await pool.query(`UPDATE appointments SET technician_changed = true WHERE id = $1`, [id]);
+
+      await appointments.reschedule(BUSINESS, id, {
+        technicianId,
+        ...move('2026-11-02T14:00:00-05:00'),
+        bufferMin: 15,
+        markTechnicianChanged: false,
+      });
+
+      expect((await slotOf(id)).technician_changed).toBe(true);
+    });
+
+    it('traduce la colisión con otra cita a SlotTakenError y deja la cita intacta', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      const otherStart = at('2026-11-02T14:00:00-05:00');
+      await appointments.insert(
+        BUSINESS,
+        newAppointment({ startsAt: otherStart, endsAt: otherStart + 60 * MINUTE }),
+      );
+      const before = await slotOf(id);
+
+      await expect(
+        appointments.reschedule(BUSINESS, id, {
+          technicianId,
+          ...move('2026-11-02T14:30:00-05:00'),
+          bufferMin: 15,
+          markTechnicianChanged: false,
+        }),
+      ).rejects.toBeInstanceOf(SlotTakenError);
+
+      expect(await slotOf(id)).toEqual(before);
+    });
+
+    it('no modifica una cita cuando se invoca con el negocio equivocado', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      const before = await slotOf(id);
+
+      await appointments.reschedule(OTHER_BUSINESS, id, {
+        technicianId,
+        ...move('2026-11-02T14:00:00-05:00'),
+        bufferMin: 0,
+        markTechnicianChanged: false,
+      });
+
+      expect(await slotOf(id)).toEqual(before);
+    });
+  });
+
+  describe('reassign', () => {
+    it('cambia solo el técnico, marca el cambio y conserva el horario', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      const before = (
+        await pool.query(
+          `SELECT starts_at, ends_at, buffer_min, slot FROM appointments WHERE id = $1`,
+          [id],
+        )
+      ).rows[0];
+
+      await appointments.reassign(BUSINESS, id, otherTechnicianId);
+
+      const { rows } = await pool.query(
+        `SELECT technician_id, technician_changed, starts_at, ends_at, buffer_min, slot
+           FROM appointments WHERE id = $1`,
+        [id],
+      );
+      expect(rows[0]).toMatchObject({ technician_id: otherTechnicianId, technician_changed: true });
+      expect({
+        starts_at: rows[0].starts_at,
+        ends_at: rows[0].ends_at,
+        buffer_min: rows[0].buffer_min,
+        slot: rows[0].slot,
+      }).toEqual(before);
+    });
+
+    it('traduce la colisión con el bloque del técnico destino a SlotTakenError', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      await appointments.insert(BUSINESS, newAppointment({ technicianId: otherTechnicianId }));
+
+      await expect(appointments.reassign(BUSINESS, id, otherTechnicianId)).rejects.toBeInstanceOf(
+        SlotTakenError,
+      );
+
+      const { rows } = await pool.query(
+        `SELECT technician_id, technician_changed FROM appointments WHERE id = $1`,
+        [id],
+      );
+      expect(rows[0]).toEqual({ technician_id: technicianId, technician_changed: false });
+    });
+
+    it('no modifica una cita cuando se invoca con el negocio equivocado', async () => {
+      const id = await appointments.insert(BUSINESS, newAppointment());
+      await appointments.reassign(OTHER_BUSINESS, id, otherTechnicianId);
+      const { rows } = await pool.query(
+        `SELECT technician_id, technician_changed FROM appointments WHERE id = $1`,
+        [id],
+      );
+      expect(rows[0]).toEqual({ technician_id: technicianId, technician_changed: false });
+    });
+  });
+
   describe('annulPendingMessages', () => {
     it('anula solo los mensajes pendientes de esa cita y devuelve cuántos', async () => {
       const consented = await createCustomer(pool, BUSINESS, {

@@ -56,6 +56,25 @@ describe('KyselyScheduleReader', () => {
     });
   });
 
+  describe('technicianExists', () => {
+    it('es verdadero para técnicos del negocio, también inactivos o anonimizados', async () => {
+      const active = await createTechnician(pool, BUSINESS);
+      const inactive = await createTechnician(pool, BUSINESS, { active: false });
+      const anonymized = await createAnonymizedTechnician(pool, BUSINESS);
+
+      for (const id of [active, inactive, anonymized]) {
+        expect(await schedule.technicianExists(BUSINESS, id)).toBe(true);
+      }
+    });
+
+    it('es falso para un id desconocido o de otro negocio', async () => {
+      const foreign = await createTechnician(pool, OTHER_BUSINESS);
+      expect(await schedule.technicianExists(BUSINESS, MISSING)).toBe(false);
+      expect(await schedule.technicianExists(BUSINESS, foreign)).toBe(false);
+      expect(await schedule.technicianExists(OTHER_BUSINESS, foreign)).toBe(true);
+    });
+  });
+
   describe('getService', () => {
     it('devuelve duración, precio numérico y estado, también si está inactivo', async () => {
       const active = await createService(pool, BUSINESS, {

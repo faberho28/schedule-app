@@ -91,6 +91,57 @@ describe('bookSlot: asignación sobre un cupo ofrecido', () => {
   });
 });
 
+describe('bookSlot: técnico preferido al mover (SA-R5)', () => {
+  const heavyA = new Map([
+    ['a', 300],
+    ['b', 0],
+  ]);
+
+  it('el preferido libre gana aunque el otro esté menos cargado, y sin él gana el menos cargado', () => {
+    const technicians = [technician('a'), technician('b')];
+    const input = { ...base, technicians, bookedMinutes: heavyA, startsAt: at('10:00') };
+    expect(bookSlot({ ...input, preferredTechnicianId: 'a' })).toBe('a');
+    expect(bookSlot(input)).toBe('b');
+  });
+
+  it('el preferido ocupado no restringe: se asigna otro técnico libre', () => {
+    const technicians = [technician('a', { occupied: [block('10:00', '11:00')] }), technician('b')];
+    expect(
+      bookSlot({
+        ...base,
+        technicians,
+        bookedMinutes: heavyA,
+        startsAt: at('10:00'),
+        preferredTechnicianId: 'a',
+      }),
+    ).toBe('b');
+  });
+
+  it('el preferido que no trabaja a esa hora se ignora y se asigna el técnico que sí', () => {
+    const technicians = [technician('a', { weekday: 5 }), technician('b')];
+    expect(
+      bookSlot({ ...base, technicians, startsAt: at('10:00'), preferredTechnicianId: 'a' }),
+    ).toBe('b');
+  });
+
+  it('si el preferido y todos los demás están ocupados -> slot_taken', () => {
+    const technicians = [
+      technician('a', { occupied: [block('10:00', '11:00')] }),
+      technician('b', { occupied: [block('09:30', '10:30')] }),
+    ];
+    expect(() =>
+      bookSlot({ ...base, technicians, startsAt: at('10:00'), preferredTechnicianId: 'a' }),
+    ).toThrow(SlotTakenError);
+  });
+
+  it('con requestedTechnicianId el técnico sigue restringido, no solo preferido', () => {
+    const technicians = [technician('a', { occupied: [block('10:00', '11:00')] }), technician('b')];
+    expect(() =>
+      bookSlot({ ...base, technicians, startsAt: at('10:00'), requestedTechnicianId: 'a' }),
+    ).toThrow(SlotTakenError);
+  });
+});
+
 describe('bookSlot: slot_taken frente a slot_not_offered', () => {
   it('colisión con una cita 10:00-11:15 del mismo técnico a las 10:30 -> slot_taken', () => {
     const a = technician('a', { occupied: [block('10:00', '11:15')] });
