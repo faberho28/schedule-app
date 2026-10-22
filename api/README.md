@@ -105,13 +105,13 @@ Cualquier otro error se devuelve sin cambios; el uso previsto es `throw translat
 
 El filtro global `ProblemDetailsFilter` (`src/shared/http/problem-details.filter.ts`) responde todo error como `application/problem+json` con los campos `type`, `title`, `status`, `detail` y `code`. Los errores de validación agregan `errors: [{ field, messages }]`.
 
-| `code`                                                                                                                                           | Estado |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| `validation_error`, `bad_request`                                                                                                                | 400    |
-| `not_found` (incluye rutas inexistentes)                                                                                                         | 404    |
-| `slot_taken`, `schedule_conflict`, `schedule_overlap`, `proposal_stale`, `customer_phone_taken`, `customer_anonymized`, `service_name_taken`     | 409    |
-| `invalid_transition`, `slot_not_offered`, `early_closure_reason_required`, `early_closure_confirmation_required`, `reopen_confirmation_required` | 422    |
-| `internal_error` (y cualquier `DomainError` sin estado asignado)                                                                                 | 500    |
+| `code`                                                                                                                                                                                                          | Estado |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `validation_error`, `bad_request`                                                                                                                                                                               | 400    |
+| `not_found` (incluye rutas inexistentes)                                                                                                                                                                        | 404    |
+| `slot_taken`, `schedule_conflict`, `schedule_overlap`, `proposal_stale`, `customer_phone_taken`, `customer_anonymized`, `service_name_taken`                                                                    | 409    |
+| `invalid_transition`, `slot_not_offered`, `closure_confirmation_required`, `early_closure_reason_required`, `early_closure_confirmation_required`, `reopen_confirmation_required`, `correction_reason_required` | 422    |
+| `internal_error` (y cualquier `DomainError` sin estado asignado)                                                                                                                                                | 500    |
 
 Los errores inesperados no exponen su mensaje interno; solo se registran en el log del servidor. La validación de cuerpos usa `class-validator` con `whitelist` y `forbidNonWhitelisted`: una propiedad desconocida (por ejemplo `timezone` en `PATCH /business`) se rechaza con 400.
 
@@ -161,24 +161,25 @@ Las rutas de escritura de horario viven en `ScheduleChangesController` (`schedul
 
 `src/scheduling/domain/` contiene funciones puras de TypeScript, sin Nest, Kysely ni Postgres (una prueba lo verifica). Los instantes son milisegundos desde la época Unix y los rangos son semiabiertos `[start, end)`.
 
-| Archivo                               | Responsabilidad                                                                                                                                                         |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `time/zoned-clock.ts`                 | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia.             |
-| `services/generate-slots.ts`          | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                               |
-| `services/occupied-blocks.ts`         | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.                    |
-| `services/assign-technician.ts`       | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                                   |
-| `services/technician-load.ts`         | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                                           |
-| `services/appointment-status.ts`      | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                             |
-| `services/book-slot.ts`               | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede. Acepta un técnico pedido (restringe) o preferido (prioridad).      |
-| `services/technician-availability.ts` | `isTechnicianFree`: el técnico trabaja en un horario exacto y su bloque ocupado no choca con el de la cita (reasignación manual).                                       |
-| `services/schedule-change.ts`         | `findAffectedAppointments`: citas `pending`/`confirmed` desde `now` que un `ScheduleChange` (modelo en `model/schedule-change.ts`) deja sin cobertura.                  |
-| `services/plan-reassignments.ts`      | `planReassignments` (propuesta cronológica con carga y ocupación en memoria) y `findUnavailableTargets` (verifica los destinos al aplicar).                             |
-| `services/availability-windows.ts`    | `validateAvailabilityWindows`: día 1 a 7, horas `HH:MM` hasta 23:59, fin posterior al inicio y sin solapes por día.                                                     |
-| `services/alias.ts`                   | `generateAlias`: alias aleatorio `palabra_número` que no esté ya usado en el negocio. Listas de palabras de técnicos (`tiger_1`) y de clientes (`bear_1`).              |
-| `services/followup-policy.ts`         | `followupSendAt` (fecha local de cierre más intervalo, a la hora de envío del negocio), `canScheduleFollowups` y `selectBackfillFollowups` (consentimiento tardío).     |
-| `services/customer-anonymization.ts`  | `anonymizedPhone` (`anon-` más 26 hexadecimales, nunca un E.164), `isAnonymizedPhone` y el texto neutro que reemplaza motivos libres.                                   |
-| `model/consent.ts`                    | Tipos de consentimiento: estado, tipo de evento y medio (`in_person`, `phone_call`, `whatsapp`, `written`, `other`).                                                    |
-| `ports/`                              | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`, `ConsentRepository`, `FollowupRepository`) y `CommandExecutor`. Solo tipos. |
+| Archivo                               | Responsabilidad                                                                                                                                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `time/zoned-clock.ts`                 | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia.                                                  |
+| `services/generate-slots.ts`          | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                                                                    |
+| `services/occupied-blocks.ts`         | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.                                                         |
+| `services/assign-technician.ts`       | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                                                                        |
+| `services/technician-load.ts`         | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                                                                                |
+| `services/appointment-status.ts`      | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                                                                  |
+| `services/appointment-closure.ts`     | `planClosure` (cierre normal y anticipado) y `planCorrection` (corrección, fecha de completado y reapertura): estado nuevo, fila de auditoría y efecto sobre el seguimiento.                                 |
+| `services/book-slot.ts`               | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede. Acepta un técnico pedido (restringe) o preferido (prioridad).                                           |
+| `services/technician-availability.ts` | `isTechnicianFree`: el técnico trabaja en un horario exacto y su bloque ocupado no choca con el de la cita (reasignación manual).                                                                            |
+| `services/schedule-change.ts`         | `findAffectedAppointments`: citas `pending`/`confirmed` desde `now` que un `ScheduleChange` (modelo en `model/schedule-change.ts`) deja sin cobertura.                                                       |
+| `services/plan-reassignments.ts`      | `planReassignments` (propuesta cronológica con carga y ocupación en memoria) y `findUnavailableTargets` (verifica los destinos al aplicar).                                                                  |
+| `services/availability-windows.ts`    | `validateAvailabilityWindows`: día 1 a 7, horas `HH:MM` hasta 23:59, fin posterior al inicio y sin solapes por día.                                                                                          |
+| `services/alias.ts`                   | `generateAlias`: alias aleatorio `palabra_número` que no esté ya usado en el negocio. Listas de palabras de técnicos (`tiger_1`) y de clientes (`bear_1`).                                                   |
+| `services/followup-policy.ts`         | `followupSendAt` (fecha local de cierre más intervalo, a la hora de envío del negocio), `canScheduleFollowups`, `planCompletionFollowup` (al completar) y `selectBackfillFollowups` (consentimiento tardío). |
+| `services/customer-anonymization.ts`  | `anonymizedPhone` (`anon-` más 26 hexadecimales, nunca un E.164), `isAnonymizedPhone` y el texto neutro que reemplaza motivos libres.                                                                        |
+| `model/consent.ts`                    | Tipos de consentimiento: estado, tipo de evento y medio (`in_person`, `phone_call`, `whatsapp`, `written`, `other`).                                                                                         |
+| `ports/`                              | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`, `ConsentRepository`, `FollowupRepository`) y `CommandExecutor`. Solo tipos.                                      |
 
 Reglas de `generateSlots`:
 
@@ -190,7 +191,7 @@ Reglas de `generateSlots`:
 
 ## Cupos y citas
 
-Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos), `application/` (casos de uso sin Nest: `ListSlots`, `CreateAppointment`, `CancelAppointment`, `MoveAppointment`, `ReassignAppointment`, `PreviewScheduleChange`, `ApplyScheduleChange`, `QueryAppointments` y `loadDaySchedule`), `infrastructure/` (adaptadores de Kysely, controladores, DTO) y `scheduling.module.ts`, que cablea todo con los tokens de `application/tokens.ts` (`CLOCK`, `COMMAND_EXECUTOR`, `READ_PORTS`). Las pruebas fijan el reloj con `createTestApp({ now })`.
+Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos), `application/` (casos de uso sin Nest: `ListSlots`, `CreateAppointment`, `CancelAppointment`, `CloseAppointment`, `CorrectClosure`, `MoveAppointment`, `ReassignAppointment`, `PreviewScheduleChange`, `ApplyScheduleChange`, `QueryAppointments` y `loadDaySchedule`), `infrastructure/` (adaptadores de Kysely, controladores, DTO) y `scheduling.module.ts`, que cablea todo con los tokens de `application/tokens.ts` (`CLOCK`, `COMMAND_EXECUTOR`, `READ_PORTS`). Las pruebas fijan el reloj con `createTestApp({ now })`.
 
 ### Ejecutor de comandos y bloqueo del negocio
 
@@ -198,15 +199,17 @@ Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos)
 
 ### Endpoints
 
-| Método y ruta                     | Descripción                                                                                                                                                                                                         |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /slots`                      | Cupos de un servicio. Consulta: `serviceId`, `from` (`AAAA-MM-DD`, día local), `days` (1 a 31, por defecto 1), `excludeAppointmentId` y `preferredTechnicianId` opcionales. Responde `{ slots, has_availability }`. |
-| `POST /appointments`              | Crea una cita `confirmed` (201). Cuerpo: `customer_id`, `service_id`, `starts_at` (ISO 8601 con zona), `address` (obligatoria) y `technician_id` opcional.                                                          |
-| `POST /appointments/:id/cancel`   | Cancela una cita `pending` o `confirmed` (200). Cuerpo opcional: `reason`. Libera el bloque y anula sus mensajes programados pendientes.                                                                            |
-| `POST /appointments/:id/move`     | Mueve una cita `pending` o `confirmed` a un cupo generado (200). Cuerpo: `starts_at` (ISO 8601 con zona). Ver "Mover y reasignar".                                                                                  |
-| `POST /appointments/:id/reassign` | Cambia solo el técnico de una cita `pending` o `confirmed` (200). Cuerpo: `technician_id`. Ver "Mover y reasignar".                                                                                                 |
-| `GET /appointments`               | Citas de cualquier estado con técnico, cliente y servicio. Consulta: `from` y `to` (días locales, ambos incluidos, hasta 62 días), ordenadas por inicio.                                                            |
-| `GET /appointments/:id`           | Detalle de una cita (404 si no existe en el negocio).                                                                                                                                                               |
+| Método y ruta                            | Descripción                                                                                                                                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /slots`                             | Cupos de un servicio. Consulta: `serviceId`, `from` (`AAAA-MM-DD`, día local), `days` (1 a 31, por defecto 1), `excludeAppointmentId` y `preferredTechnicianId` opcionales. Responde `{ slots, has_availability }`. |
+| `POST /appointments`                     | Crea una cita `confirmed` (201). Cuerpo: `customer_id`, `service_id`, `starts_at` (ISO 8601 con zona), `address` (obligatoria) y `technician_id` opcional.                                                          |
+| `POST /appointments/:id/cancel`          | Cancela una cita `pending` o `confirmed` (200). Cuerpo opcional: `reason`. Libera el bloque y anula sus mensajes programados pendientes.                                                                            |
+| `POST /appointments/:id/close`           | Cierra una cita `pending` o `confirmed` como `completed` o `no_show` (200). Cuerpo: `outcome`, `confirm`, y para el cierre anticipado `reason` y `confirm_early`. Ver "Cierre, corrección y seguimiento".           |
+| `POST /appointments/:id/correct-closure` | Corrige el cierre de una cita `completed` o `no_show` (200): cambia de resultado, corrige la fecha de completado o la reabre. Cuerpo: `outcome`, `reason`, `confirm_reopen`, `completed_at`.                        |
+| `POST /appointments/:id/move`            | Mueve una cita `pending` o `confirmed` a un cupo generado (200). Cuerpo: `starts_at` (ISO 8601 con zona). Ver "Mover y reasignar".                                                                                  |
+| `POST /appointments/:id/reassign`        | Cambia solo el técnico de una cita `pending` o `confirmed` (200). Cuerpo: `technician_id`. Ver "Mover y reasignar".                                                                                                 |
+| `GET /appointments`                      | Citas de cualquier estado con técnico, cliente y servicio. Consulta: `from` y `to` (días locales, ambos incluidos, hasta 62 días), ordenadas por inicio.                                                            |
+| `GET /appointments/:id`                  | Detalle de una cita (404 si no existe en el negocio).                                                                                                                                                               |
 
 Cada cupo de `GET /slots` es `{ starts_at, ends_at, occupied_until, technician_id, available_technician_ids }`: un inicio aparece una sola vez con el técnico asignado, y `available_technician_ids` (por antigüedad) alimenta la reasignación manual. Sin técnicos, con un servicio inactivo o sin huecos, `slots` es `[]` y `has_availability` es `false`. Los instantes se devuelven en ISO 8601 UTC.
 
@@ -274,6 +277,85 @@ COMMIT
 | `customer_anonymized` | 409    | `POST /appointments` para un cliente anonimizado; la cita no se crea.                                                          |
 | `slot_not_offered`    | 422    | La hora no es un cupo generado y no choca con ninguna cita; también servicio o técnico pedido no reservable.                   |
 | `invalid_transition`  | 422    | Cancelar, mover o reasignar una cita `cancelled`, `completed` o `no_show`. Una cancelada no se reabre: se crea una cita nueva. |
+
+## Cierre, corrección y seguimiento
+
+Cerrar una cita es siempre una acción explícita del dueño con confirmación: nada se cierra por el paso del tiempo. Los tres comandos corren bajo el bloqueo del negocio, en una sola transacción: el cambio de la cita, la fila de `appointment_closures` y el efecto sobre el seguimiento se guardan juntos o no se guarda nada. El actor es el dueño fijo (`owner`) mientras no exista autenticación. Una cita cerrada conserva su bloque de tiempo (solo `cancelled` lo libera), incluso si se cerró antes de su hora, y la corrección o la reapertura nunca lo modifican.
+
+### Máquina de estados (D11)
+
+```mermaid
+stateDiagram-v2
+    [*] --> confirmed: cita manual
+    [*] --> pending: cita del bot (futuro)
+    pending --> cancelled: cancelar
+    confirmed --> cancelled: cancelar
+    pending --> completed: close
+    pending --> no_show: close
+    confirmed --> completed: close
+    confirmed --> no_show: close
+    completed --> no_show: correct-closure
+    no_show --> completed: correct-closure
+    completed --> completed: correct-closure (nueva fecha)
+    completed --> confirmed: correct-closure + confirm_reopen
+    no_show --> confirmed: correct-closure + confirm_reopen
+    cancelled --> [*]: no se reabre
+```
+
+Cualquier otra transición responde `invalid_transition` (422). Una cita `cancelled` nunca sale de ese estado: el mensaje indica crear una cita nueva. Mover, reasignar y cancelar solo aplican a `pending|confirmed`, así que una cita cerrada debe reabrirse antes.
+
+### `POST /appointments/:id/close`
+
+Cuerpo (`snake_case`): `outcome` (`completed` o `no_show`), `confirm`, `reason` (opcional, hasta 500 caracteres) y `confirm_early`. Responde la cita (200).
+
+| Situación                                         | Requisitos                                                                    | Error si falta                                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Cierre normal (`now` igual o posterior al inicio) | `confirm: true`. El `reason` es opcional y solo se audita.                    | `closure_confirmation_required` (422)                                              |
+| Cierre anticipado (`now` anterior al inicio)      | `reason` con texto y `confirm_early: true`. `confirm` no basta ni hace falta. | `early_closure_reason_required`, luego `early_closure_confirmation_required` (422) |
+| Cita ya `completed`, `no_show` o `cancelled`      | -                                                                             | `invalid_transition` (422)                                                         |
+
+- Completar guarda `completed_at` y `closed_at` con el instante actual; no asistió guarda solo `closed_at`. El cierre anticipado marca `closed_early = true` y copia el motivo en `closure_reason`; el cierre normal deja `closure_reason` en nulo.
+- Escribe una fila de `appointment_closures` con `outcome`, `previous_outcome` (`pending` o `confirmed`), `early`, `reason`, las fechas de completado y el actor.
+
+### `POST /appointments/:id/correct-closure`
+
+Cuerpo (`snake_case`): `outcome` (`completed`, `no_show` o `confirmed`), `reason`, `confirm_reopen` y `completed_at` (ISO 8601 con zona). Solo aplica a citas `completed` o `no_show`; una `pending|confirmed` responde `invalid_transition` porque aún no está cerrada. Toda corrección exige `reason` (`correction_reason_required`, 422) y queda auditada con quién, cuándo y por qué.
+
+| Corrección                                      | `outcome` y datos                                        | Cita                                                                                        | Seguimiento                                                              | `appointment_closures.outcome` |
+| ----------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------ |
+| `completed` a `no_show`                         | `no_show`                                                | Limpia `completed_at`; conserva `closed_at`, `closed_early` y `closure_reason`.             | Anula el pendiente: `cancel_reason = 'closure_corrected'`.               | `no_show`                      |
+| `no_show` a `completed`                         | `completed`, `completed_at` opcional (por defecto ahora) | Fija `completed_at`.                                                                        | Aplica la regla de seguimiento al completar.                             | `completed`                    |
+| Fecha de completado                             | `completed` y `completed_at` obligatoria                 | Cambia `completed_at`.                                                                      | Recalcula `send_at` del pendiente de la cita; no crea ni reactiva filas. | `completion_date_corrected`    |
+| Reapertura (`completed\|no_show` a `confirmed`) | `confirmed`, `confirm_reopen: true`, `reason`            | Limpia `completed_at`, `closed_at`, `closed_early` y `closure_reason`; el bloque no cambia. | Anula el pendiente: `cancel_reason = 'reopened'`.                        | `reopened`                     |
+
+- Sin `confirm_reopen: true` la reapertura responde 422 `reopen_confirmation_required` y la cita no cambia. Esa bandera se revisa antes que el motivo.
+- `completed_at` solo se admite al corregir a `completed`, no puede ser futura y debe llevar zona horaria. La fecha de completado de una cita ya `completed` es obligatoria; si falta o es inválida responde `validation_error` (400).
+- Las filas de seguimiento `sent` o `failed` nunca se modifican.
+
+### Seguimiento al completar
+
+`scheduleCompletionFollowup` (`application/completion-followup.ts`) se invoca con la cita ya guardada como `completed`, de modo que no cuenta como su propia "cita futura". `planCompletionFollowup` decide:
+
+1. El cliente tiene consentimiento `granted` (si no, no hay fila: CR-R6).
+2. El servicio tiene `followup_interval_days`.
+3. El cliente no tiene otra cita `pending|confirmed` de ese servicio que empiece ahora o después.
+
+Si se cumplen, `send_at` es la fecha local del negocio de `completed_at` más el intervalo, a las `followup_send_time` del negocio (09:00 por defecto): completar el 2026-11-01 con 180 días da 2027-04-30 09:00 hora de Bogotá, y 2026-11-05 con 90 días da 2027-02-03. `FollowupRepository.replacePending` anula como `superseded` el seguimiento `pending` del mismo cliente y servicio que pertenezca a otra cita y deja la cita con su fila `pending`. Una cita tiene a lo sumo una fila (`UNIQUE (appointment_id, kind)`): si ya tenía una `cancelled` o `pending`, se reutiliza con la nueva fecha; así, cerrar, reabrir y volver a cerrar no duplica filas. Si la regla no procede, no se toca nada, tampoco el seguimiento pendiente de otras citas. `no_show` nunca crea seguimiento. Este sprint no envía mensajes: los seguimientos son solo filas en `scheduled_messages`.
+
+`replacePending` es distinto de `FollowupRepository.schedule` (relleno por consentimiento tardío), que solo reactiva filas canceladas por `consent_revoked`.
+
+### Códigos de error del cierre
+
+| Código                                | Estado | Cuándo                                                                                           |
+| ------------------------------------- | ------ | ------------------------------------------------------------------------------------------------ |
+| `closure_confirmation_required`       | 422    | Cierre normal sin `confirm: true`.                                                               |
+| `early_closure_reason_required`       | 422    | Cierre anticipado sin motivo (vacío o solo espacios).                                            |
+| `early_closure_confirmation_required` | 422    | Cierre anticipado sin `confirm_early: true`.                                                     |
+| `reopen_confirmation_required`        | 422    | Devolver una cita cerrada a `confirmed` sin `confirm_reopen: true`.                              |
+| `correction_reason_required`          | 422    | Corrección o reapertura sin motivo.                                                              |
+| `invalid_transition`                  | 422    | Cerrar una cita ya cerrada o cancelada; corregir una cita cancelada o aún abierta.               |
+| `validation_error`                    | 400    | Cuerpo inválido; fecha de completado futura, ausente al corregirla o enviada con otro `outcome`. |
+| `not_found`                           | 404    | La cita no existe en el negocio.                                                                 |
 
 ## Cambios de horario y eliminación de técnicos
 

@@ -2,6 +2,8 @@ import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } fr
 import { BusinessContext } from '../../../shared/http/business-context';
 import { ValidationFailedError } from '../../../shared/http/validation';
 import { CancelAppointment } from '../../application/cancel-appointment';
+import { CloseAppointment } from '../../application/close-appointment';
+import { CorrectClosure } from '../../application/correct-closure';
 import { CreateAppointment } from '../../application/create-appointment';
 import { MoveAppointment } from '../../application/move-appointment';
 import { QueryAppointments } from '../../application/query-appointments';
@@ -9,6 +11,8 @@ import { ReassignAppointment } from '../../application/reassign-appointment';
 import { addDays } from '../../domain/time/zoned-clock';
 import { toAppointmentResponse, type AppointmentResponse } from './appointment-response';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
+import { CloseAppointmentDto } from './dto/close-appointment.dto';
+import { CorrectClosureDto } from './dto/correct-closure.dto';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { ListAppointmentsQueryDto, MAX_AGENDA_DAYS } from './dto/list-appointments.dto';
 import { MoveAppointmentDto } from './dto/move-appointment.dto';
@@ -20,6 +24,8 @@ export class AppointmentsController {
     private readonly context: BusinessContext,
     private readonly createAppointment: CreateAppointment,
     private readonly cancelAppointment: CancelAppointment,
+    private readonly closeAppointment: CloseAppointment,
+    private readonly correctClosureUseCase: CorrectClosure,
     private readonly moveAppointment: MoveAppointment,
     private readonly reassignAppointment: ReassignAppointment,
     private readonly queries: QueryAppointments,
@@ -55,6 +61,38 @@ export class AppointmentsController {
     const view = await this.cancelAppointment.execute(this.context.businessId, {
       appointmentId: id,
       reason: dto.reason ?? null,
+    });
+    return toAppointmentResponse(view);
+  }
+
+  @Post(':id/close')
+  @HttpCode(200)
+  async close(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CloseAppointmentDto,
+  ): Promise<AppointmentResponse> {
+    const view = await this.closeAppointment.execute(this.context.businessId, {
+      appointmentId: id,
+      outcome: dto.outcome,
+      confirm: dto.confirm === true,
+      confirmEarly: dto.confirm_early === true,
+      reason: dto.reason ?? null,
+    });
+    return toAppointmentResponse(view);
+  }
+
+  @Post(':id/correct-closure')
+  @HttpCode(200)
+  async correctClosure(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CorrectClosureDto,
+  ): Promise<AppointmentResponse> {
+    const view = await this.correctClosureUseCase.execute(this.context.businessId, {
+      appointmentId: id,
+      target: dto.outcome,
+      confirmReopen: dto.confirm_reopen === true,
+      reason: dto.reason ?? null,
+      completedAt: dto.completed_at ? Date.parse(dto.completed_at) : null,
     });
     return toAppointmentResponse(view);
   }

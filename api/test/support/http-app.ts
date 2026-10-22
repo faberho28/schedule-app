@@ -10,19 +10,21 @@ import { CLOCK } from '../../src/scheduling/application/tokens';
  * sembrarse después de llamar a esta función. Cerrar la app libera el pool.
  *
  * Con `now` (milisegundos desde la época Unix) el reloj del agendamiento queda fijo, para
- * probar cupos y cancelaciones sin depender de la fecha real.
+ * probar cupos y cancelaciones sin depender de la fecha real. Si `now` es una función, se
+ * consulta en cada lectura del reloj, de modo que una prueba puede avanzar el tiempo.
  */
 export async function createTestApp(options: {
   databaseUrl: string;
   businessId: string;
-  now?: number;
+  now?: number | (() => number);
 }): Promise<INestApplication> {
   vi.stubEnv('DATABASE_URL', options.databaseUrl);
   vi.stubEnv('DEFAULT_BUSINESS_ID', options.businessId);
   let builder = Test.createTestingModule({ imports: [AppModule] });
   const { now } = options;
   if (now !== undefined) {
-    builder = builder.overrideProvider(CLOCK).useValue({ now: () => now });
+    const read = typeof now === 'function' ? now : () => now;
+    builder = builder.overrideProvider(CLOCK).useValue({ now: read });
   }
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: false });

@@ -39,7 +39,7 @@ export class KyselyScheduleReader implements ScheduleReader {
   async getService(businessId: string, serviceId: string): Promise<ServiceInfo | null> {
     const row = await this.db
       .selectFrom('services')
-      .select(['id', 'name', 'duration_min', 'price', 'active'])
+      .select(['id', 'name', 'duration_min', 'price', 'active', 'followup_interval_days'])
       .where('business_id', '=', businessId)
       .where('id', '=', serviceId)
       .where('deleted_at', 'is', null)
@@ -51,6 +51,7 @@ export class KyselyScheduleReader implements ScheduleReader {
       durationMin: row.duration_min,
       price: Number(row.price),
       active: row.active,
+      followupIntervalDays: row.followup_interval_days,
     };
   }
 

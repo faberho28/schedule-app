@@ -23,6 +23,22 @@ export interface FollowupRepository {
   listServicesWithPendingFollowup(businessId: string, customerId: string): Promise<Set<string>>;
 
   /**
+   * Seguimiento por cierre de una cita (CL-R3). En una sola operación anula como `superseded` el
+   * seguimiento `pending` del mismo cliente y servicio que pertenezca a otra cita, y deja la cita
+   * con un seguimiento `pending` en `sendAt`: inserta la fila o reutiliza la suya si estaba
+   * `cancelled` o `pending` (una cita tiene a lo sumo una fila por tipo). Una fila `sent` o
+   * `failed` no se modifica. El trigger de consentimiento rechaza la operación si el cliente no
+   * tiene el consentimiento otorgado.
+   */
+  replacePending(businessId: string, customerId: string, item: FollowupToSchedule): Promise<void>;
+
+  /**
+   * Cambia `send_at` del seguimiento `pending` de la cita, sin crear otro. Devuelve cuántas filas
+   * cambió (0 si no hay seguimiento pendiente).
+   */
+  reschedulePending(businessId: string, appointmentId: string, sendAt: Instant): Promise<number>;
+
+  /**
    * Inserta los seguimientos de forma idempotente (`ON CONFLICT` sobre cita y tipo). Una fila ya
    * existente se conserva, salvo la cancelada por `consent_revoked`, que se reactiva con la nueva
    * fecha. Devuelve cuántas filas se crearon o reactivaron. El trigger de consentimiento rechaza

@@ -36,6 +36,54 @@ export class InvalidTransitionError extends DomainError {
   }
 }
 
+/** El cierre normal llegó sin la confirmación explícita de una persona. */
+export class ClosureConfirmationRequiredError extends DomainError {
+  constructor() {
+    super('closure_confirmation_required', 'Confirma el cierre de la cita para continuar');
+  }
+}
+
+/** El cierre anticipado (antes de la hora de inicio) llegó sin motivo. */
+export class EarlyClosureReasonRequiredError extends DomainError {
+  constructor() {
+    super(
+      'early_closure_reason_required',
+      'Indica el motivo para cerrar la cita antes de su hora de inicio',
+    );
+  }
+}
+
+/** El cierre anticipado llegó sin la confirmación reforzada. */
+export class EarlyClosureConfirmationRequiredError extends DomainError {
+  constructor() {
+    super(
+      'early_closure_confirmation_required',
+      'Confirma el cierre anticipado para continuar: la cita aún no ha empezado',
+    );
+  }
+}
+
+/** Devolver una cita cerrada a `confirmed` exige la bandera de confirmación reforzada. */
+export class ReopenConfirmationRequiredError extends DomainError {
+  constructor() {
+    super('reopen_confirmation_required', 'Confirma que quieres reabrir la cita cerrada');
+  }
+}
+
+/** Toda corrección o reapertura del cierre debe registrar por qué se hace. */
+export class CorrectionReasonRequiredError extends DomainError {
+  constructor() {
+    super('correction_reason_required', 'Indica el motivo de la corrección del cierre');
+  }
+}
+
+/** La solicitud de cierre o de corrección no es coherente (fecha futura, dato que sobra o falta). */
+export class InvalidClosureError extends DomainError {
+  constructor(message: string) {
+    super('validation_error', message);
+  }
+}
+
 /** El recurso pedido no existe en el negocio actual. */
 export class NotFoundError extends DomainError {
   constructor(message = 'Recurso no encontrado', options?: ErrorOptions) {

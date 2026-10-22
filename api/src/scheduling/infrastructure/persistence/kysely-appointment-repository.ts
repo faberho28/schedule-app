@@ -8,6 +8,7 @@ import type {
   NewAppointment,
   Reschedule,
 } from '../../domain/ports/appointment-repository';
+import type { ClosureAudit, ClosureState } from '../../domain/services/appointment-closure';
 import type { AppointmentStatus } from '../../domain/services/appointment-status';
 import type { BlockingAppointment } from '../../domain/services/occupied-blocks';
 import { translatePgError } from './pg-error-translator';
@@ -16,6 +17,8 @@ const MS_PER_MINUTE = 60_000;
 
 const timestamp = (instant: Instant) => sql<Date>`${new Date(instant)}::timestamptz`;
 const orNull = (value: Date | null): Instant | null => (value ? value.getTime() : null);
+const dateOrNull = (instant: Instant | null): Date | null =>
+  instant === null ? null : new Date(instant);
 
 /**
  * Adaptador Kysely de las citas. Todos los métodos filtran por `business_id`. Una instancia
@@ -73,7 +76,20 @@ export class KyselyAppointmentRepository implements AppointmentRepository {
   async findRecord(businessId: string, id: string): Promise<AppointmentRecord | null> {
     const row = await this.db
       .selectFrom('appointments')
-      .select(['id', 'status', 'technician_id', 'starts_at', 'ends_at', 'buffer_min'])
+      .select([
+        'id',
+        'status',
+        'customer_id',
+        'service_id',
+        'technician_id',
+        'starts_at',
+        'ends_at',
+        'buffer_min',
+        'completed_at',
+        'closed_at',
+        'closed_early',
+        'closure_reason',
+      ])
       .where('business_id', '=', businessId)
       .where('id', '=', id)
       .where('deleted_at', 'is', null)
@@ -82,11 +98,52 @@ export class KyselyAppointmentRepository implements AppointmentRepository {
     return {
       id: row.id,
       status: row.status as AppointmentStatus,
+      customerId: row.customer_id,
+      serviceId: row.service_id,
       technicianId: row.technician_id,
       startsAt: row.starts_at.getTime(),
       endsAt: row.ends_at.getTime(),
       bufferMin: row.buffer_min,
+      completedAt: orNull(row.completed_at),
+      closedAt: orNull(row.closed_at),
+      closedEarly: row.closed_early,
+      closureReason: row.closure_reason,
     };
+  }
+
+  async applyClosureState(businessId: string, id: string, state: ClosureState): Promise<void> {
+    await this.db
+      .updateTable('appointments')
+      .set({
+        status: state.status,
+        completed_at: dateOrNull(state.completedAt),
+        closed_at: dateOrNull(state.closedAt),
+        closed_early: state.closedEarly,
+        closure_reason: state.closureReason,
+      })
+      .where('business_id', '=', businessId)
+      .where('id', '=', id)
+      .execute();
+  }
+
+  async recordClosure(
+    businessId: string,
+    appointmentId: string,
+    audit: ClosureAudit,
+  ): Promise<void> {
+    await this.db
+      .insertInto('appointment_closures')
+      .values({
+        business_id: businessId,
+        appointment_id: appointmentId,
+        outcome: audit.outcome,
+        previous_outcome: audit.previousOutcome,
+        early: audit.early,
+        reason: audit.reason,
+        completed_at_before: dateOrNull(audit.completedAtBefore),
+        completed_at_after: dateOrNull(audit.completedAtAfter),
+      })
+      .execute();
   }
 
   async reschedule(businessId: string, id: string, change: Reschedule): Promise<void> {

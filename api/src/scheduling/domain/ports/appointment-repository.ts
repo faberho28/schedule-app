@@ -1,4 +1,5 @@
 import type { Instant, Range } from '../model/time';
+import type { ClosureAudit, ClosureState } from '../services/appointment-closure';
 import type { AppointmentStatus } from '../services/appointment-status';
 import type { BlockingAppointment } from '../services/occupied-blocks';
 
@@ -29,14 +30,20 @@ export interface Reschedule {
   readonly markTechnicianChanged: boolean;
 }
 
-/** Lo mínimo de una cita para decidir sobre su estado. */
+/** Lo mínimo de una cita para decidir sobre su estado y su cierre. */
 export interface AppointmentRecord {
   readonly id: string;
   readonly status: AppointmentStatus;
+  readonly customerId: string;
+  readonly serviceId: string;
   readonly technicianId: string;
   readonly startsAt: Instant;
   readonly endsAt: Instant;
   readonly bufferMin: number;
+  readonly completedAt: Instant | null;
+  readonly closedAt: Instant | null;
+  readonly closedEarly: boolean;
+  readonly closureReason: string | null;
 }
 
 /** Persona o servicio tal como se muestra en la agenda (alias si fue anonimizado). */
@@ -97,6 +104,15 @@ export interface AppointmentRepository {
     id: string,
     input: { cancelledAt: Instant; reason: string | null },
   ): Promise<void>;
+
+  /**
+   * Guarda el estado y los campos de cierre de la cita. No toca el horario ni el bloque: una
+   * cita cerrada o reabierta conserva su bloque de tiempo.
+   */
+  applyClosureState(businessId: string, id: string, state: ClosureState): Promise<void>;
+
+  /** Agrega una fila a `appointment_closures` (solo inserción); el actor es el dueño fijo. */
+  recordClosure(businessId: string, appointmentId: string, audit: ClosureAudit): Promise<void>;
 
   /** Pasa a `cancelled` los mensajes programados `pending` de la cita; devuelve cuántos. */
   annulPendingMessages(businessId: string, appointmentId: string, reason: string): Promise<number>;

@@ -7,6 +7,9 @@ import type { CompletedVisit, FollowupToSchedule } from '../../domain/services/f
 /** Motivo con el que se reactiva una fila: solo la cancelada por revocación vuelve a `pending`. */
 const REVIVABLE_CANCEL_REASON = 'consent_revoked';
 
+/** Motivo con el que se anula el seguimiento pendiente que reemplaza una nueva finalización. */
+const SUPERSEDED_CANCEL_REASON = 'superseded';
+
 /** Seguimientos (`scheduled_messages` de tipo `followup`) con Kysely; filtra por `business_id`. */
 export class KyselyFollowupRepository implements FollowupRepository {
   constructor(private readonly db: Kysely<DB>) {}
@@ -77,6 +80,69 @@ export class KyselyFollowupRepository implements FollowupRepository {
       .where('status', '=', 'pending')
       .execute();
     return new Set(rows.map((row) => row.service_id));
+  }
+
+  async replacePending(
+    businessId: string,
+    customerId: string,
+    item: FollowupToSchedule,
+  ): Promise<void> {
+    const existing = await this.db
+      .selectFrom('scheduled_messages')
+      .select('status')
+      .where('business_id', '=', businessId)
+      .where('appointment_id', '=', item.appointmentId)
+      .where('kind', '=', 'followup')
+      .executeTakeFirst();
+    // Un seguimiento ya enviado (o fallido) no se reemplaza: tampoco se supersede el pendiente.
+    if (existing && existing.status !== 'pending' && existing.status !== 'cancelled') return;
+
+    await this.db
+      .updateTable('scheduled_messages')
+      .set({ status: 'cancelled', cancel_reason: SUPERSEDED_CANCEL_REASON })
+      .where('business_id', '=', businessId)
+      .where('customer_id', '=', customerId)
+      .where('service_id', '=', item.serviceId)
+      .where('kind', '=', 'followup')
+      .where('status', '=', 'pending')
+      .where('appointment_id', '<>', item.appointmentId)
+      .execute();
+
+    await this.db
+      .insertInto('scheduled_messages')
+      .values({
+        business_id: businessId,
+        customer_id: customerId,
+        appointment_id: item.appointmentId,
+        service_id: item.serviceId,
+        kind: 'followup',
+        send_at: new Date(item.sendAt),
+        status: 'pending',
+      })
+      .onConflict((conflict) =>
+        conflict.columns(['appointment_id', 'kind']).doUpdateSet((eb) => ({
+          status: 'pending',
+          cancel_reason: null,
+          send_at: eb.ref('excluded.send_at'),
+        })),
+      )
+      .execute();
+  }
+
+  async reschedulePending(
+    businessId: string,
+    appointmentId: string,
+    sendAt: Instant,
+  ): Promise<number> {
+    const result = await this.db
+      .updateTable('scheduled_messages')
+      .set({ send_at: new Date(sendAt) })
+      .where('business_id', '=', businessId)
+      .where('appointment_id', '=', appointmentId)
+      .where('kind', '=', 'followup')
+      .where('status', '=', 'pending')
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows);
   }
 
   async schedule(

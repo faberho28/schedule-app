@@ -99,6 +99,7 @@ describe('KyselyScheduleReader', () => {
         durationMin: 90,
         price: 130000.5,
         active: true,
+        followupIntervalDays: null,
       });
       expect(await schedule.getService(BUSINESS, inactive)).toMatchObject({ active: false });
     });

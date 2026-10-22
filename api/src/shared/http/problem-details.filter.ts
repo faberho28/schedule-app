@@ -25,9 +25,11 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   customer_anonymized: HttpStatus.CONFLICT,
   service_name_taken: HttpStatus.CONFLICT,
   invalid_transition: HttpStatus.UNPROCESSABLE_ENTITY,
+  closure_confirmation_required: HttpStatus.UNPROCESSABLE_ENTITY,
   early_closure_reason_required: HttpStatus.UNPROCESSABLE_ENTITY,
   early_closure_confirmation_required: HttpStatus.UNPROCESSABLE_ENTITY,
   reopen_confirmation_required: HttpStatus.UNPROCESSABLE_ENTITY,
+  correction_reason_required: HttpStatus.UNPROCESSABLE_ENTITY,
   slot_not_offered: HttpStatus.UNPROCESSABLE_ENTITY,
 };
 
@@ -44,9 +46,11 @@ const TITLE_BY_CODE: Readonly<Record<string, string>> = {
   customer_anonymized: 'Cliente eliminado',
   service_name_taken: 'Nombre de servicio ya registrado',
   invalid_transition: 'Transición no permitida',
+  closure_confirmation_required: 'Falta la confirmación del cierre',
   early_closure_reason_required: 'Falta el motivo del cierre anticipado',
   early_closure_confirmation_required: 'Falta la confirmación del cierre anticipado',
   reopen_confirmation_required: 'Falta la confirmación para reabrir',
+  correction_reason_required: 'Falta el motivo de la corrección',
   slot_not_offered: 'Cupo no ofrecido',
   internal_error: 'Error interno',
 };

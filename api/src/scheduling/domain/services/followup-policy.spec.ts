@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   canScheduleFollowups,
   followupSendAt,
+  planCompletionFollowup,
   selectBackfillFollowups,
   type BackfillInput,
   type CompletedVisit,
+  type CompletionFollowupInput,
 } from './followup-policy';
 
 const BOGOTA = 'America/Bogota';
@@ -73,6 +75,55 @@ describe('canScheduleFollowups (CR-R6)', () => {
     expect(canScheduleFollowups('granted')).toBe(true);
     expect(canScheduleFollowups('pending')).toBe(false);
     expect(canScheduleFollowups('revoked')).toBe(false);
+  });
+});
+
+describe('planCompletionFollowup (CL-R3)', () => {
+  const input = (overrides: Partial<CompletionFollowupInput> = {}): CompletionFollowupInput => ({
+    appointmentId: 'a-1',
+    serviceId: 'svc-1',
+    consentStatus: 'granted',
+    intervalDays: 180,
+    hasFutureAppointment: false,
+    completedAt: at('2026-11-01T15:00:00-05:00'),
+    sendTime: '09:00',
+    timeZone: BOGOTA,
+    ...overrides,
+  });
+
+  it('programa el seguimiento 180 días después a las 09:00 hora local', () => {
+    expect(planCompletionFollowup(input())).toEqual({
+      appointmentId: 'a-1',
+      serviceId: 'svc-1',
+      sendAt: at('2027-04-30T09:00:00-05:00'),
+    });
+  });
+
+  it('recalcula con otra fecha de completado e intervalo (2026-11-05 + 90 días)', () => {
+    expect(
+      planCompletionFollowup(
+        input({ completedAt: at('2026-11-05T08:00:00-05:00'), intervalDays: 90 }),
+      ),
+    ).toEqual({
+      appointmentId: 'a-1',
+      serviceId: 'svc-1',
+      sendAt: at('2027-02-03T09:00:00-05:00'),
+    });
+  });
+
+  it('respeta la hora de envío configurada', () => {
+    expect(planCompletionFollowup(input({ sendTime: '16:45' }))?.sendAt).toBe(
+      at('2027-04-30T16:45:00-05:00'),
+    );
+  });
+
+  it.each<[string, Partial<CompletionFollowupInput>]>([
+    ['consentimiento pendiente', { consentStatus: 'pending' }],
+    ['consentimiento revocado', { consentStatus: 'revoked' }],
+    ['servicio sin intervalo', { intervalDays: null }],
+    ['cita futura activa del mismo servicio', { hasFutureAppointment: true }],
+  ])('no programa seguimiento con %s', (_label, overrides) => {
+    expect(planCompletionFollowup(input(overrides))).toBeNull();
   });
 });
 

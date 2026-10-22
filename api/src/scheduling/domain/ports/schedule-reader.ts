@@ -15,6 +15,8 @@ export interface ServiceInfo {
   readonly durationMin: number;
   readonly price: number;
   readonly active: boolean;
+  /** Días entre el servicio completado y el seguimiento; `null` si el servicio no lo lleva. */
+  readonly followupIntervalDays: number | null;
 }
 
 /** Técnico reservable con su horario; los bloques ocupados los calcula la capa de aplicación. */

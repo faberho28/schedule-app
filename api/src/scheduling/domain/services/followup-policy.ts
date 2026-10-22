@@ -27,6 +27,38 @@ export function followupSendAt(input: FollowupSendAtInput): Instant {
   return toInstant(addDays(completedOn, input.intervalDays), input.sendTime, input.timeZone);
 }
 
+export interface CompletionFollowupInput {
+  readonly appointmentId: string;
+  readonly serviceId: string;
+  readonly consentStatus: ConsentStatus;
+  /** `followup_interval_days` del servicio; `null` si no lleva seguimiento. */
+  readonly intervalDays: number | null;
+  /** El cliente ya tiene otra cita futura activa (`pending|confirmed`) del mismo servicio. */
+  readonly hasFutureAppointment: boolean;
+  readonly completedAt: Instant;
+  readonly sendTime: LocalTime;
+  readonly timeZone: string;
+}
+
+/**
+ * Seguimiento que corresponde a una cita recién completada (CL-R3), o `null` si no procede: sin
+ * consentimiento otorgado, servicio sin intervalo o cita futura activa del mismo servicio.
+ */
+export function planCompletionFollowup(input: CompletionFollowupInput): FollowupToSchedule | null {
+  if (!canScheduleFollowups(input.consentStatus)) return null;
+  if (input.intervalDays === null || input.hasFutureAppointment) return null;
+  return {
+    appointmentId: input.appointmentId,
+    serviceId: input.serviceId,
+    sendAt: followupSendAt({
+      completedAt: input.completedAt,
+      intervalDays: input.intervalDays,
+      sendTime: input.sendTime,
+      timeZone: input.timeZone,
+    }),
+  };
+}
+
 /** Cita completada del historial del cliente, con el intervalo de seguimiento de su servicio. */
 export interface CompletedVisit {
   readonly appointmentId: string;

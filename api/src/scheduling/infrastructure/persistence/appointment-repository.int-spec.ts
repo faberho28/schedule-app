@@ -211,10 +211,16 @@ describe('KyselyAppointmentRepository', () => {
       expect(await appointments.findRecord(BUSINESS, id)).toEqual({
         id,
         status: 'confirmed',
+        customerId,
+        serviceId,
         technicianId,
         startsAt: at('2026-11-02T10:00:00-05:00'),
         endsAt: at('2026-11-02T11:00:00-05:00'),
         bufferMin: 15,
+        completedAt: null,
+        closedAt: null,
+        closedEarly: false,
+        closureReason: null,
       });
       expect(await appointments.findRecord(OTHER_BUSINESS, id)).toBeNull();
     });

@@ -3,6 +3,8 @@ import { DATABASE, type Database } from '../database/kysely.provider';
 import { AnonymizeCustomer } from './application/anonymize-customer';
 import { ApplyScheduleChange } from './application/apply-schedule-change';
 import { CancelAppointment } from './application/cancel-appointment';
+import { CloseAppointment } from './application/close-appointment';
+import { CorrectClosure } from './application/correct-closure';
 import { CreateAppointment } from './application/create-appointment';
 import { ListSlots } from './application/list-slots';
 import { MoveAppointment } from './application/move-appointment';
@@ -49,6 +51,17 @@ import { SystemClock } from './infrastructure/system-clock';
       provide: CancelAppointment,
       useFactory: (executor: CommandExecutor, clock: Clock) =>
         new CancelAppointment(executor, clock),
+      inject: [COMMAND_EXECUTOR, CLOCK],
+    },
+    {
+      provide: CloseAppointment,
+      useFactory: (executor: CommandExecutor, clock: Clock) =>
+        new CloseAppointment(executor, clock),
+      inject: [COMMAND_EXECUTOR, CLOCK],
+    },
+    {
+      provide: CorrectClosure,
+      useFactory: (executor: CommandExecutor, clock: Clock) => new CorrectClosure(executor, clock),
       inject: [COMMAND_EXECUTOR, CLOCK],
     },
     {
