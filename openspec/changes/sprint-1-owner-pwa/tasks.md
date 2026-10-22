@@ -61,14 +61,14 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 1: Base de `api/` (commit 1)
 
-- [ ] 1.1 Crear raíz del repo: `.gitignore` (`node_modules`, `.env`, `dist`), `.nvmrc` con Node 24 en `api/` y `app/`, y sección de desarrollo en `README.md`. Spec: n/a (infraestructura). Verif: manual, `git status` no lista `node_modules` ni `.env`.
-- [ ] 1.2 Crear proyecto NestJS (adaptador Express) en `api/` con TypeScript estricto, `main.ts`, `app.module.ts` y `src/config/env.ts` con esquema zod (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `DEFAULT_BUSINESS_ID`) y `api/.env.example`. Spec: BS-R1 (negocio por defecto). Verif: manual, `npm run build` compila.
-- [ ] 1.3 Configurar Vitest con `unplugin-swc` (`api/vitest.config.ts`) y el script `npm test`. Spec: n/a. Verif: RED/GREEN, primera prueba `api/src/config/env.spec.ts` que falla sin `DATABASE_URL` y pasa con un entorno válido.
-- [ ] 1.4 Configurar ESLint, Prettier y scripts `lint` y `typecheck` en `api/`. Spec: n/a. Verif: manual, ambos scripts terminan sin errores.
-- [ ] 1.5 Crear `docker-compose.yml` en la raíz con `postgres:16-alpine`, volumen con nombre y healthcheck. Spec: n/a. Verif: manual, `docker compose up -d` y `select version()` devuelve 16.
-- [ ] 1.6 Crear el arnés de integración `api/test/support/postgres-container.ts` (Testcontainers `postgres:16-alpine`, `globalSetup`, helper `truncateAll`). Spec: n/a. Verif: prueba que levanta el contenedor y ejecuta `SELECT 1`.
-- [ ] 1.7 Documentar en `api/README.md` los comandos (`npm test`, `lint`, `typecheck`, compose, Testcontainers). Spec: n/a. Verif: manual, un tercero puede seguirlos.
-- [ ] 1.8 Actualizar `openspec/config.yaml` (stack NestJS/Kysely, runner Vitest, `test_command` de `api/`) y re-ejecutar `sdd-init` para activar TDD estricto en `api/`. Spec: n/a. Verif: el caché de `sdd-init` reporta `strict_tdd: true`.
+- [x] 1.1 Crear raíz del repo: `.gitignore` (`node_modules`, `.env`, `dist`), `.nvmrc` con Node 24 en `api/` y `app/`, y sección de desarrollo en `README.md`. Spec: n/a (infraestructura). Verif: manual, `git status` no lista `node_modules` ni `.env`.
+- [ ] 1.2 Crear proyecto NestJS (adaptador Express) en `api/` con TypeScript estricto, `main.ts`, `app.module.ts` y `src/config/env.ts` con esquema zod (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `DEFAULT_BUSINESS_ID`) y `api/.env.example`. Spec: BS-R1 (negocio por defecto). Verif: manual, `npm run build` compila. NOTA: código y build listos; falta crear `api/.env.example` (bloqueado por permisos del entorno, ver reporte del apply).
+- [x] 1.3 Configurar Vitest con `unplugin-swc` (`api/vitest.config.ts`) y el script `npm test`. Spec: n/a. Verif: RED/GREEN, primera prueba `api/src/config/env.spec.ts` que falla sin `DATABASE_URL` y pasa con un entorno válido.
+- [x] 1.4 Configurar ESLint, Prettier y scripts `lint` y `typecheck` en `api/`. Spec: n/a. Verif: manual, ambos scripts terminan sin errores.
+- [x] 1.5 Crear `docker-compose.yml` en la raíz con `postgres:16-alpine`, volumen con nombre y healthcheck. Spec: n/a. Verif: manual, `docker compose up -d` y `select version()` devuelve 16.
+- [x] 1.6 Crear el arnés de integración `api/test/support/postgres-container.ts` (Testcontainers `postgres:16-alpine`, `globalSetup`, helper `truncateAll`). Spec: n/a. Verif: prueba que levanta el contenedor y ejecuta `SELECT 1`.
+- [x] 1.7 Documentar en `api/README.md` los comandos (`npm test`, `lint`, `typecheck`, compose, Testcontainers). Spec: n/a. Verif: manual, un tercero puede seguirlos.
+- [x] 1.8 Actualizar `openspec/config.yaml` (stack NestJS/Kysely, runner Vitest, `test_command` de `api/`) y re-ejecutar `sdd-init` para activar TDD estricto en `api/`. Spec: n/a. Verif: el caché de `sdd-init` reporta `strict_tdd: true`. (config.yaml actualizado y caché de sdd-init refrescado en engram; `strict_tdd: true` para `api/`.)
 
 ## Fase 2: Migraciones, siembra y restricciones (commit 2)
 

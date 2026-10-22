@@ -4,29 +4,43 @@ schema: spec-driven
 context: |
   Project: schedule-app (greenfield; only README.md and a PRD exist).
   Product: automatic WhatsApp scheduling for service businesses (see PRD*.md at repo root).
-  Planned stack (NOT final): Node (Fastify) or Python (FastAPI) backend, Postgres 16, PWA (SvelteKit or React+Vite).
-  Architecture: not yet defined; decide during sdd-design.
-  Testing: no runner detected; strict_tdd disabled until a runner is chosen.
-  Style: no linter/formatter/type checker configured yet.
+  Stack (decided in sprint-1-owner-pwa design): api/ = NestJS (Express) + Kysely + Postgres 16, Node 24;
+  app/ = React + Vite PWA (not created yet, planned for work unit 12).
+  Layout: independent projects api/ and app/ (no root workspace); docker-compose.yml at root.
+  Testing: api/ uses Vitest 5 + unplugin-swc; integration tests use @testcontainers/postgresql (needs Docker).
+  Style: api/ has ESLint (typescript-eslint), Prettier and tsc strict (npm run lint / typecheck).
+  Language contract: code identifiers in English, docs and comments in neutral Spanish.
 
-strict_tdd: false
+strict_tdd: true
 
 testing:
   detected: 2026-10-21
   runner:
-    command: ""
-    framework: none
+    command: "npm test --prefix api"
+    framework: vitest
   layers:
-    unit: false
-    integration: false
+    unit: true
+    integration: true
     e2e: false
   coverage:
     available: false
     command: ""
   quality:
-    linter: ""
-    type_checker: ""
-    formatter: ""
+    linter: "npm run lint --prefix api"
+    type_checker: "npm run typecheck --prefix api"
+    formatter: "prettier (api/.prettierrc.json)"
+  projects:
+    api:
+      path: api
+      strict_tdd: true
+      test_command: "npm test --prefix api"
+      unit_command: "npm run test:unit --prefix api"
+      integration_command: "npm run test:integration --prefix api"
+      integration_requires: docker
+    app:
+      path: app
+      strict_tdd: false
+      note: "Not created yet; sdd-init must be re-run after work unit 12."
 
 rules:
   proposal:
@@ -44,11 +58,11 @@ rules:
     - Include test runner setup early; re-run sdd-init afterwards to enable strict TDD
   apply:
     - Follow existing code patterns
-    tdd: false
-    test_command: ""
+    tdd: true
+    test_command: "npm test --prefix api"
   verify:
-    test_command: ""
-    build_command: ""
+    test_command: "npm test --prefix api"
+    build_command: "npm run build --prefix api"
     coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas
