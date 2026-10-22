@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, formatDayLabel, formatTime, localDateOf, weekOf } from './dates';
+import {
+  addDays,
+  formatDateTime,
+  formatDayLabel,
+  formatTime,
+  localDateOf,
+  weekOf,
+  zonedInstant,
+} from './dates';
 
 const BOGOTA = 'America/Bogota';
 const NEW_YORK = 'America/New_York';
@@ -91,5 +99,40 @@ describe('weekOf', () => {
 
   it('un lunes abre su propia semana', () => {
     expect(weekOf('2026-10-19')[0]).toBe('2026-10-19');
+  });
+});
+
+describe('zonedInstant', () => {
+  it('convierte una fecha y hora locales de Bogotá (UTC-5) a un instante UTC', () => {
+    expect(zonedInstant('2026-11-06', '00:00', BOGOTA)).toBe('2026-11-06T05:00:00.000Z');
+    expect(zonedInstant('2026-11-06', '17:30', BOGOTA)).toBe('2026-11-06T22:30:00.000Z');
+  });
+
+  it('usa el horario de verano de Nueva York según la fecha', () => {
+    // Antes del cambio del 2026-11-01 rige EDT (UTC-4); después, EST (UTC-5).
+    expect(zonedInstant('2026-10-31', '12:00', NEW_YORK)).toBe('2026-10-31T16:00:00.000Z');
+    expect(zonedInstant('2026-11-02', '12:00', NEW_YORK)).toBe('2026-11-02T17:00:00.000Z');
+  });
+
+  it('la medianoche del día del cambio de horario sigue en la hora de verano', () => {
+    expect(zonedInstant('2026-11-01', '00:00', NEW_YORK)).toBe('2026-11-01T04:00:00.000Z');
+    expect(zonedInstant('2026-11-02', '00:00', NEW_YORK)).toBe('2026-11-02T05:00:00.000Z');
+  });
+
+  it('es la inversa de formatTime y localDateOf', () => {
+    const instant = zonedInstant('2026-03-08', '09:15', NEW_YORK);
+
+    expect(localDateOf(instant, NEW_YORK)).toBe('2026-03-08');
+    expect(formatTime(instant, NEW_YORK)).toBe('09:15');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('une el día corto y la hora local de la zona del negocio', () => {
+    expect(formatDateTime('2026-11-06T13:00:00.000Z', BOGOTA)).toBe('vie 6 nov 08:00');
+  });
+
+  it('usa el día local, no el día UTC', () => {
+    expect(formatDateTime('2026-11-07T03:30:00.000Z', BOGOTA)).toBe('vie 6 nov 22:30');
   });
 });

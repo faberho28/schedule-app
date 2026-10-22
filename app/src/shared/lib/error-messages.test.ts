@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/shared/api/errors';
-import { ERROR_MESSAGES, errorMessage } from './error-messages';
+import { ERROR_MESSAGES, errorMessage, fieldErrorsOf } from './error-messages';
 
 function problem(code: string, status: number, detail = 'detalle del servidor') {
   return { type: 'about:blank', title: 'título', status, detail, code };
@@ -43,6 +43,31 @@ describe('errorMessage', () => {
 
   it('usa un mensaje genérico para cualquier otro valor', () => {
     expect(errorMessage('algo raro')).toBe('Ocurrió un error inesperado. Inténtalo de nuevo.');
+  });
+});
+
+describe('fieldErrorsOf', () => {
+  it('devuelve el primer mensaje de cada campo de un validation_error', () => {
+    const error = new ApiError(
+      {
+        ...problem('validation_error', 400),
+        errors: [
+          { field: 'name', messages: ['El nombre es obligatorio', 'Otro mensaje'] },
+          { field: 'duration_min', messages: ['La duración debe ser mayor que 0'] },
+        ],
+      },
+      400,
+    );
+
+    expect(fieldErrorsOf(error)).toEqual({
+      name: 'El nombre es obligatorio',
+      duration_min: 'La duración debe ser mayor que 0',
+    });
+  });
+
+  it('devuelve un objeto vacío cuando el error no trae errores por campo', () => {
+    expect(fieldErrorsOf(new ApiError(problem('service_name_taken', 409), 409))).toEqual({});
+    expect(fieldErrorsOf(new TypeError('Failed to fetch'))).toEqual({});
   });
 });
 

@@ -61,6 +61,47 @@ export function weekOf(date: LocalDate): LocalDate[] {
   return Array.from({ length: 7 }, (_, offset) => addDays(monday, offset));
 }
 
+/** Diferencia en ms entre la hora de pared de la zona y UTC en un instante (negativa al oeste). */
+function zoneOffsetMs(instantMs: number, timeZone: string): number {
+  const p = parts(new Date(instantMs), {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const wallAsUtc = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour),
+    Number(p.minute),
+    Number(p.second),
+  );
+  return wallAsUtc - Math.floor(instantMs / 1000) * 1000;
+}
+
+/**
+ * Instante UTC (ISO 8601) de una fecha y hora locales (`HH:MM`) en la zona del negocio. Solo se
+ * usa para enviar los límites de un día libre, que la API recibe como instantes; los cupos y los
+ * horarios los sigue calculando la API. La segunda pasada corrige el cruce de un cambio de horario.
+ */
+export function zonedInstant(date: LocalDate, time: string, timeZone: string): string {
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute] = time.split(':').map(Number);
+  const wall = Date.UTC(year!, month! - 1, day!, hour, minute);
+  const firstGuess = wall - zoneOffsetMs(wall, timeZone);
+  return new Date(wall - zoneOffsetMs(firstGuess, timeZone)).toISOString();
+}
+
+/** Día corto y hora local de un instante, por ejemplo `vie 6 nov 08:00`. */
+export function formatDateTime(instant: string, timeZone: string): string {
+  return `${formatDayLabel(localDateOf(instant, timeZone))} ${formatTime(instant, timeZone)}`;
+}
+
 /** Etiqueta corta de un día local, por ejemplo `jue 22 oct`. */
 export function formatDayLabel(date: LocalDate): string {
   const { weekday, day, month } = parts(new Date(toUtcMs(date)), {

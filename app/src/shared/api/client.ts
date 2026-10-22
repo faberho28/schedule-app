@@ -6,7 +6,9 @@ import type { paths } from './schema';
  * Los tipos se regeneran con `npm run gen:api`.
  */
 export function createApiClient(baseUrl: string) {
-  return createClient<paths>({ baseUrl });
+  // `openapi-fetch` guarda el `fetch` global al crear el cliente. Se delega en cada llamada para
+  // usar el vigente (por ejemplo el que MSW reemplaza en las pruebas).
+  return createClient<paths>({ baseUrl, fetch: (request) => globalThis.fetch(request) });
 }
 
 /**

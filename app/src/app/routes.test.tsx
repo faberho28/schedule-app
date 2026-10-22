@@ -1,15 +1,35 @@
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { apiUrl, business, technician } from '@/test/api';
+import { server } from '@/test/server';
+import { AppProviders } from './providers';
 import { routes } from './routes';
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(<RouterProvider router={router} />);
+  render(
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>,
+  );
   return router;
 }
 
 describe('rutas de la aplicación', () => {
+  // Las pantallas de configuración cargan datos al abrirse; MSW falla ante peticiones sin handler.
+  beforeEach(() => {
+    server.use(
+      http.get(apiUrl('/business'), () => HttpResponse.json(business())),
+      http.get(apiUrl('/services'), () => HttpResponse.json([])),
+      http.get(apiUrl('/technicians'), () => HttpResponse.json([technician()])),
+      http.get(apiUrl('/technicians/:id'), () => HttpResponse.json(technician())),
+      http.get(apiUrl('/technicians/:id/availability'), () => HttpResponse.json([])),
+      http.get(apiUrl('/technicians/:id/time-off'), () => HttpResponse.json([])),
+    );
+  });
+
   it.each([
     ['/agenda', 'Agenda'],
     ['/customers', 'Clientes'],

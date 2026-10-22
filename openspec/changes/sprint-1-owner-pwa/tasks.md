@@ -185,13 +185,13 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 13: Pantallas de configuración (commit 13)
 
-- [ ] 13.1 Pantalla `/settings/business` (zona horaria de solo lectura, buffer 0-240, `followup_send_time`). Spec: UI-R5, BS-R2, BS-R3, BS-R4. Verif: RED con MSW, valor guardado visible y errores de validación en español.
-- [ ] 13.2 Pantalla `/settings/services` (alta, edición, desactivar, reactivar, `includeInactive`) y aviso "Hay N citas futuras que conservan la duración anterior". Spec: UI-R5, SC-R1, SC-R3, SC-R4. Verif: RED con MSW.
-- [ ] 13.3 Pantallas `/settings/technicians` y `/settings/technicians/:id` (alta, edición de nombre y teléfono). Spec: UI-R5, TS-R1. Verif: RED con MSW.
-- [ ] 13.4 Editor de disponibilidad semanal y formulario de días libres que usan vista previa y aplicación de cambios de horario. Spec: UI-R5, TS-R2, TS-R3. Verif: RED con MSW, franja solapada y fin anterior al inicio muestran error.
-- [ ] 13.5 Componente `ScheduleConflictDialog`: lista de citas afectadas, propuesta, citas no resueltas, acciones Aceptar y Rechazar, manejo de `proposal_stale` y `slot_taken`. Spec: UI-R5, TS-R7. Verif: RED con MSW, días libre rechazado muestra propuesta; Aceptar muestra el resultado y refresca citas; Rechazar no cambia nada.
-- [ ] 13.6 Acciones de desactivar, reactivar y eliminar técnico por el mismo flujo, con aviso de que la eliminación es irreversible. Spec: UI-R5, TS-R5, TS-R6. Verif: RED con MSW.
-- [ ] 13.7 Revisión manual de que todo el texto visible está en español con tuteo. Spec: UI-R2. Verif: manual.
+- [x] 13.1 Pantalla `/settings/business` (zona horaria de solo lectura, buffer 0-240, `followup_send_time`). Spec: UI-R5, BS-R2, BS-R3, BS-R4. Verif: RED con MSW, valor guardado visible y errores de validación en español.
+- [x] 13.2 Pantalla `/settings/services` (alta, edición, desactivar, reactivar, `includeInactive`) y aviso "Hay N citas futuras que conservan la duración anterior". Spec: UI-R5, SC-R1, SC-R3, SC-R4. Verif: RED con MSW.
+- [x] 13.3 Pantallas `/settings/technicians` y `/settings/technicians/:id` (alta, edición de nombre y teléfono). Spec: UI-R5, TS-R1. Verif: RED con MSW.
+- [x] 13.4 Editor de disponibilidad semanal y formulario de días libres que usan vista previa y aplicación de cambios de horario. Spec: UI-R5, TS-R2, TS-R3. Verif: RED con MSW, franja solapada y fin anterior al inicio muestran error.
+- [x] 13.5 Componente `ScheduleConflictDialog`: lista de citas afectadas, propuesta, citas no resueltas, acciones Aceptar y Rechazar, manejo de `proposal_stale` y `slot_taken`. Spec: UI-R5, TS-R7. Verif: RED con MSW, días libre rechazado muestra propuesta; Aceptar muestra el resultado y refresca citas; Rechazar no cambia nada.
+- [x] 13.6 Acciones de desactivar, reactivar y eliminar técnico por el mismo flujo, con aviso de que la eliminación es irreversible. Spec: UI-R5, TS-R5, TS-R6. Verif: RED con MSW.
+- [x] 13.7 Revisión manual de que todo el texto visible está en español con tuteo. Spec: UI-R2. Verif: manual.
 
 ## Fase 14: `AgendaGrid` (commit 14)
 

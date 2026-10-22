@@ -29,6 +29,20 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   internal_error: 'Ocurrió un error inesperado. Inténtalo de nuevo más tarde.',
 };
 
+/**
+ * Primer mensaje de validación de cada campo (`errors` de un `validation_error`), indexado por
+ * el nombre del campo del cuerpo (por ejemplo `duration_min`). Vacío si el error no los trae.
+ */
+export function fieldErrorsOf(error: unknown): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!(error instanceof ApiError)) return result;
+  for (const { field, messages } of error.problem?.errors ?? []) {
+    const first = messages[0];
+    if (first !== undefined) result[field] = first;
+  }
+  return result;
+}
+
 /** Texto en español para mostrar al usuario a partir de cualquier error de una petición. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {

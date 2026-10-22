@@ -77,6 +77,18 @@ Rutas: `/agenda?view=day|week&date=YYYY-MM-DD`, `/customers`, `/customers/:id`, 
 
 El estado del servidor vive en TanStack Query, la vista y la fecha en la URL y los diálogos en estado local. No hay store global.
 
+## Pantallas de configuración
+
+Viven en `src/features/settings/`:
+
+- `/settings/business`: la zona horaria es de solo lectura; se edita el buffer (0 a 240 minutos) y la hora de envío del seguimiento.
+- `/settings/services`: alta, edición, desactivación y reactivación (no hay borrado). Pide `includeInactive=true`. Si un cambio de duración deja citas futuras con la duración anterior, muestra el aviso sin bloquear el guardado.
+- `/settings/technicians` y `/settings/technicians/:id`: alta, nombre y teléfono, horario semanal, días libres, desactivar, reactivar y eliminar.
+
+El horario semanal, los días libres, el estado `active` y la eliminación de un técnico se escriben solo por el flujo de cambio de horario (`use-schedule-change.ts`): vista previa, y aplicación si no hay citas afectadas. Si las hay, `ScheduleConflictDialog` lista las citas y la propuesta de reasignación (solo cambia el técnico, nunca el horario). Aceptar la aplica completa; las citas sin reemplazo bloquean el cambio hasta resolverlas a mano. Ante `proposal_stale`, `slot_taken` o `schedule_conflict` al aplicar, se vuelve a pedir la vista previa. Al aplicar se invalidan `['technicians']` y `['appointments']`.
+
+Los límites de un día libre se envían como instantes calculados con `zonedInstant` (`src/shared/lib/dates.ts`) en la zona horaria del negocio.
+
 ## Tema
 
 Los colores son variables CSS en `src/index.css` (convención de shadcn/ui): azul primario `#2563EB`, neutros slate y un par fondo/texto por cada estado de la cita (`pending`, `confirmed`, `completed`, `no_show`, `cancelled`). Hay tema claro y oscuro (clase `.dark`, que `index.html` activa según `prefers-color-scheme`). `src/theme/tokens.test.ts` verifica que todos los pares cumplan contraste AA (4,5:1).

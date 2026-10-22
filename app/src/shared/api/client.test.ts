@@ -2,7 +2,8 @@ import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { errorMessage } from '@/shared/lib/error-messages';
 import { server } from '@/test/server';
-import { createApiClient } from './client';
+import { apiUrl } from '@/test/api';
+import { apiClient, createApiClient } from './client';
 import { ApiError, unwrap } from './errors';
 
 const BASE_URL = 'http://api.test';
@@ -26,6 +27,25 @@ describe('cliente de la API', () => {
 
     expect(business.timezone).toBe('America/Bogota');
     expect(business.travel_buffer_min).toBe(15);
+  });
+
+  it('el cliente compartido usa el fetch global vigente en cada petición, no el de su creación', async () => {
+    server.use(
+      http.get(apiUrl('/business'), () =>
+        HttpResponse.json({
+          id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+          name: 'Negocio Demo',
+          timezone: 'America/Bogota',
+          travel_buffer_min: 0,
+          followup_send_time: '09:00',
+        }),
+      ),
+    );
+
+    // `apiClient` se creó al importar el módulo, antes de que MSW reemplazara `fetch`.
+    const business = await unwrap(apiClient.GET('/business'));
+
+    expect(business.name).toBe('Negocio Demo');
   });
 
   it('envía el cuerpo y los parámetros de ruta tal como define el contrato', async () => {
