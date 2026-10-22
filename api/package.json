@@ -13,7 +13,11 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:migrate": "tsx --env-file-if-exists=.env src/database/cli.ts migrate",
+    "db:rollback": "tsx --env-file-if-exists=.env src/database/cli.ts rollback",
+    "db:seed": "tsx --env-file-if-exists=.env src/database/cli.ts seed",
+    "db:codegen": "node --env-file-if-exists=.env node_modules/kysely-codegen/dist/cli/bin.js"
   },
   "engines": {
     "node": ">=24"
@@ -22,6 +26,7 @@
     "@nestjs/common": "^12.2.0",
     "@nestjs/core": "^12.2.0",
     "@nestjs/platform-express": "^12.2.0",
+    "kysely": "^0.29.7",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -39,7 +44,9 @@
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
+    "kysely-codegen": "^0.20.0",
     "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.0",
     "unplugin-swc": "^2.0.0",

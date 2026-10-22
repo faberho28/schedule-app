@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ENV, parseEnv } from './config/env';
+import { ConfigModule } from './config/config.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
-  providers: [{ provide: ENV, useFactory: () => parseEnv(process.env) }],
-  exports: [ENV],
+  imports: [ConfigModule, DatabaseModule],
 })
 export class AppModule {}

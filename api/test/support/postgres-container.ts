@@ -1,6 +1,9 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import type { Kysely } from 'kysely';
 import type { Pool } from 'pg';
 import type { TestProject } from 'vitest/node';
+import { createDatabase } from '../../src/database/kysely.provider';
+import { migrateToLatest } from '../../src/database/migrator';
 
 declare module 'vitest' {
   export interface ProvidedContext {
@@ -11,13 +14,20 @@ declare module 'vitest' {
 let container: StartedPostgreSqlContainer | undefined;
 
 /**
- * globalSetup de Vitest: levanta un único Postgres 16 por ejecución y publica su
- * URL a las pruebas con `inject('databaseUrl')`. Las migraciones se aplicarán aquí
- * a partir de la fase 2.
+ * globalSetup de Vitest: levanta un único Postgres 16 por ejecución, aplica todas las
+ * migraciones y publica la URL a las pruebas con `inject('databaseUrl')`.
  */
 export async function setup(project: TestProject): Promise<void> {
   container = await new PostgreSqlContainer('postgres:16-alpine').start();
-  project.provide('databaseUrl', container.getConnectionUri());
+  const databaseUrl = container.getConnectionUri();
+
+  const db = createDatabase(databaseUrl);
+  try {
+    await migrateToLatest(db as unknown as Kysely<unknown>);
+  } finally {
+    await db.destroy();
+  }
+  project.provide('databaseUrl', databaseUrl);
 }
 
 export async function teardown(): Promise<void> {

@@ -46,9 +46,65 @@ docker compose ps         # el healthcheck debe pasar a `healthy`
 docker compose down       # detiene el contenedor y conserva los datos
 ```
 
+## Migraciones, siembra y tipos
+
+Las migraciones usan el migrador de Kysely con SQL crudo (`up` y `down`) en `src/database/migrations/`. Kysely es solo el constructor de consultas; los `EXCLUDE`, rangos, índices parciales y triggers se escriben en SQL. La lista ordenada vive en `src/database/migrations/index.ts`.
+
+| Comando               | Qué hace                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `npm run db:migrate`  | Aplica las migraciones pendientes                                                  |
+| `npm run db:rollback` | Revierte solo la última migración aplicada                                         |
+| `npm run db:seed`     | Siembra el negocio con `DEFAULT_BUSINESS_ID` y zona `America/Bogota` (idempotente) |
+| `npm run db:codegen`  | Regenera `src/database/db.generated.ts` desde la base migrada                      |
+
+Los comandos leen `.env` si existe y, si no, las variables del entorno. Flujo local:
+
+```bash
+docker compose up -d --wait     # desde la raíz del repositorio
+npm run db:migrate
+npm run db:seed
+npm run db:codegen              # solo cuando cambia el esquema; versionar el resultado
+```
+
+Para agregar una migración: crear `src/database/migrations/NNN_nombre.ts` con `up` y `down`, registrarla en `index.ts`, escribir antes la prueba de la restricción en `src/database/schema/*.int-spec.ts` y regenerar los tipos.
+
+### Esquema
+
+| Migración                | Contenido                                                                                           |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `001_core_schema`        | `btree_gist`, tipo `timerange`, `businesses`, `services`, `technicians`, `availability`, `time_off` |
+| `002_customers_consent`  | `customers`, `consent_events` (solo inserción) y la función `audit_rows_append_only`                |
+| `003_appointments`       | `appointments` (con `appointments_no_overlap`) y `appointment_closures` (solo inserción)            |
+| `004_scheduled_messages` | `scheduled_messages`, unicidad de seguimientos y trigger de consentimiento                          |
+
+Reglas que garantiza la base de datos:
+
+- **Negocio**: `travel_buffer_min` entre 0 y 240; la zona horaria se valida al sembrar (zona IANA).
+- **Aislamiento por negocio**: todas las tablas hijas llevan `business_id` y claves foráneas compuestas `(business_id, x_id)`; no se puede referenciar un registro de otro negocio.
+- **Cruces**: `availability_no_overlap` y `time_off_no_overlap` (ignoran filas con `deleted_at`) y `appointments_no_overlap` sobre el bloque `[starts_at, ends_at + buffer_min)` de toda cita distinta de `cancelled`. Solo `cancelled` libera el bloque.
+- **Clientes**: teléfono único por negocio, E.164 salvo anonimizados (marcador `anon-` más hexadecimales), alias único y `granted` exige `consent_at`.
+- **Auditoría**: `consent_events` y `appointment_closures` rechazan `UPDATE` y `DELETE` (SQLSTATE `23000`), salvo vaciar el texto libre (`notes` y `reason`) para poder anonimizar.
+- **Mensajes**: un mensaje por cita y tipo, un seguimiento pendiente por cliente y servicio, y un trigger impide filas `pending` si el cliente no está en `granted`.
+- **Cierre anticipado**: `closed_early` exige `closure_reason`. Al anonimizar un cliente (fase 9) se debe usar texto neutro, no `NULL`, en esas citas.
+
+### Errores de Postgres a errores de dominio
+
+`DomainError` (`src/scheduling/domain/errors.ts`) lleva un `code` estable. `translatePgError` (`src/scheduling/infrastructure/persistence/pg-error-translator.ts`) convierte:
+
+| Postgres                                    | Error de dominio       |
+| ------------------------------------------- | ---------------------- |
+| `23P01` sobre `appointments_no_overlap`     | `slot_taken`           |
+| `23505` sobre `uq_customers_business_phone` | `customer_phone_taken` |
+
+Cualquier otro error se devuelve sin cambios; el uso previsto es `throw translatePgError(error)`.
+
+### Transacciones por negocio
+
+`TransactionRunner.run(businessId, work)` abre una transacción `READ COMMITTED` y fija `app.business_id` solo para esa transacción (`set_config(..., true)`, equivalente a `SET LOCAL`). Hoy no hay Row Level Security; la variable deja lista esa política como una migración aislada.
+
 ## Pruebas
 
 - Runner: Vitest con `unplugin-swc` (conserva los metadatos de decoradores de Nest).
 - Dos proyectos de Vitest: `unit` (dominio puro, sin Docker) e `integration`.
-- Integración: `test/support/postgres-container.ts` actúa como `globalSetup`. Levanta un único contenedor `postgres:16-alpine` con Testcontainers por ejecución y publica la URL con `inject('databaseUrl')`. Entre pruebas se usa `truncateAll(pool)`; no hay rollback por prueba porque las pruebas de concurrencia necesitan conexiones reales.
+- Integración: `test/support/postgres-container.ts` actúa como `globalSetup`. Levanta un único contenedor `postgres:16-alpine` con Testcontainers por ejecución, aplica todas las migraciones y publica la URL con `inject('databaseUrl')`. Las pruebas de migraciones usan una base vacía propia (`test/support/scratch-database.ts`) y las de restricciones insertan con SQL crudo (`test/support/schema-fixtures.ts`). Entre pruebas se usa `truncateAll(pool)`; no hay rollback por prueba porque las pruebas de concurrencia necesitan conexiones reales.
 - La primera ejecución descarga la imagen de Postgres y puede tardar más.
