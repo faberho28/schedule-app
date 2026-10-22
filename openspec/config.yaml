@@ -5,16 +5,18 @@ context: |
   Project: schedule-app (greenfield; only README.md and a PRD exist).
   Product: automatic WhatsApp scheduling for service businesses (see PRD*.md at repo root).
   Stack (decided in sprint-1-owner-pwa design): api/ = NestJS (Express) + Kysely + Postgres 16, Node 24;
-  app/ = React + Vite PWA (not created yet, planned for work unit 12).
+  app/ = React 19 + Vite 8 + TypeScript PWA (React Router 7, TanStack Query, Tailwind v4, shadcn/ui,
+  openapi-typescript + openapi-fetch client generated from api/openapi.json, vite-plugin-pwa).
   Layout: independent projects api/ and app/ (no root workspace); docker-compose.yml at root.
   Testing: api/ uses Vitest 5 + unplugin-swc; integration tests use @testcontainers/postgresql (needs Docker).
-  Style: api/ has ESLint (typescript-eslint), Prettier and tsc strict (npm run lint / typecheck).
+  Testing: app/ uses Vitest 5 + React Testing Library + jsdom + MSW 3 (no Docker needed).
+  Style: api/ and app/ each have ESLint (typescript-eslint), Prettier and tsc strict (npm run lint / typecheck).
   Language contract: code identifiers in English, docs and comments in neutral Spanish.
 
 strict_tdd: true
 
 testing:
-  detected: 2026-10-21
+  detected: 2026-10-22
   runner:
     command: "npm test --prefix api"
     framework: vitest
@@ -39,8 +41,21 @@ testing:
       integration_requires: docker
     app:
       path: app
-      strict_tdd: false
-      note: "Not created yet; sdd-init must be re-run after work unit 12."
+      stack: "React + Vite + TypeScript PWA"
+      strict_tdd: true
+      framework: "vitest + @testing-library/react + jsdom + msw"
+      test_command: "npm test --prefix app"
+      lint_command: "npm run lint --prefix app"
+      typecheck_command: "npm run typecheck --prefix app"
+      build_command: "npm run build --prefix app"
+      format_command: "npm run format:check --prefix app"
+      contract_check_command: "npm run gen:api:check --prefix app"
+      layers:
+        unit: true
+        component: true
+        e2e: false
+      integration_requires: none
+      note: "Strict TDD active since work unit 12. Config-only pieces (Vite, PWA, Tailwind) are checked with a build plus config tests."
 
 rules:
   proposal:
@@ -57,12 +72,22 @@ rules:
     - Keep tasks completable in one session
     - Include test runner setup early; re-run sdd-init afterwards to enable strict TDD
   apply:
-    - Follow existing code patterns
+    guidelines:
+      - Follow existing code patterns
     tdd: true
     test_command: "npm test --prefix api"
+    test_commands:
+      api: "npm test --prefix api"
+      app: "npm test --prefix app"
   verify:
     test_command: "npm test --prefix api"
     build_command: "npm run build --prefix api"
+    test_commands:
+      api: "npm test --prefix api"
+      app: "npm test --prefix app"
+    build_commands:
+      api: "npm run build --prefix api"
+      app: "npm run build --prefix app"
     coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas
