@@ -35,6 +35,8 @@ Variables (validadas con zod al iniciar; si falta alguna obligatoria el proceso 
 | `npm run lint`             | ESLint                                                           |
 | `npm run typecheck`        | `tsc --noEmit`                                                   |
 | `npm run format`           | Prettier                                                         |
+| `npm run openapi:export`   | Compila y reescribe `api/openapi.json` desde el código           |
+| `npm run openapi:check`    | Compila y falla si `api/openapi.json` difiere del código         |
 
 ## Base de datos de desarrollo
 
@@ -493,6 +495,39 @@ sequenceDiagram
 - Un cliente anonimizado no aparece en `GET /customers` (salvo `includeAnonymized`), no se edita, no recibe consentimiento y no puede recibir citas nuevas: las tres operaciones responden 409 `customer_anonymized`. Su ficha y su historial se siguen leyendo.
 - Si la misma persona vuelve a escribir, se registra como un cliente nuevo con consentimiento `pending`; el teléfono original ya no está en ninguna tabla.
 - No se guarda ninguna correspondencia entre la persona y el alias. El alias y el token del teléfono salen de `crypto` y no dependen de datos de la persona. El registro de supresiones (HMAC del teléfono) y su comprobación tras restaurar respaldos son deuda técnica fuera del sprint 1.
+
+## Contrato OpenAPI
+
+`api/openapi.json` es el contrato de la API. `app/` genera sus tipos a partir de este archivo (`openapi-typescript`) y consume la API con `openapi-fetch`, así que el archivo se versiona y se revisa como código.
+
+### Generación y verificación
+
+| Comando                  | Efecto                                                                    |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `npm run openapi:export` | Regenera `api/openapi.json`. Ejecútalo y versiona el resultado.           |
+| `npm run openapi:check`  | Regenera en memoria y sale con código 1 si el archivo versionado difiere. |
+
+- Ambos comandos ejecutan `nest build` y luego `node dist/openapi/cli.js`. No usan `tsx`: Nest necesita los metadatos de decoradores (`design:paramtypes`) que emite `tsc`, y `esbuild` no los genera.
+- No requieren Postgres ni variables de entorno. La CLI fija valores de reemplazo para `DATABASE_URL` y `DEFAULT_BUSINESS_ID` y crea la aplicación sin iniciarla ni escuchar en un puerto. El pool de `pg` conecta de forma diferida, así que nunca se abre una conexión.
+- La salida es determinista: claves ordenadas, sin fechas ni datos del entorno. Un cambio en `openapi.json` siempre refleja un cambio real del contrato.
+- `openapi:check` debe correr en CI. La prueba `src/openapi/openapi.spec.ts` hace la misma comparación en `npm test`, de modo que olvidar regenerar el archivo rompe la suite.
+- No hay Swagger UI: la API no publica ninguna ruta de documentación.
+
+### Qué contiene
+
+- Las 31 operaciones de las fases 3 a 10 (20 rutas), cada una con su cuerpo, parámetros de ruta y de consulta, y respuesta tipada. Los cuerpos y las respuestas usan `snake_case`; los parámetros de consulta usan `camelCase`.
+- Solo existe `DELETE` en `/customers/{id}` (anonimización) y `/technicians/{id}` (eliminación por anonimización). Servicios, citas y disponibilidad no se borran (SC-R3).
+- Sin esquemas de seguridad: la autenticación queda fuera del sprint 1.
+- Cada respuesta de error usa `application/problem+json` y referencia el esquema `ProblemDetails`. En cada estado HTTP, la ruta declara los `code` que puede devolver (`allOf` con una enumeración). `schedule_conflict` y `proposal_stale` agregan los miembros `affected`, `proposal` y `fully_resolvable` (`ScheduleChangeProblemExtension`). El `500` (`internal_error`) aparece en todas las rutas.
+- `bad_request` es el `400` que no pasa por la validación de DTO: un `:id` que no es UUID o un JSON mal formado. `validation_error` es el `400` con el detalle por campo en `errors`.
+
+### Cómo se documenta una ruta nueva
+
+1. Decora los DTO de entrada con `@ApiProperty` o `@ApiPropertyOptional`. No se usa el plugin CLI de `@nestjs/swagger`: solo actúa durante `nest build`, no en Vitest ni en la CLI, y haría que el documento dependiera de cómo se ejecuta.
+2. Las respuestas de éxito se declaran con una clase `*.schema.ts` (`@ApiSchema` define el nombre público) y `@ApiOkResponse` o `@ApiCreatedResponse`. Las clases viven junto a los DTO y nunca en `domain/`.
+3. Los errores se declaran con `@ApiProblems([...códigos])`. Un código sin estado en `ERROR_STATUS` (`problem-details.filter.ts`) lanza un error al arrancar.
+4. `src/openapi/openapi.spec.ts` verifica con el compilador que cada clase de respuesta es mutuamente asignable al tipo que devuelve el controlador. Si cambia la forma de una respuesta y la clase no, `npm run typecheck` falla.
+5. Ejecuta `npm run openapi:export` y versiona `api/openapi.json` en el mismo commit.
 
 ## Pruebas
 

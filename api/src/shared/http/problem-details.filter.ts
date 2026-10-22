@@ -33,6 +33,16 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   slot_not_offered: HttpStatus.UNPROCESSABLE_ENTITY,
 };
 
+/**
+ * Todos los códigos que puede emitir la API y su estado HTTP: los de dominio más los que el
+ * filtro asigna a errores de HTTP (`bad_request`, `internal_error`). Alimenta el contrato OpenAPI.
+ */
+export const ERROR_STATUS: Readonly<Record<string, number>> = {
+  ...STATUS_BY_CODE,
+  bad_request: HttpStatus.BAD_REQUEST,
+  internal_error: HttpStatus.INTERNAL_SERVER_ERROR,
+};
+
 /** Título corto en español para cada código; la interfaz puede mostrarlo tal cual. */
 const TITLE_BY_CODE: Readonly<Record<string, string>> = {
   validation_error: 'Datos inválidos',

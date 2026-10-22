@@ -1,4 +1,6 @@
 import { Body, Controller, Delete, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiProblems, ApiUuidParam } from '../../../shared/http/api-problems';
 import { BusinessContext } from '../../../shared/http/business-context';
 import { DomainProblemError } from '../../../shared/http/domain-problem';
 import { ValidationFailedError } from '../../../shared/http/validation';
@@ -16,6 +18,11 @@ import {
   toScheduleChange,
   type ReassignmentDto,
 } from './dto/schedule-change.dto';
+import {
+  ScheduleChangeApplySchema,
+  ScheduleChangeProblemExtensionSchema,
+  SchedulePreviewSchema,
+} from './dto/responses.schema';
 import { toApplyResponse, toPreviewResponse } from './schedule-change-response';
 
 const toAccepted = (items: readonly ReassignmentDto[] | undefined): AcceptedReassignment[] =>
@@ -28,6 +35,7 @@ const toAccepted = (items: readonly ReassignmentDto[] | undefined): AcceptedReas
  * Cambios de horario de un técnico y su eliminación (D5). Es el único camino que escribe
  * disponibilidad, días libres, `active` y la anonimización de un técnico.
  */
+@ApiTags('Técnicos')
 @Controller('technicians')
 export class ScheduleChangesController {
   constructor(
@@ -38,6 +46,14 @@ export class ScheduleChangesController {
 
   @Post(':id/schedule-changes/preview')
   @HttpCode(200)
+  @ApiOperation({
+    summary: 'Previsualizar un cambio de horario',
+    description:
+      'No modifica nada. Devuelve las citas futuras afectadas y la propuesta de reasignación.',
+  })
+  @ApiUuidParam()
+  @ApiOkResponse({ type: SchedulePreviewSchema })
+  @ApiProblems(['bad_request', 'validation_error', 'not_found'])
   async preview(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: PreviewScheduleChangeDto,
@@ -52,6 +68,25 @@ export class ScheduleChangesController {
 
   @Post(':id/schedule-changes')
   @HttpCode(200)
+  @ApiOperation({
+    summary: 'Aplicar un cambio de horario',
+    description:
+      'Si el cambio afecta citas futuras y `reassignments` no coincide con la propuesta vigente, responde `schedule_conflict` (sin reasignaciones aceptadas) o `proposal_stale` (la propuesta cambió). Ambos incluyen `affected`, `proposal` y `fully_resolvable`.',
+  })
+  @ApiUuidParam()
+  @ApiOkResponse({ type: ScheduleChangeApplySchema })
+  @ApiProblems(
+    [
+      'bad_request',
+      'validation_error',
+      'not_found',
+      'schedule_conflict',
+      'proposal_stale',
+      'schedule_overlap',
+      'slot_taken',
+    ],
+    ScheduleChangeProblemExtensionSchema,
+  )
   async apply(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ApplyScheduleChangeDto,
@@ -70,6 +105,25 @@ export class ScheduleChangesController {
   /** Elimina al técnico por anonimización; solo se completa si no quedan citas futuras activas. */
   @Delete(':id')
   @HttpCode(200)
+  @ApiOperation({
+    summary: 'Eliminar un técnico por anonimización',
+    description:
+      'Solo se completa si no quedan citas futuras activas sin reasignar. El cuerpo es opcional.',
+  })
+  @ApiUuidParam()
+  @ApiBody({ type: EraseTechnicianDto, required: false })
+  @ApiOkResponse({ type: ScheduleChangeApplySchema })
+  @ApiProblems(
+    [
+      'bad_request',
+      'validation_error',
+      'not_found',
+      'schedule_conflict',
+      'proposal_stale',
+      'slot_taken',
+    ],
+    ScheduleChangeProblemExtensionSchema,
+  )
   erase(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: EraseTechnicianDto,

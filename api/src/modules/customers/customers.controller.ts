@@ -10,6 +10,14 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { ApiProblems, ApiUuidParam } from '../../shared/http/api-problems';
 import type { RegisterConsentResult } from '../../scheduling/application/register-consent';
 import type { ConsentEventRecord } from '../../scheduling/domain/ports/consent-repository';
 import {
@@ -23,6 +31,12 @@ import {
   UpdateCustomerDto,
 } from './dto/customer.dto';
 import type { CustomerView } from './customers.repository';
+import {
+  ConsentEventSchema,
+  CustomerDetailSchema,
+  CustomerSchema,
+  RegisterConsentResultSchema,
+} from './dto/customer.schema';
 import { CustomersService } from './customers.service';
 
 const iso = (instant: number): string => new Date(instant).toISOString();
@@ -56,11 +70,15 @@ function toRegisterConsentResponse(result: RegisterConsentResult, customerId: st
  * Clientes, consentimiento y supresión por anonimización en sitio. El registro de consentimiento y
  * `DELETE` ejecutan casos de uso de `scheduling` bajo el bloqueo del negocio (D6).
  */
+@ApiTags('Clientes')
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly service: CustomersService) {}
 
   @Get()
+  @ApiOperation({ summary: 'Listar y buscar clientes' })
+  @ApiOkResponse({ type: [CustomerSchema] })
+  @ApiProblems(['validation_error'])
   list(@Query() query: ListCustomersQueryDto): Promise<CustomerView[]> {
     return this.service.list({
       includeAnonymized: query.includeAnonymized ?? false,
@@ -69,6 +87,10 @@ export class CustomersController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Consultar un cliente con su historial de citas' })
+  @ApiUuidParam()
+  @ApiOkResponse({ type: CustomerDetailSchema })
+  @ApiProblems(['bad_request', 'not_found'])
   async get(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CustomerView & { appointments: AppointmentResponse[] }> {
@@ -77,6 +99,13 @@ export class CustomersController {
   }
 
   @Post()
+  @ApiOperation({
+    summary: 'Crear un cliente',
+    description:
+      'El consentimiento nace `pending`; se registra con `POST /customers/{id}/consents`.',
+  })
+  @ApiCreatedResponse({ type: CustomerSchema })
+  @ApiProblems(['bad_request', 'validation_error', 'customer_phone_taken'])
   create(@Body() dto: CreateCustomerDto): Promise<CustomerView> {
     return this.service.create({
       name: dto.name,
@@ -87,6 +116,16 @@ export class CustomersController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Editar un cliente' })
+  @ApiUuidParam()
+  @ApiOkResponse({ type: CustomerSchema })
+  @ApiProblems([
+    'bad_request',
+    'validation_error',
+    'not_found',
+    'customer_phone_taken',
+    'customer_anonymized',
+  ])
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCustomerDto,
@@ -102,16 +141,35 @@ export class CustomersController {
   /** Anonimiza al cliente (no borra la fila); repetirlo no cambia nada. */
   @Delete(':id')
   @HttpCode(204)
+  @ApiOperation({
+    summary: 'Eliminar un cliente por anonimización en sitio',
+    description: 'No borra la fila. Repetirlo no cambia nada.',
+  })
+  @ApiUuidParam()
+  @ApiNoContentResponse({ description: 'Cliente anonimizado.' })
+  @ApiProblems(['bad_request', 'not_found'])
   async erase(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.service.erase(id);
   }
 
   @Get(':id/consents')
+  @ApiOperation({ summary: 'Listar el registro de autorizaciones del cliente' })
+  @ApiUuidParam()
+  @ApiOkResponse({ type: [ConsentEventSchema] })
+  @ApiProblems(['bad_request', 'not_found'])
   async consents(@Param('id', ParseUUIDPipe) id: string) {
     return (await this.service.listConsents(id)).map(toConsentEventResponse);
   }
 
   @Post(':id/consents')
+  @ApiOperation({
+    summary: 'Registrar una autorización o su retiro',
+    description:
+      'Agrega un evento inmutable. Al conceder se programan los seguimientos pendientes; al retirar se cancelan.',
+  })
+  @ApiUuidParam()
+  @ApiCreatedResponse({ type: RegisterConsentResultSchema })
+  @ApiProblems(['bad_request', 'validation_error', 'not_found', 'customer_anonymized'])
   async registerConsent(@Param('id', ParseUUIDPipe) id: string, @Body() dto: RegisterConsentDto) {
     const result = await this.service.register({
       customerId: id,

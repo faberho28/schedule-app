@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -9,6 +10,12 @@ const trim = ({ value }: { value: unknown }): unknown =>
 /** Cuerpo opcional de `POST /appointments/:id/cancel`. */
 export class CancelAppointmentDto {
   /** El motivo es opcional; `null` o texto vacío equivalen a no indicarlo. */
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    maxLength: REASON_MAX_LENGTH,
+    description: 'Motivo opcional; `null` o texto vacío equivalen a no indicarlo.',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString({ message: 'El motivo debe ser texto' })

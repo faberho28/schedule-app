@@ -1,0 +1,5143 @@
+{
+  "components": {
+    "schemas": {
+      "AppliedReassignment": {
+        "description": "Cita que pasó a otro técnico.",
+        "properties": {
+          "appointment_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "technician_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment_id",
+          "technician_id"
+        ],
+        "type": "object"
+      },
+      "ApplyScheduleChangeDto": {
+        "properties": {
+          "change": {
+            "$ref": "#/components/schemas/ScheduleChangeDto"
+          },
+          "reassignments": {
+            "description": "Reasignaciones que el dueño acepta; deben coincidir con la propuesta vigente.",
+            "items": {
+              "$ref": "#/components/schemas/ReassignmentDto"
+            },
+            "maxItems": 500,
+            "type": "array"
+          }
+        },
+        "required": [
+          "change"
+        ],
+        "type": "object"
+      },
+      "Appointment": {
+        "description": "Cita con sus datos congelados al agendar (`*_snapshot`). Los instantes son ISO 8601 en UTC.",
+        "properties": {
+          "address_snapshot": {
+            "nullable": true,
+            "type": "string"
+          },
+          "buffer_min": {
+            "description": "Buffer de traslado congelado, en minutos.",
+            "type": "integer"
+          },
+          "cancel_reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "closed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "closed_early": {
+            "description": "Verdadero si se cerró antes de la hora de inicio.",
+            "type": "boolean"
+          },
+          "closure_reason": {
+            "description": "Motivo del cierre anticipado.",
+            "nullable": true,
+            "type": "string"
+          },
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/AppointmentCustomer"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "occupied_until": {
+            "description": "Fin del bloque ocupado: `ends_at` más el buffer.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "price_snapshot": {
+            "type": "number"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceRef"
+          },
+          "service_name_snapshot": {
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "completed",
+              "no_show",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "technician": {
+            "$ref": "#/components/schemas/Party"
+          },
+          "technician_changed": {
+            "description": "Verdadero si la cita pasó a otro técnico después de crearse.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "starts_at",
+          "ends_at",
+          "occupied_until",
+          "buffer_min",
+          "technician_changed",
+          "address_snapshot",
+          "price_snapshot",
+          "service_name_snapshot",
+          "cancelled_at",
+          "cancel_reason",
+          "completed_at",
+          "closed_at",
+          "closed_early",
+          "closure_reason",
+          "technician",
+          "customer",
+          "service"
+        ],
+        "type": "object"
+      },
+      "AppointmentCustomer": {
+        "description": "Cliente de una cita.",
+        "properties": {
+          "alias": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "phone": {
+            "description": "Teléfono en formato E.164.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "alias",
+          "phone"
+        ],
+        "type": "object"
+      },
+      "AvailabilityWindow": {
+        "description": "Franja semanal de disponibilidad.",
+        "properties": {
+          "end_time": {
+            "description": "Hora local de fin, HH:MM.",
+            "example": "17:00",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Hora local de inicio, HH:MM.",
+            "example": "08:00",
+            "type": "string"
+          },
+          "weekday": {
+            "description": "1 es lunes, 7 domingo.",
+            "maximum": 7,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "weekday",
+          "start_time",
+          "end_time"
+        ],
+        "type": "object"
+      },
+      "AvailabilityWindowDto": {
+        "properties": {
+          "end_time": {
+            "description": "Hora local de fin, HH:MM (00:00 a 23:59).",
+            "example": "17:00",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Hora local de inicio, HH:MM (00:00 a 23:59).",
+            "example": "08:00",
+            "type": "string"
+          },
+          "weekday": {
+            "description": "1 es lunes, 7 domingo.",
+            "maximum": 7,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "weekday",
+          "start_time",
+          "end_time"
+        ],
+        "type": "object"
+      },
+      "Business": {
+        "description": "Configuración del negocio.",
+        "properties": {
+          "followup_send_time": {
+            "description": "Hora local de envío del seguimiento, HH:MM.",
+            "example": "09:00",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "timezone": {
+            "description": "Zona horaria IANA del negocio. No se puede editar.",
+            "example": "America/Bogota",
+            "type": "string"
+          },
+          "travel_buffer_min": {
+            "description": "Minutos de traslado.",
+            "maximum": 240,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "timezone",
+          "travel_buffer_min",
+          "followup_send_time"
+        ],
+        "type": "object"
+      },
+      "CancelAppointmentDto": {
+        "properties": {
+          "reason": {
+            "description": "Motivo opcional; `null` o texto vacío equivalen a no indicarlo.",
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CloseAppointmentDto": {
+        "properties": {
+          "confirm": {
+            "description": "Confirmación del dueño. Sin ella el cierre normal responde 422 `closure_confirmation_required`.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "confirm_early": {
+            "description": "Confirmación reforzada, obligatoria solo si la cita aún no empezó (cierre anticipado). `confirm` no la sustituye.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "outcome": {
+            "enum": [
+              "completed",
+              "no_show"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "description": "Obligatorio en el cierre anticipado; en el cierre normal es opcional y solo se audita.",
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "type": "object"
+      },
+      "ConsentCustomerSummary": {
+        "description": "Estado de autorización resultante.",
+        "properties": {
+          "consent_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "consent_status": {
+            "enum": [
+              "pending",
+              "granted",
+              "revoked"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "consent_status",
+          "consent_at"
+        ],
+        "type": "object"
+      },
+      "ConsentEvent": {
+        "description": "Evento del registro de autorizaciones. Es inmutable; solo se agregan eventos.",
+        "properties": {
+          "created_at": {
+            "description": "Momento del registro.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "granted",
+              "revoked"
+            ],
+            "type": "string"
+          },
+          "medium": {
+            "enum": [
+              "in_person",
+              "phone_call",
+              "whatsapp",
+              "written",
+              "other"
+            ],
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "occurred_at": {
+            "description": "Fecha en que el cliente autorizó o retiró la autorización, según el dueño.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "recorded_by": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "owner_panel",
+              "bot"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "occurred_at",
+          "medium",
+          "source",
+          "recorded_by",
+          "notes",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "CorrectClosureDto": {
+        "properties": {
+          "completed_at": {
+            "description": "Fecha de completado (ISO 8601 con zona horaria, no futura). Obligatoria al corregir de `completed` a `completed`; solo vale con `outcome: completed`.",
+            "example": "2026-11-02T10:30:00-05:00",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "confirm_reopen": {
+            "description": "Confirmación reforzada; sin ella, reabrir responde 422 `reopen_confirmation_required`.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "outcome": {
+            "description": "Estado destino: `completed` y `no_show` se corrigen entre sí (o `completed` con una nueva `completed_at`); `confirmed` reabre la cita.",
+            "enum": [
+              "completed",
+              "no_show",
+              "confirmed"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "description": "Motivo de la corrección. Toda corrección y reapertura lo exige: sin él responde 422 `correction_reason_required`.",
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "type": "object"
+      },
+      "CreateAppointmentDto": {
+        "properties": {
+          "address": {
+            "description": "Dirección del servicio.",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "service_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "starts_at": {
+            "description": "Instante ISO 8601 con zona horaria; debe ser un cupo ofrecido.",
+            "example": "2026-11-02T08:00:00-05:00",
+            "format": "date-time",
+            "type": "string"
+          },
+          "technician_id": {
+            "description": "Técnico elegido a mano; sin él se asigna automáticamente.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "service_id",
+          "starts_at",
+          "address"
+        ],
+        "type": "object"
+      },
+      "CreateCustomerDto": {
+        "properties": {
+          "address": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 1000,
+            "nullable": true,
+            "type": "string"
+          },
+          "phone": {
+            "description": "Teléfono. Se normaliza a E.164; sin código de país se asume Colombia (+57).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ],
+        "type": "object"
+      },
+      "CreateServiceDto": {
+        "properties": {
+          "duration_min": {
+            "description": "Duración en minutos.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "followup_interval_days": {
+            "description": "Días hasta el seguimiento; sin valor o `null` el servicio no tiene seguimiento.",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "price": {
+            "description": "Precio con hasta 2 decimales.",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "duration_min",
+          "price"
+        ],
+        "type": "object"
+      },
+      "CreateTechnicianDto": {
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 30,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Customer": {
+        "description": "Cliente. Si fue eliminado (anonimizado en sitio), los datos personales se vacían y se muestra `alias`.",
+        "properties": {
+          "address": {
+            "nullable": true,
+            "type": "string"
+          },
+          "alias": {
+            "description": "Alias del cliente eliminado.",
+            "nullable": true,
+            "type": "string"
+          },
+          "anonymized_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "consent_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "consent_status": {
+            "description": "Estado de la autorización de seguimiento.",
+            "enum": [
+              "pending",
+              "granted",
+              "revoked"
+            ],
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "phone": {
+            "description": "Teléfono en formato E.164.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "address",
+          "notes",
+          "consent_status",
+          "consent_at",
+          "alias",
+          "anonymized_at",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "CustomerDetail": {
+        "description": "Cliente con su historial de citas.",
+        "properties": {
+          "address": {
+            "nullable": true,
+            "type": "string"
+          },
+          "alias": {
+            "description": "Alias del cliente eliminado.",
+            "nullable": true,
+            "type": "string"
+          },
+          "anonymized_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "appointments": {
+            "items": {
+              "$ref": "#/components/schemas/Appointment"
+            },
+            "type": "array"
+          },
+          "consent_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "consent_status": {
+            "description": "Estado de la autorización de seguimiento.",
+            "enum": [
+              "pending",
+              "granted",
+              "revoked"
+            ],
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "phone": {
+            "description": "Teléfono en formato E.164.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "address",
+          "notes",
+          "consent_status",
+          "consent_at",
+          "alias",
+          "anonymized_at",
+          "created_at",
+          "appointments"
+        ],
+        "type": "object"
+      },
+      "DurationChangeWarning": {
+        "description": "Aviso informativo: las citas futuras conservan la duración anterior.",
+        "properties": {
+          "code": {
+            "enum": [
+              "future_appointments_keep_previous_duration"
+            ],
+            "type": "string"
+          },
+          "count": {
+            "description": "Citas futuras que conservan la duración anterior.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "count"
+        ],
+        "type": "object"
+      },
+      "EraseTechnicianDto": {
+        "properties": {
+          "reassignments": {
+            "description": "Reasignaciones que el dueño acepta; deben coincidir con la propuesta vigente.",
+            "items": {
+              "$ref": "#/components/schemas/ReassignmentDto"
+            },
+            "maxItems": 500,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "FieldError": {
+        "description": "Errores de validación de un campo del cuerpo o de la consulta.",
+        "properties": {
+          "field": {
+            "description": "Ruta del campo, por ejemplo `change.windows.0.start_time`.",
+            "type": "string"
+          },
+          "messages": {
+            "description": "Mensajes de validación en español.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "field",
+          "messages"
+        ],
+        "type": "object"
+      },
+      "MoveAppointmentDto": {
+        "properties": {
+          "starts_at": {
+            "description": "Nuevo inicio, ISO 8601 con zona horaria; debe ser un cupo ofrecido.",
+            "example": "2026-11-02T08:00:00-05:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "starts_at"
+        ],
+        "type": "object"
+      },
+      "Party": {
+        "description": "Técnico o cliente de una cita. Si fue anonimizado, `name` es nulo y se muestra `alias`.",
+        "properties": {
+          "alias": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "alias"
+        ],
+        "type": "object"
+      },
+      "PreviewScheduleChangeDto": {
+        "properties": {
+          "change": {
+            "$ref": "#/components/schemas/ScheduleChangeDto"
+          }
+        },
+        "required": [
+          "change"
+        ],
+        "type": "object"
+      },
+      "ProblemDetails": {
+        "description": "Respuesta de error `application/problem+json` (RFC 9457). `code` es estable y la interfaz lo traduce.",
+        "properties": {
+          "code": {
+            "description": "Código de error estable.",
+            "enum": [
+              "validation_error",
+              "not_found",
+              "slot_taken",
+              "schedule_conflict",
+              "schedule_overlap",
+              "proposal_stale",
+              "customer_phone_taken",
+              "customer_anonymized",
+              "service_name_taken",
+              "invalid_transition",
+              "closure_confirmation_required",
+              "early_closure_reason_required",
+              "early_closure_confirmation_required",
+              "reopen_confirmation_required",
+              "correction_reason_required",
+              "slot_not_offered",
+              "bad_request",
+              "internal_error"
+            ],
+            "type": "string"
+          },
+          "detail": {
+            "description": "Detalle legible en español.",
+            "type": "string"
+          },
+          "errors": {
+            "description": "Solo en `validation_error`: errores por campo.",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Estado HTTP de la respuesta.",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Título corto en español.",
+            "type": "string"
+          },
+          "type": {
+            "example": "about:blank",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code"
+        ],
+        "type": "object"
+      },
+      "ReassignAppointmentDto": {
+        "properties": {
+          "technician_id": {
+            "description": "Técnico que atenderá la cita en el mismo horario.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "technician_id"
+        ],
+        "type": "object"
+      },
+      "ReassignmentDto": {
+        "properties": {
+          "appointment_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "technician_id": {
+            "description": "Técnico que recibe la cita en el mismo horario.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment_id",
+          "technician_id"
+        ],
+        "type": "object"
+      },
+      "ReassignmentProposalItem": {
+        "description": "Reasignación propuesta para una cita afectada por un cambio de horario.",
+        "properties": {
+          "appointment_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "from_technician_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "to_technician_id": {
+            "description": "Nulo si ningún técnico puede atender la cita en ese horario.",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment_id",
+          "from_technician_id",
+          "to_technician_id"
+        ],
+        "type": "object"
+      },
+      "RegisterConsentDto": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "granted",
+              "revoked"
+            ],
+            "type": "string"
+          },
+          "medium": {
+            "enum": [
+              "in_person",
+              "phone_call",
+              "whatsapp",
+              "written",
+              "other"
+            ],
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "occurred_at": {
+            "description": "Instante ISO 8601 con zona horaria; no puede ser futuro.",
+            "example": "2026-10-15T00:00:00-05:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "occurred_at",
+          "medium"
+        ],
+        "type": "object"
+      },
+      "RegisterConsentResult": {
+        "description": "Evento registrado, estado del cliente y seguimientos programados al conceder.",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/ConsentCustomerSummary"
+          },
+          "event": {
+            "$ref": "#/components/schemas/ConsentEvent"
+          },
+          "followups_scheduled": {
+            "description": "Seguimientos programados o reactivados al conceder la autorización.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "event",
+          "customer",
+          "followups_scheduled"
+        ],
+        "type": "object"
+      },
+      "ScheduleChangeDto": {
+        "properties": {
+          "ends_at": {
+            "description": "Solo en `add_time_off`: fin, posterior a starts_at.",
+            "example": "2026-11-06T23:59:00-05:00",
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Solo en `add_time_off`: motivo opcional.",
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "starts_at": {
+            "description": "Solo en `add_time_off`: inicio, ISO 8601 con zona horaria.",
+            "example": "2026-11-06T00:00:00-05:00",
+            "format": "date-time",
+            "type": "string"
+          },
+          "time_off_id": {
+            "description": "Solo en `remove_time_off`: día libre que se quita.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": {
+            "description": "Tipo de cambio. `add_time_off` exige starts_at y ends_at; `remove_time_off` exige time_off_id; `replace_availability` exige windows; `deactivate`, `activate` y `erase` no llevan más campos. `erase` solo vale en la vista previa: para eliminar usa DELETE /technicians/{id}.",
+            "enum": [
+              "add_time_off",
+              "remove_time_off",
+              "replace_availability",
+              "deactivate",
+              "activate",
+              "erase"
+            ],
+            "type": "string"
+          },
+          "windows": {
+            "description": "Solo en `replace_availability`: franjas semanales que reemplazan a las actuales.",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityWindowDto"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ScheduleChangeProblemExtension": {
+        "description": "Miembros extra de `schedule_conflict` y `proposal_stale`: las citas afectadas y la propuesta vigente.",
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/Appointment"
+            },
+            "type": "array"
+          },
+          "fully_resolvable": {
+            "description": "Verdadero si toda cita afectada tiene un reemplazo propuesto.",
+            "type": "boolean"
+          },
+          "proposal": {
+            "items": {
+              "$ref": "#/components/schemas/ReassignmentProposalItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "affected",
+          "proposal",
+          "fully_resolvable"
+        ],
+        "type": "object"
+      },
+      "ScheduleChangeResult": {
+        "description": "Técnico después del cambio y las reasignaciones aplicadas, en orden cronológico.",
+        "properties": {
+          "reassignments": {
+            "items": {
+              "$ref": "#/components/schemas/AppliedReassignment"
+            },
+            "type": "array"
+          },
+          "technician": {
+            "$ref": "#/components/schemas/Technician"
+          }
+        },
+        "required": [
+          "technician",
+          "reassignments"
+        ],
+        "type": "object"
+      },
+      "SchedulePreview": {
+        "description": "Citas afectadas por un cambio de horario y la propuesta de reasignación.",
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/Appointment"
+            },
+            "type": "array"
+          },
+          "fully_resolvable": {
+            "description": "Verdadero si toda cita afectada tiene un reemplazo propuesto.",
+            "type": "boolean"
+          },
+          "proposal": {
+            "items": {
+              "$ref": "#/components/schemas/ReassignmentProposalItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "affected",
+          "proposal",
+          "fully_resolvable"
+        ],
+        "type": "object"
+      },
+      "Service": {
+        "description": "Servicio del catálogo. Nunca se borra: se desactiva.",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "duration_min": {
+            "description": "Duración en minutos.",
+            "type": "integer"
+          },
+          "followup_interval_days": {
+            "description": "Días hasta el seguimiento; `null` si el servicio no lo tiene.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "description": "Precio con hasta 2 decimales.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "duration_min",
+          "price",
+          "followup_interval_days",
+          "active"
+        ],
+        "type": "object"
+      },
+      "ServiceRef": {
+        "description": "Servicio de una cita.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ServiceUpdateResult": {
+        "description": "Servicio editado, con un aviso si cambió la duración y hay citas futuras.",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "duration_min": {
+            "description": "Duración en minutos.",
+            "type": "integer"
+          },
+          "followup_interval_days": {
+            "description": "Días hasta el seguimiento; `null` si el servicio no lo tiene.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "description": "Precio con hasta 2 decimales.",
+            "type": "number"
+          },
+          "warning": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DurationChangeWarning"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "duration_min",
+          "price",
+          "followup_interval_days",
+          "active",
+          "warning"
+        ],
+        "type": "object"
+      },
+      "Slot": {
+        "description": "Cupo ofrecido para agendar.",
+        "properties": {
+          "available_technician_ids": {
+            "description": "Técnicos disponibles en ese cupo.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "occupied_until": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "technician_id": {
+            "description": "Técnico que se asignaría automáticamente.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "starts_at",
+          "ends_at",
+          "occupied_until",
+          "technician_id",
+          "available_technician_ids"
+        ],
+        "type": "object"
+      },
+      "SlotListing": {
+        "description": "Cupos ofrecidos y si existe alguna disponibilidad.",
+        "properties": {
+          "has_availability": {
+            "description": "Falso si no hay ningún cupo en el rango consultado.",
+            "type": "boolean"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "slots",
+          "has_availability"
+        ],
+        "type": "object"
+      },
+      "Technician": {
+        "description": "Técnico. Si fue eliminado (anonimizado), `name` y `phone` son nulos y se muestra `alias`.",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "alias": {
+            "description": "Alias del técnico eliminado.",
+            "nullable": true,
+            "type": "string"
+          },
+          "anonymized_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "active",
+          "alias",
+          "anonymized_at"
+        ],
+        "type": "object"
+      },
+      "TimeOff": {
+        "description": "Día libre o ausencia de un técnico.",
+        "properties": {
+          "ends_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "ends_at",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "UpdateBusinessDto": {
+        "properties": {
+          "followup_send_time": {
+            "description": "Hora local de envío del seguimiento, HH:MM.",
+            "example": "09:00",
+            "type": "string"
+          },
+          "travel_buffer_min": {
+            "description": "Minutos de traslado.",
+            "maximum": 240,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateCustomerDto": {
+        "properties": {
+          "address": {
+            "description": "`null` borra la dirección.",
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "notes": {
+            "description": "`null` borra las notas.",
+            "maxLength": 1000,
+            "nullable": true,
+            "type": "string"
+          },
+          "phone": {
+            "description": "Teléfono. Se normaliza a E.164; sin código de país se asume Colombia (+57).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateServiceDto": {
+        "properties": {
+          "active": {
+            "description": "Desactivar el servicio lo oculta sin borrarlo.",
+            "type": "boolean"
+          },
+          "duration_min": {
+            "description": "Duración en minutos.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "followup_interval_days": {
+            "description": "`null` quita el seguimiento del servicio.",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "price": {
+            "description": "Precio con hasta 2 decimales.",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateTechnicianDto": {
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "phone": {
+            "description": "`null` borra el teléfono.",
+            "maxLength": 30,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "API del panel del dueño (Sprint 1). Los cuerpos y las respuestas usan snake_case; los parámetros de consulta usan camelCase. Los instantes son ISO 8601; los cuerpos de entrada exigen zona horaria explícita. Los errores responden `application/problem+json` con un `code` estable. Sin autenticación: la sesión queda fuera del alcance de este sprint.",
+    "title": "Schedule App API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/appointments": {
+      "get": {
+        "description": "Ambos días se incluyen y el rango admite hasta 62 días. Las citas canceladas se incluyen con su estado.",
+        "operationId": "Appointments_list",
+        "parameters": [
+          {
+            "description": "Primer día local.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "example": "2026-11-02",
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Último día local, incluido. El rango admite hasta 62 días.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "example": "2026-11-08",
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Appointment"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: validation_error."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar las citas de un rango de días locales",
+        "tags": [
+          "Citas"
+        ]
+      },
+      "post": {
+        "description": "El inicio debe ser un cupo ofrecido por `GET /slots`. Sin `technician_id` se asigna automáticamente.",
+        "operationId": "Appointments_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppointmentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "customer_anonymized",
+                            "slot_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: customer_anonymized, slot_taken."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "slot_not_offered"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: slot_not_offered."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Crear una cita",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/appointments/{id}": {
+      "get": {
+        "operationId": "Appointments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Consultar una cita",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/appointments/{id}/cancel": {
+      "post": {
+        "description": "Libera el cupo y cancela el seguimiento pendiente de la cita.",
+        "operationId": "Appointments_cancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelAppointmentDto"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "invalid_transition"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: invalid_transition."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Cancelar una cita",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/appointments/{id}/close": {
+      "post": {
+        "description": "Un cierre normal exige `confirm`. Si la cita aún no empezó (cierre anticipado) exige `reason` y `confirm_early`; `confirm` no sustituye a `confirm_early`.",
+        "operationId": "Appointments_close",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseAppointmentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "closure_confirmation_required",
+                            "early_closure_confirmation_required",
+                            "early_closure_reason_required",
+                            "invalid_transition"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: closure_confirmation_required, early_closure_confirmation_required, early_closure_reason_required, invalid_transition."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Cerrar una cita como completada o inasistencia",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/appointments/{id}/correct-closure": {
+      "post": {
+        "description": "Toda corrección exige `reason`. Reabrir (`outcome: confirmed`) exige además `confirm_reopen`. Corregir de `completed` a `completed` exige `completed_at`.",
+        "operationId": "Appointments_correctClosure",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectClosureDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "correction_reason_required",
+                            "invalid_transition",
+                            "reopen_confirmation_required"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: correction_reason_required, invalid_transition, reopen_confirmation_required."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Corregir el cierre de una cita",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/appointments/{id}/move": {
+      "post": {
+        "description": "El nuevo inicio debe ser un cupo ofrecido por `GET /slots`.",
+        "operationId": "Appointments_move",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveAppointmentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "slot_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: slot_taken."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "invalid_transition",
+                            "slot_not_offered"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: invalid_transition, slot_not_offered."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Mover una cita a otro cupo",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/appointments/{id}/reassign": {
+      "post": {
+        "operationId": "Appointments_reassign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReassignAppointmentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "slot_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: slot_taken."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "invalid_transition"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: invalid_transition."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Pasar una cita a otro técnico en el mismo horario",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/business": {
+      "get": {
+        "operationId": "BusinessSettings_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Business"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Consultar la configuración del negocio",
+        "tags": [
+          "Negocio"
+        ]
+      },
+      "patch": {
+        "operationId": "BusinessSettings_update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBusinessDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Business"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Editar buffer de traslado y hora de envío del seguimiento",
+        "tags": [
+          "Negocio"
+        ]
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "Customers_list",
+        "parameters": [
+          {
+            "description": "Incluye los clientes eliminados (anonimizados).",
+            "in": "query",
+            "name": "includeAnonymized",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Busca por nombre o teléfono.",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Customer"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: validation_error."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar y buscar clientes",
+        "tags": [
+          "Clientes"
+        ]
+      },
+      "post": {
+        "description": "El consentimiento nace `pending`; se registra con `POST /customers/{id}/consents`.",
+        "operationId": "Customers_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "customer_phone_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: customer_phone_taken."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Crear un cliente",
+        "tags": [
+          "Clientes"
+        ]
+      }
+    },
+    "/customers/{id}": {
+      "delete": {
+        "description": "No borra la fila. Repetirlo no cambia nada.",
+        "operationId": "Customers_erase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cliente anonimizado."
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Eliminar un cliente por anonimización en sitio",
+        "tags": [
+          "Clientes"
+        ]
+      },
+      "get": {
+        "operationId": "Customers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Consultar un cliente con su historial de citas",
+        "tags": [
+          "Clientes"
+        ]
+      },
+      "patch": {
+        "operationId": "Customers_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "customer_anonymized",
+                            "customer_phone_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: customer_anonymized, customer_phone_taken."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Editar un cliente",
+        "tags": [
+          "Clientes"
+        ]
+      }
+    },
+    "/customers/{id}/consents": {
+      "get": {
+        "operationId": "Customers_consents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConsentEvent"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar el registro de autorizaciones del cliente",
+        "tags": [
+          "Clientes"
+        ]
+      },
+      "post": {
+        "description": "Agrega un evento inmutable. Al conceder se programan los seguimientos pendientes; al retirar se cancelan.",
+        "operationId": "Customers_registerConsent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterConsentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterConsentResult"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "customer_anonymized"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: customer_anonymized."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Registrar una autorización o su retiro",
+        "tags": [
+          "Clientes"
+        ]
+      }
+    },
+    "/services": {
+      "get": {
+        "operationId": "Services_list",
+        "parameters": [
+          {
+            "description": "Incluye los servicios desactivados.",
+            "in": "query",
+            "name": "includeInactive",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Service"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: validation_error."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar servicios",
+        "tags": [
+          "Servicios"
+        ]
+      },
+      "post": {
+        "operationId": "Services_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "service_name_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: service_name_taken."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Crear un servicio",
+        "tags": [
+          "Servicios"
+        ]
+      }
+    },
+    "/services/{id}": {
+      "get": {
+        "operationId": "Services_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Consultar un servicio",
+        "tags": [
+          "Servicios"
+        ]
+      },
+      "patch": {
+        "description": "Las citas existentes conservan el precio, nombre y duración con que se agendaron. Si cambia la duración y hay citas futuras, `warning` lo informa.",
+        "operationId": "Services_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUpdateResult"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "service_name_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: service_name_taken."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Editar o desactivar un servicio",
+        "tags": [
+          "Servicios"
+        ]
+      }
+    },
+    "/slots": {
+      "get": {
+        "description": "Devuelve los cupos de los días consultados y `has_availability`, que es falso si no hay ningún cupo en el rango.",
+        "operationId": "Slots_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Primer día local.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "example": "2026-11-02",
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Cantidad de días a partir de `from`.",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 31,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Cita que se está moviendo: no ocupa cupo en la consulta.",
+            "in": "query",
+            "name": "excludeAppointmentId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Técnico preferido para asignar primero.",
+            "in": "query",
+            "name": "preferredTechnicianId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlotListing"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar los cupos ofrecidos para un servicio",
+        "tags": [
+          "Cupos"
+        ]
+      }
+    },
+    "/technicians": {
+      "get": {
+        "operationId": "Technicians_list",
+        "parameters": [
+          {
+            "description": "Incluye los técnicos eliminados (anonimizados).",
+            "in": "query",
+            "name": "includeAnonymized",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Technician"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: validation_error."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar técnicos",
+        "tags": [
+          "Técnicos"
+        ]
+      },
+      "post": {
+        "description": "El técnico nace activo y sin horario; el horario se define con un cambio de horario.",
+        "operationId": "Technicians_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTechnicianDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Technician"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Crear un técnico",
+        "tags": [
+          "Técnicos"
+        ]
+      }
+    },
+    "/technicians/{id}": {
+      "delete": {
+        "description": "Solo se completa si no quedan citas futuras activas sin reasignar. El cuerpo es opcional.",
+        "operationId": "ScheduleChanges_erase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseTechnicianDto"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleChangeResult"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ScheduleChangeProblemExtension"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "proposal_stale",
+                            "schedule_conflict",
+                            "slot_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: proposal_stale, schedule_conflict, slot_taken."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Eliminar un técnico por anonimización",
+        "tags": [
+          "Técnicos"
+        ]
+      },
+      "get": {
+        "operationId": "Technicians_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Technician"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Consultar un técnico",
+        "tags": [
+          "Técnicos"
+        ]
+      },
+      "patch": {
+        "operationId": "Technicians_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTechnicianDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Technician"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Editar nombre o teléfono de un técnico",
+        "tags": [
+          "Técnicos"
+        ]
+      }
+    },
+    "/technicians/{id}/availability": {
+      "get": {
+        "operationId": "Technicians_availability",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AvailabilityWindow"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar las franjas semanales de disponibilidad",
+        "tags": [
+          "Técnicos"
+        ]
+      }
+    },
+    "/technicians/{id}/schedule-changes": {
+      "post": {
+        "description": "Si el cambio afecta citas futuras y `reassignments` no coincide con la propuesta vigente, responde `schedule_conflict` (sin reasignaciones aceptadas) o `proposal_stale` (la propuesta cambió). Ambos incluyen `affected`, `proposal` y `fully_resolvable`.",
+        "operationId": "ScheduleChanges_apply",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyScheduleChangeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleChangeResult"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ScheduleChangeProblemExtension"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "proposal_stale",
+                            "schedule_conflict",
+                            "schedule_overlap",
+                            "slot_taken"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: proposal_stale, schedule_conflict, schedule_overlap, slot_taken."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Aplicar un cambio de horario",
+        "tags": [
+          "Técnicos"
+        ]
+      }
+    },
+    "/technicians/{id}/schedule-changes/preview": {
+      "post": {
+        "description": "No modifica nada. Devuelve las citas futuras afectadas y la propuesta de reasignación.",
+        "operationId": "ScheduleChanges_preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewScheduleChangeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulePreview"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request",
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request, validation_error."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Previsualizar un cambio de horario",
+        "tags": [
+          "Técnicos"
+        ]
+      }
+    },
+    "/technicians/{id}/time-off": {
+      "get": {
+        "operationId": "Technicians_timeOff",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TimeOff"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar los días libres",
+        "tags": [
+          "Técnicos"
+        ]
+      }
+    }
+  },
+  "servers": [],
+  "tags": []
+}

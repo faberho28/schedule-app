@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
@@ -20,12 +21,14 @@ const trim = ({ value }: { value: unknown }): unknown =>
  * global rechaza cualquier propiedad que no esté declarada aquí.
  */
 export class CreateTechnicianDto {
+  @ApiProperty({ maxLength: NAME_MAX_LENGTH })
   @Transform(trim)
   @IsString({ message: 'El nombre debe ser texto' })
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   @MaxLength(NAME_MAX_LENGTH, { message: `El nombre admite hasta ${NAME_MAX_LENGTH} caracteres` })
   name!: string;
 
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: PHONE_MAX_LENGTH })
   @IsOptional()
   @Transform(trim)
   @IsString({ message: 'El teléfono debe ser texto' })
@@ -38,6 +41,7 @@ export class CreateTechnicianDto {
 
 /** Cuerpo de `PATCH /technicians/:id`. Un `active` enviado se rechaza como propiedad no permitida. */
 export class UpdateTechnicianDto {
+  @ApiPropertyOptional({ maxLength: NAME_MAX_LENGTH })
   @ValidateIf(whenPresent)
   @Transform(trim)
   @IsString({ message: 'El nombre debe ser texto' })
@@ -46,6 +50,12 @@ export class UpdateTechnicianDto {
   name?: string;
 
   /** `null` borra el teléfono. */
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    maxLength: PHONE_MAX_LENGTH,
+    description: '`null` borra el teléfono.',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString({ message: 'El teléfono debe ser texto' })
@@ -58,6 +68,10 @@ export class UpdateTechnicianDto {
 
 /** Parámetros de consulta de `GET /technicians`. */
 export class ListTechniciansQueryDto {
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Incluye los técnicos eliminados (anonimizados).',
+  })
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
     value === 'true' ? true : value === 'false' ? false : value,

@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
@@ -25,6 +26,9 @@ const ADDRESS_MAX_LENGTH = 500;
 const NOTES_MAX_LENGTH = 1000;
 const CONSENT_NOTES_MAX_LENGTH = 500;
 const SEARCH_MAX_LENGTH = 100;
+
+const PHONE_DESCRIPTION =
+  'Teléfono. Se normaliza a E.164; sin código de país se asume Colombia (+57).';
 
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -58,18 +62,21 @@ function IsValidPhone(options?: ValidationOptions): PropertyDecorator {
 
 /** Cuerpo de `POST /customers`. El consentimiento nace `pending` y no se envía aquí. */
 export class CreateCustomerDto {
+  @ApiProperty({ maxLength: NAME_MAX_LENGTH })
   @Transform(trim)
   @IsString({ message: 'El nombre debe ser texto' })
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   @MaxLength(NAME_MAX_LENGTH, { message: `El nombre admite hasta ${NAME_MAX_LENGTH} caracteres` })
   name!: string;
 
+  @ApiProperty({ description: PHONE_DESCRIPTION })
   @Transform(toE164)
   @IsString({ message: 'El teléfono debe ser texto' })
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   @IsValidPhone()
   phone!: string;
 
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: ADDRESS_MAX_LENGTH })
   @IsOptional()
   @Transform(emptyToNull)
   @IsString({ message: 'La dirección debe ser texto' })
@@ -78,6 +85,7 @@ export class CreateCustomerDto {
   })
   address?: string | null;
 
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: NOTES_MAX_LENGTH })
   @IsOptional()
   @Transform(emptyToNull)
   @IsString({ message: 'Las notas deben ser texto' })
@@ -89,6 +97,7 @@ export class CreateCustomerDto {
 
 /** Cuerpo de `PATCH /customers/:id`: todos los campos son opcionales; `null` borra dirección o notas. */
 export class UpdateCustomerDto {
+  @ApiPropertyOptional({ maxLength: NAME_MAX_LENGTH })
   @ValidateIf(whenPresent)
   @Transform(trim)
   @IsString({ message: 'El nombre debe ser texto' })
@@ -96,6 +105,7 @@ export class UpdateCustomerDto {
   @MaxLength(NAME_MAX_LENGTH, { message: `El nombre admite hasta ${NAME_MAX_LENGTH} caracteres` })
   name?: string;
 
+  @ApiPropertyOptional({ description: PHONE_DESCRIPTION })
   @ValidateIf(whenPresent)
   @Transform(toE164)
   @IsString({ message: 'El teléfono debe ser texto' })
@@ -103,6 +113,12 @@ export class UpdateCustomerDto {
   @IsValidPhone()
   phone?: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    maxLength: ADDRESS_MAX_LENGTH,
+    description: '`null` borra la dirección.',
+  })
   @IsOptional()
   @Transform(emptyToNull)
   @IsString({ message: 'La dirección debe ser texto' })
@@ -111,6 +127,12 @@ export class UpdateCustomerDto {
   })
   address?: string | null;
 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    maxLength: NOTES_MAX_LENGTH,
+    description: '`null` borra las notas.',
+  })
   @IsOptional()
   @Transform(emptyToNull)
   @IsString({ message: 'Las notas deben ser texto' })
@@ -122,6 +144,10 @@ export class UpdateCustomerDto {
 
 /** Parámetros de consulta de `GET /customers`. */
 export class ListCustomersQueryDto {
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Incluye los clientes eliminados (anonimizados).',
+  })
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
     value === 'true' ? true : value === 'false' ? false : value,
@@ -129,6 +155,10 @@ export class ListCustomersQueryDto {
   @IsBoolean({ message: 'includeAnonymized debe ser true o false' })
   includeAnonymized?: boolean;
 
+  @ApiPropertyOptional({
+    maxLength: SEARCH_MAX_LENGTH,
+    description: 'Busca por nombre o teléfono.',
+  })
   @IsOptional()
   @IsString({ message: 'search debe ser texto' })
   @MaxLength(SEARCH_MAX_LENGTH, {
@@ -142,20 +172,29 @@ export class ListCustomersQueryDto {
  * (`owner`) los fija el servidor: no se aceptan del cliente.
  */
 export class RegisterConsentDto {
+  @ApiProperty({ enum: CONSENT_KINDS })
   @IsIn(CONSENT_KINDS, { message: 'kind debe ser granted o revoked' })
   kind!: ConsentKind;
 
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2026-10-15T00:00:00-05:00',
+    description: 'Instante ISO 8601 con zona horaria; no puede ser futuro.',
+  })
   @IsInstantWithOffset({
     message:
       'occurred_at debe ser un instante ISO 8601 con zona horaria, por ejemplo 2026-10-15T00:00:00-05:00',
   })
   occurred_at!: string;
 
+  @ApiProperty({ enum: CONSENT_MEDIA })
   @IsIn(CONSENT_MEDIA, {
     message: 'medium debe ser in_person, phone_call, whatsapp, written u other',
   })
   medium!: ConsentMedium;
 
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: CONSENT_NOTES_MAX_LENGTH })
   @IsOptional()
   @Transform(emptyToNull)
   @IsString({ message: 'Las notas deben ser texto' })

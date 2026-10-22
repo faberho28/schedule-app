@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -42,16 +43,19 @@ const trim = ({ value }: { value: unknown }): unknown =>
 
 /** Franja semanal del cuerpo de `replace_availability`. */
 export class AvailabilityWindowDto {
+  @ApiProperty({ type: 'integer', minimum: 1, maximum: 7, description: '1 es lunes, 7 domingo.' })
   @IsInt({ message: 'El día de la semana debe ser un entero de 1 (lunes) a 7 (domingo)' })
   @Min(1, { message: 'El día de la semana debe ser un entero de 1 (lunes) a 7 (domingo)' })
   @Max(7, { message: 'El día de la semana debe ser un entero de 1 (lunes) a 7 (domingo)' })
   weekday!: number;
 
+  @ApiProperty({ example: '08:00', description: 'Hora local de inicio, HH:MM (00:00 a 23:59).' })
   @Matches(LOCAL_TIME, {
     message: 'La hora de inicio debe tener formato HH:MM entre 00:00 y 23:59',
   })
   start_time!: string;
 
+  @ApiProperty({ example: '17:00', description: 'Hora local de fin, HH:MM (00:00 a 23:59).' })
   @Matches(LOCAL_TIME, { message: 'La hora de fin debe tener formato HH:MM entre 00:00 y 23:59' })
   end_time!: string;
 }
@@ -61,9 +65,20 @@ export class AvailabilityWindowDto {
  * en `toScheduleChange` para que el error diga qué campo sobra.
  */
 export class ScheduleChangeDto {
+  @ApiProperty({
+    enum: CHANGE_TYPES,
+    description:
+      'Tipo de cambio. `add_time_off` exige starts_at y ends_at; `remove_time_off` exige time_off_id; `replace_availability` exige windows; `deactivate`, `activate` y `erase` no llevan más campos. `erase` solo vale en la vista previa: para eliminar usa DELETE /technicians/{id}.',
+  })
   @IsIn(CHANGE_TYPES, { message: `type debe ser uno de: ${CHANGE_TYPES.join(', ')}` })
   type!: ScheduleChangeType;
 
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    example: '2026-11-06T00:00:00-05:00',
+    description: 'Solo en `add_time_off`: inicio, ISO 8601 con zona horaria.',
+  })
   @ValidateIf((change: ScheduleChangeDto) => change.type === 'add_time_off')
   @IsInstantWithOffset({
     message:
@@ -71,6 +86,12 @@ export class ScheduleChangeDto {
   })
   starts_at?: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    example: '2026-11-06T23:59:00-05:00',
+    description: 'Solo en `add_time_off`: fin, posterior a starts_at.',
+  })
   @ValidateIf((change: ScheduleChangeDto) => change.type === 'add_time_off')
   @IsInstantWithOffset({
     message:
@@ -78,6 +99,12 @@ export class ScheduleChangeDto {
   })
   ends_at?: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    maxLength: REASON_MAX_LENGTH,
+    description: 'Solo en `add_time_off`: motivo opcional.',
+  })
   @ValidateIf((change: ScheduleChangeDto) => change.type === 'add_time_off')
   @IsOptional()
   @Transform(trim)
@@ -87,6 +114,11 @@ export class ScheduleChangeDto {
   })
   reason?: string | null;
 
+  @ApiPropertyOptional({
+    type: () => [AvailabilityWindowDto],
+    maxItems: MAX_WINDOWS,
+    description: 'Solo en `replace_availability`: franjas semanales que reemplazan a las actuales.',
+  })
   @ValidateIf((change: ScheduleChangeDto) => change.type === 'replace_availability')
   @IsArray({ message: 'windows debe ser una lista de franjas' })
   @ArrayMaxSize(MAX_WINDOWS, { message: `windows admite hasta ${MAX_WINDOWS} franjas` })
@@ -94,6 +126,10 @@ export class ScheduleChangeDto {
   @Type(() => AvailabilityWindowDto)
   windows?: AvailabilityWindowDto[];
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Solo en `remove_time_off`: día libre que se quita.',
+  })
   @ValidateIf((change: ScheduleChangeDto) => change.type === 'remove_time_off')
   @IsUUID(undefined, { message: 'time_off_id debe ser un UUID' })
   time_off_id?: string;
@@ -101,15 +137,18 @@ export class ScheduleChangeDto {
 
 /** Cita que el dueño acepta pasar a otro técnico, en el mismo horario. */
 export class ReassignmentDto {
+  @ApiProperty({ format: 'uuid' })
   @IsUUID(undefined, { message: 'appointment_id debe ser un UUID' })
   appointment_id!: string;
 
+  @ApiProperty({ format: 'uuid', description: 'Técnico que recibe la cita en el mismo horario.' })
   @IsUUID(undefined, { message: 'technician_id debe ser un UUID' })
   technician_id!: string;
 }
 
 /** Cuerpo de `POST /technicians/:id/schedule-changes/preview`. */
 export class PreviewScheduleChangeDto {
+  @ApiProperty({ type: () => ScheduleChangeDto })
   @IsDefined({ message: 'change es obligatorio' })
   @IsObject({ message: 'change debe ser un objeto' })
   @ValidateNested()
@@ -119,6 +158,11 @@ export class PreviewScheduleChangeDto {
 
 /** Cuerpo de `POST /technicians/:id/schedule-changes`. */
 export class ApplyScheduleChangeDto extends PreviewScheduleChangeDto {
+  @ApiPropertyOptional({
+    type: () => [ReassignmentDto],
+    maxItems: MAX_REASSIGNMENTS,
+    description: 'Reasignaciones que el dueño acepta; deben coincidir con la propuesta vigente.',
+  })
   @IsOptional()
   @IsArray({ message: 'reassignments debe ser una lista' })
   @ArrayMaxSize(MAX_REASSIGNMENTS, {
@@ -134,6 +178,11 @@ export class ApplyScheduleChangeDto extends PreviewScheduleChangeDto {
 
 /** Cuerpo opcional de `DELETE /technicians/:id`. */
 export class EraseTechnicianDto {
+  @ApiPropertyOptional({
+    type: () => [ReassignmentDto],
+    maxItems: MAX_REASSIGNMENTS,
+    description: 'Reasignaciones que el dueño acepta; deben coincidir con la propuesta vigente.',
+  })
   @IsOptional()
   @IsArray({ message: 'reassignments debe ser una lista' })
   @ArrayMaxSize(MAX_REASSIGNMENTS, {

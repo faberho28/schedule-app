@@ -167,10 +167,10 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 11: OpenAPI (commit 11)
 
-- [ ] 11.1 Configurar el plugin CLI de `@nestjs/swagger` en `api/nest-cli.json`, decorar DTO y esquema `ProblemDetails` con los códigos de error documentados. Spec: UI-R7. Verif: manual, el documento muestra los esquemas.
-- [ ] 11.2 Crear `npm run openapi:export` (inicia la app sin escuchar ni requerir base de datos) y versionar `api/openapi.json`. Spec: UI-R7. Verif: RED, prueba que ejecuta el export sin Postgres disponible y compara con el archivo versionado.
-- [ ] 11.3 Prueba del contrato: existen `DELETE /customers/:id` y `DELETE /technicians/:id` y no existe `DELETE` de servicios, citas ni disponibilidad. Spec: SC-R3. Verif: RED, inspección del documento.
-- [ ] 11.4 Agregar el script `openapi:check` (falla si el archivo versionado difiere del regenerado) y documentarlo. Spec: UI-R7. Verif: manual.
+- [x] 11.1 Configurar el plugin CLI de `@nestjs/swagger` en `api/nest-cli.json`, decorar DTO y esquema `ProblemDetails` con los códigos de error documentados. Spec: UI-R7. Verif: manual, el documento muestra los esquemas. _Desviación: se usan decoradores explícitos (`@ApiProperty`, `@ApiSchema`, `@ApiProblems`) en lugar del plugin CLI, porque el plugin solo actúa en `nest build` y no en Vitest ni en la CLI de exportación; con decoradores el documento no depende de cómo se ejecuta. `@nestjs/swagger` 12.0.3._
+- [x] 11.2 Crear `npm run openapi:export` (inicia la app sin escuchar ni requerir base de datos) y versionar `api/openapi.json`. Spec: UI-R7. Verif: RED, prueba que ejecuta el export sin Postgres disponible y compara con el archivo versionado.
+- [x] 11.3 Prueba del contrato: existen `DELETE /customers/:id` y `DELETE /technicians/:id` y no existe `DELETE` de servicios, citas ni disponibilidad. Spec: SC-R3. Verif: RED, inspección del documento.
+- [x] 11.4 Agregar el script `openapi:check` (falla si el archivo versionado difiere del regenerado) y documentarlo. Spec: UI-R7. Verif: manual.
 
 ## Fase 12: Base de `app/` (commit 12)
 
