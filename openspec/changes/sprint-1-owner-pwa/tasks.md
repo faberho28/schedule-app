@@ -210,11 +210,11 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 16: Clientes en la interfaz (commit 16)
 
-- [ ] 16.1 `/customers`: lista con búsqueda y formulario de alta con `+57` precargado y errores en español. Spec: UI-R6, CR-R1. Verif: RED con MSW, prefijo precargado, duplicado muestra mensaje.
-- [ ] 16.2 `/customers/:id`: datos, dirección guardada, estado del consentimiento, auditoría (fecha, medio) e historial descendente. Spec: UI-R6, CR-R3, CR-R8. Verif: RED con MSW.
-- [ ] 16.3 Diálogo de autorización previa con fecha y medio (etiquetas "En persona", "Llamada telefónica", "WhatsApp", "Formulario o documento escrito", "Otro"). Spec: UI-R6, CR-R3. Verif: RED con MSW, sin medio no se envía.
-- [ ] 16.4 Eliminar cliente (anonimización) con confirmación y visualización "Cliente eliminado (alias)"; formateador compartido "Técnico eliminado (alias)". Spec: UI-R6, CR-R2, TS-R6. Verif: RED con MSW.
-- [ ] 16.5 Confirmar que no existe UI de revocación en este sprint (solo API). Spec: CR-R5. Verif: manual.
+- [x] 16.1 `/customers`: lista con búsqueda y formulario de alta con `+57` precargado y errores en español. Spec: UI-R6, CR-R1. Verif: RED con MSW, prefijo precargado, duplicado muestra mensaje.
+- [x] 16.2 `/customers/:id`: datos, dirección guardada, estado del consentimiento, auditoría (fecha, medio) e historial descendente. Spec: UI-R6, CR-R3, CR-R8. Verif: RED con MSW.
+- [x] 16.3 Diálogo de autorización previa con fecha y medio (etiquetas "En persona", "Llamada telefónica", "WhatsApp", "Formulario o documento escrito", "Otro"). Spec: UI-R6, CR-R3. Verif: RED con MSW, sin medio no se envía.
+- [x] 16.4 Eliminar cliente (anonimización) con confirmación y visualización "Cliente eliminado (alias)"; formateador compartido "Técnico eliminado (alias)". Spec: UI-R6, CR-R2, TS-R6. Verif: RED con MSW.
+- [x] 16.5 Revocación: por decisión posterior del dueño del proyecto la interfaz SÍ ofrece "Revocar consentimiento" (con confirmación y explicación de sus efectos) en lugar de dejarla solo en la API. Spec: CR-R5. Verif: RED con MSW (solo con consentimiento otorgado, exige medio, envía `kind: revoked`, permite volver a registrar autorización).
 
 ## Fase 17: UI de cierre (commit 17)
 

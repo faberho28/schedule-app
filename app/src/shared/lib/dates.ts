@@ -97,6 +97,17 @@ export function zonedInstant(date: LocalDate, time: string, timeZone: string): s
   return new Date(wall - zoneOffsetMs(firstGuess, timeZone)).toISOString();
 }
 
+/** Fecha local de un instante con año, por ejemplo `15 oct 2026`. */
+export function formatDate(instant: string, timeZone: string): string {
+  const { day, month, year } = parts(new Date(instant), {
+    timeZone,
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return `${day} ${month} ${year}`.replaceAll('.', '');
+}
+
 /** Día corto y hora local de un instante, por ejemplo `vie 6 nov 08:00`. */
 export function formatDateTime(instant: string, timeZone: string): string {
   return `${formatDayLabel(localDateOf(instant, timeZone))} ${formatTime(instant, timeZone)}`;

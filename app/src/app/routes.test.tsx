@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { apiUrl, business, technician } from '@/test/api';
+import { apiUrl, business, customer, technician } from '@/test/api';
 import { server } from '@/test/server';
 import { AppProviders } from './providers';
 import { routes } from './routes';
@@ -28,6 +28,11 @@ describe('rutas de la aplicación', () => {
       http.get(apiUrl('/technicians/:id/availability'), () => HttpResponse.json([])),
       http.get(apiUrl('/technicians/:id/time-off'), () => HttpResponse.json([])),
       http.get(apiUrl('/appointments'), () => HttpResponse.json([])),
+      http.get(apiUrl('/customers'), () => HttpResponse.json([])),
+      http.get(apiUrl('/customers/:id'), () =>
+        HttpResponse.json({ ...customer(), appointments: [] }),
+      ),
+      http.get(apiUrl('/customers/:id/consents'), () => HttpResponse.json([])),
     );
   });
 

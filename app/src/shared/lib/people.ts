@@ -9,6 +9,20 @@ export function technicianLabel({ name, alias }: Named): string {
   return alias === null ? 'Técnico eliminado' : `Técnico eliminado (${alias})`;
 }
 
+/**
+ * Nombre visible de un registro de cliente (`Customer`). Al anonimizar, la API deja el alias también
+ * en `name`, así que se decide por `anonymized_at` y no por el valor de `name`.
+ */
+export function customerRecordLabel(customer: {
+  name: string;
+  alias: string | null;
+  anonymized_at: string | null;
+}): string {
+  return customerLabel(
+    customer.anonymized_at === null ? customer : { name: null, alias: customer.alias },
+  );
+}
+
 /** Nombre visible de un cliente, o "Cliente eliminado (alias)" si fue anonimizado. */
 export function customerLabel({ name, alias }: Named): string {
   if (name !== null) return name;

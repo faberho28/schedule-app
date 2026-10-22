@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDays,
+  formatDate,
   formatDateTime,
   formatDayLabel,
   formatTime,
@@ -11,6 +12,16 @@ import {
 
 const BOGOTA = 'America/Bogota';
 const NEW_YORK = 'America/New_York';
+
+describe('formatDate', () => {
+  it('muestra día, mes corto y año en la zona del negocio', () => {
+    expect(formatDate('2026-10-15T05:00:00.000Z', BOGOTA)).toBe('15 oct 2026');
+  });
+
+  it('usa el día local y no el de UTC', () => {
+    expect(formatDate('2026-01-01T03:00:00.000Z', BOGOTA)).toBe('31 dic 2025');
+  });
+});
 
 describe('formatTime', () => {
   it('muestra la hora local de America/Bogota en formato de 24 horas', () => {
