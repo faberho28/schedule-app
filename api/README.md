@@ -109,7 +109,7 @@ El filtro global `ProblemDetailsFilter` (`src/shared/http/problem-details.filter
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
 | `validation_error`, `bad_request`                                                                                                                | 400    |
 | `not_found` (incluye rutas inexistentes)                                                                                                         | 404    |
-| `slot_taken`, `schedule_conflict`, `proposal_stale`, `customer_phone_taken`, `service_name_taken`                                                | 409    |
+| `slot_taken`, `schedule_conflict`, `schedule_overlap`, `proposal_stale`, `customer_phone_taken`, `service_name_taken`                            | 409    |
 | `invalid_transition`, `slot_not_offered`, `early_closure_reason_required`, `early_closure_confirmation_required`, `reopen_confirmation_required` | 422    |
 | `internal_error` (y cualquier `DomainError` sin estado asignado)                                                                                 | 500    |
 
@@ -143,7 +143,15 @@ La advertencia de `PATCH /services/:id` es informativa y no bloquea el cambio: `
 | `GET /technicians/:id/availability` | Franjas semanales `{ id, weekday (1 a 7, ISO), start_time, end_time }` en hora local `HH:MM`, por día y hora. |
 | `GET /technicians/:id/time-off`     | Días libres `{ id, starts_at, ends_at, reason }` con instantes ISO 8601 UTC, por fecha de inicio.             |
 
-`active`, la disponibilidad y los días libres son de solo lectura en estos endpoints: un `PATCH` que incluya `active` (o cualquier campo no declarado) responde 400 `validation_error`. Se escriben únicamente por el flujo de cambios de horario, que valida las citas afectadas. Las pruebas preparan técnicos, franjas, días libres y citas con las fábricas de `test/support/factories.ts`.
+`active`, la disponibilidad y los días libres son de solo lectura en estos endpoints: un `PATCH` que incluya `active` (o cualquier campo no declarado) responde 400 `validation_error`. Se escriben únicamente por el flujo de cambios de horario (ver "Cambios de horario y eliminación de técnicos"), que valida las citas afectadas. Las pruebas preparan técnicos, franjas, días libres y citas con las fábricas de `test/support/factories.ts`.
+
+Las rutas de escritura de horario viven en `ScheduleChangesController` (`scheduling/infrastructure/http`) bajo el mismo prefijo `/technicians`:
+
+| Método y ruta                                    | Descripción                                                                                                    |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `POST /technicians/:id/schedule-changes/preview` | Solo lectura: citas afectadas por un cambio y propuesta de reasignación (200).                                 |
+| `POST /technicians/:id/schedule-changes`         | Aplica un cambio (200): día libre, quitar día libre, reemplazar disponibilidad, desactivar o reactivar.        |
+| `DELETE /technicians/:id`                        | Elimina al técnico por anonimización (200). Mismo flujo con `change = erase`; cuerpo opcional `reassignments`. |
 
 ### Transacciones por negocio
 
@@ -163,6 +171,10 @@ La advertencia de `PATCH /services/:id` es informativa y no bloquea el cambio: `
 | `services/appointment-status.ts`      | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                        |
 | `services/book-slot.ts`               | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede. Acepta un técnico pedido (restringe) o preferido (prioridad). |
 | `services/technician-availability.ts` | `isTechnicianFree`: el técnico trabaja en un horario exacto y su bloque ocupado no choca con el de la cita (reasignación manual).                                  |
+| `services/schedule-change.ts`         | `findAffectedAppointments`: citas `pending`/`confirmed` desde `now` que un `ScheduleChange` (modelo en `model/schedule-change.ts`) deja sin cobertura.             |
+| `services/plan-reassignments.ts`      | `planReassignments` (propuesta cronológica con carga y ocupación en memoria) y `findUnavailableTargets` (verifica los destinos al aplicar).                        |
+| `services/availability-windows.ts`    | `validateAvailabilityWindows`: día 1 a 7, horas `HH:MM` hasta 23:59, fin posterior al inicio y sin solapes por día.                                                |
+| `services/alias.ts`                   | `generateAlias`: alias aleatorio `palabra_número` que no esté ya usado en el negocio.                                                                              |
 | `ports/`                              | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`) y `CommandExecutor`. Solo tipos: el dominio no importa adaptadores.    |
 
 Reglas de `generateSlots`:
@@ -175,7 +187,7 @@ Reglas de `generateSlots`:
 
 ## Cupos y citas
 
-Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos), `application/` (casos de uso sin Nest: `ListSlots`, `CreateAppointment`, `CancelAppointment`, `MoveAppointment`, `ReassignAppointment`, `QueryAppointments` y `loadDaySchedule`), `infrastructure/` (adaptadores de Kysely, controladores, DTO) y `scheduling.module.ts`, que cablea todo con los tokens de `application/tokens.ts` (`CLOCK`, `COMMAND_EXECUTOR`, `READ_PORTS`). Las pruebas fijan el reloj con `createTestApp({ now })`.
+Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos), `application/` (casos de uso sin Nest: `ListSlots`, `CreateAppointment`, `CancelAppointment`, `MoveAppointment`, `ReassignAppointment`, `PreviewScheduleChange`, `ApplyScheduleChange`, `QueryAppointments` y `loadDaySchedule`), `infrastructure/` (adaptadores de Kysely, controladores, DTO) y `scheduling.module.ts`, que cablea todo con los tokens de `application/tokens.ts` (`CLOCK`, `COMMAND_EXECUTOR`, `READ_PORTS`). Las pruebas fijan el reloj con `createTestApp({ now })`.
 
 ### Ejecutor de comandos y bloqueo del negocio
 
@@ -258,6 +270,71 @@ COMMIT
 | `slot_taken`         | 409    | La hora pedida choca con el bloque (duración más buffer) de una cita no cancelada, incluida una concurrente.                   |
 | `slot_not_offered`   | 422    | La hora no es un cupo generado y no choca con ninguna cita; también servicio o técnico pedido no reservable.                   |
 | `invalid_transition` | 422    | Cancelar, mover o reasignar una cita `cancelled`, `completed` o `no_show`. Una cancelada no se reabre: se crea una cita nueva. |
+
+## Cambios de horario y eliminación de técnicos
+
+Toda escritura de disponibilidad, días libres o `active` de un técnico, y su eliminación, pasa por `ApplyScheduleChange`. `PreviewScheduleChange` calcula lo mismo sin escribir. Los dos comparten `evaluateScheduleChange` (`application/schedule-change-evaluation.ts`).
+
+### Cambios admitidos
+
+Cuerpo de ambos `POST` (`snake_case`): `{ "change": { ... }, "reassignments": [{ "appointment_id", "technician_id" }] }`. La vista previa solo recibe `change`.
+
+| `change.type`          | Campos                                                                               | Cita afectada                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `add_time_off`         | `starts_at`, `ends_at` (ISO 8601 con zona, fin posterior al inicio), `reason`        | El servicio de la cita (sin buffer) se solapa con el período.               |
+| `remove_time_off`      | `time_off_id`                                                                        | Ninguna. Es baja lógica (`deleted_at`); 404 si no existe o ya se quitó.     |
+| `replace_availability` | `windows: [{ weekday (1 a 7), start_time, end_time }]` (reemplaza todas las franjas) | El servicio no cabe completo en una franja nueva (el buffer puede salirse). |
+| `deactivate`           | ninguno                                                                              | Toda cita activa futura.                                                    |
+| `activate`             | ninguno                                                                              | Ninguna. No necesita `reassignments`.                                       |
+| `erase`                | ninguno (solo por `DELETE /technicians/:id` y en la vista previa)                    | Toda cita activa futura.                                                    |
+
+Una cita afectada es `pending` o `confirmed` con `starts_at >= now`. Los campos que no corresponden al `type` se rechazan con 400. Un técnico inexistente, de otro negocio o ya anonimizado responde 404 en todos los casos, incluida una segunda eliminación.
+
+### Flujo
+
+```mermaid
+sequenceDiagram
+  participant UI as app
+  participant C as ScheduleChangesController
+  participant P as PreviewScheduleChange
+  participant A as ApplyScheduleChange
+  participant DB as Postgres
+  UI->>C: POST /technicians/:id/schedule-changes/preview {change}
+  C->>P: execute (solo lectura, sin bloqueo)
+  P->>DB: citas activas futuras, técnicos reservables y su ocupación
+  P-->>UI: {affected[], proposal[], fully_resolvable}
+  UI->>C: POST /technicians/:id/schedule-changes {change, reassignments[]}
+  C->>A: execute
+  A->>DB: BEGIN; SELECT ... FROM businesses FOR UPDATE
+  A->>A: recalcular afectadas
+  alt hay afectadas y reassignments vacío
+    A-->>UI: 409 schedule_conflict {affected, proposal, fully_resolvable}
+  else las citas reasignadas no son exactamente las afectadas
+    A-->>UI: 409 proposal_stale {affected, proposal, fully_resolvable}
+  else un destino no puede atender su cita
+    A-->>UI: 409 slot_taken
+  else ok
+    A->>DB: UPDATE appointments SET technician_id, technician_changed = true
+    A->>DB: aplicar el cambio (time_off / availability / active / anonimizar)
+    A->>DB: COMMIT
+    A-->>UI: 200 {technician, reassignments}
+  end
+```
+
+- La propuesta cambia solo el técnico, nunca el horario. Para cada cita afectada, en orden cronológico, busca técnicos activos y no anonimizados libres en ese horario exacto (el bloque de la cita con su propio buffer no choca con su ocupación) y aplica la regla de `slot-availability`: menos minutos agendados ese día, desempate por `created_at` y luego `id`. El técnico que cambia nunca es destino. Cada cita propuesta suma su bloque y sus minutos para las siguientes.
+- Es todo o nada. Una cita sin reemplazo queda con `to_technician_id: null` y `fully_resolvable: false`; el cambio sigue bloqueado hasta que el dueño la resuelva a mano (`POST /appointments/:id/reassign`, mover o cancelar) y repita el cambio. Rechazar la propuesta es no enviarla: no se guarda nada.
+- `reassignments` vacío con citas afectadas es `schedule_conflict`. Con citas afectadas y un conjunto de `reassignments` distinto del afectado (cita nueva, cancelada o faltante) es `proposal_stale`, con la propuesta recalculada. Un destino que existe pero no puede atender la cita (ocupado, sin franja, con día libre, inactivo, anonimizado o el mismo técnico) es `slot_taken`; uno inexistente es `not_found`. Cualquier error revierte todo.
+- Los 409 `schedule_conflict` y `proposal_stale` agregan al problema `affected` (citas con la forma de `GET /appointments/:id`), `proposal` (`{ appointment_id, from_technician_id, to_technician_id | null }`) y `fully_resolvable`.
+- La respuesta de éxito es `{ technician: { id, name, phone, active, alias, anonymized_at }, reassignments: [{ appointment_id, technician_id }] }`.
+- Al bloquear la fila del negocio, un día libre, una desactivación o una eliminación nunca coexisten con una reserva del mismo horario: gana el que llega primero y el otro recibe el error (`schedule_conflict` para el cambio, `slot_not_offered` o `slot_taken` para la reserva). Las pruebas de `schedule-changes-concurrency.http.int-spec.ts` lo verifican con conexiones reales.
+
+### Validación de disponibilidad
+
+`start_time` y `end_time` son `HH:MM` hasta `23:59`; `24:00` (que Postgres acepta, pero la hora local del dominio no) se rechaza con 400 antes de llegar a la base. El fin debe ser posterior al inicio y las franjas del mismo día no pueden solaparse (se tocan en el borde sin problema). Cada error indica el campo, por ejemplo `change.windows.0.end_time`. Si la base detecta un solape que la validación no vio (dos días libres que se solapan), el error de exclusión se traduce a `schedule_overlap` (409).
+
+### Eliminación de técnicos
+
+`DELETE /technicians/:id` invoca el mismo caso de uso con `change = erase`. Con citas futuras activas responde `schedule_conflict` (409) y el técnico conserva su nombre y teléfono. Cuando no queda ninguna (el cuerpo trae las `reassignments` de la propuesta, aplicadas en la misma transacción), anonimiza en sitio: `name` y `phone` en nulo, `anonymized_at`, `active = false` y un alias aleatorio único por negocio (por ejemplo `tiger_1`), que la interfaz muestra como "Técnico eliminado (tiger_1)". Las citas y el historial se conservan atribuidos al alias. El alias sale de `crypto.randomInt` y de una lista fija de palabras, nunca de datos de la persona, y no se guarda ninguna correspondencia persona-alias (una prueba revisa que el nombre y el teléfono originales no queden en ninguna tabla). El registro de supresiones con HMAC es deuda técnica fuera del sprint 1.
 
 ## Pruebas
 

@@ -1,5 +1,6 @@
 import {
   CustomerPhoneTakenError,
+  ScheduleOverlapError,
   ServiceNameTakenError,
   SlotTakenError,
 } from '../../domain/errors';
@@ -12,6 +13,10 @@ const UNIQUE_VIOLATION = '23505';
 const APPOINTMENTS_NO_OVERLAP = 'appointments_no_overlap';
 const CUSTOMERS_PHONE_UNIQUE = 'uq_customers_business_phone';
 const SERVICES_NAME_UNIQUE = 'uq_services_business_name';
+const SCHEDULE_OVERLAP_CONSTRAINTS: readonly string[] = [
+  'availability_no_overlap',
+  'time_off_no_overlap',
+];
 
 type PgErrorShape = { code: string; constraint?: string };
 
@@ -32,6 +37,13 @@ export function translatePgError(error: unknown): unknown {
 
   if (error.code === EXCLUSION_VIOLATION && error.constraint === APPOINTMENTS_NO_OVERLAP) {
     return new SlotTakenError({ cause: error });
+  }
+  if (
+    error.code === EXCLUSION_VIOLATION &&
+    error.constraint !== undefined &&
+    SCHEDULE_OVERLAP_CONSTRAINTS.includes(error.constraint)
+  ) {
+    return new ScheduleOverlapError({ cause: error });
   }
   if (error.code === UNIQUE_VIOLATION && error.constraint === CUSTOMERS_PHONE_UNIQUE) {
     return new CustomerPhoneTakenError({ cause: error });

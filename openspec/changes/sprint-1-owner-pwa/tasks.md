@@ -133,14 +133,14 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 8: Cambios de horario y propuesta de reasignación (commit 8)
 
-- [ ] 8.1 Definir `ScheduleChange` (`add_time_off`, `replace_availability`, `deactivate`, `activate`, `remove_time_off`, `erase`) y la regla de cita afectada (`pending|confirmed`, `starts_at >= now`, fuera de la nueva disponibilidad). Spec: TS-R3, TS-R4, TS-R5. Verif: RED, pruebas unitarias por tipo de cambio.
-- [ ] 8.2 Implementar `planReassignments` puro (orden cronológico, ocupación y carga en memoria, `toTechnicianId: null`, `fullyResolvable`). Spec: TS-R7, SA-R4. Verif: RED, propuesta completa, cita sin reemplazo, carga acumulada entre citas.
-- [ ] 8.3 Implementar `PreviewScheduleChange` y `POST /technicians/:id/schedule-changes/preview` (solo lectura). Spec: TS-R7. Verif: RED, devuelve `{affected, proposal, fullyResolvable}` sin modificar datos.
-- [ ] 8.4 Implementar `ApplyScheduleChange` y `POST /technicians/:id/schedule-changes` con bloqueo del negocio, recálculo, `schedule_conflict`, `proposal_stale`, `slot_taken`, aplicación atómica y `technician_changed`. Spec: TS-R3, TS-R4, TS-R5, TS-R7. Verif: RED, escenarios día libre con citas, reducir horario, ampliar horario, propuesta aceptada, falla parcial, conjunto cambiado, propuesta rechazada (sin cambios).
-- [ ] 8.5 Cubrir definición de horario semanal (cinco franjas), franja solapada y fin anterior al inicio con códigos documentados. Spec: TS-R2. Verif: RED, escenarios del spec.
-- [ ] 8.6 Cubrir desactivar con y sin citas futuras y reactivar con `reassignments` vacío; el técnico inactivo no recibe cupos. Spec: TS-R5. Verif: RED.
-- [ ] 8.7 Implementar `erase`: `DELETE /technicians/:id` invoca el mismo caso de uso; anonimiza con alias aleatorio único por negocio (`name` y `phone` en nulo, `anonymized_at`, `active = false`) solo si no quedan citas futuras activas, en la misma transacción. Spec: TS-R6. Verif: RED, con citas futuras responde `schedule_conflict`; tras reasignar queda anonimizado; alias único; historial legible con alias; sin tabla de correspondencia persona-alias.
-- [ ] 8.8 Documentar el flujo (diagrama de secuencia de D5) en `api/README.md`. Spec: n/a. Verif: manual.
+- [x] 8.1 Definir `ScheduleChange` (`add_time_off`, `replace_availability`, `deactivate`, `activate`, `remove_time_off`, `erase`) y la regla de cita afectada (`pending|confirmed`, `starts_at >= now`, fuera de la nueva disponibilidad). Spec: TS-R3, TS-R4, TS-R5. Verif: RED, pruebas unitarias por tipo de cambio.
+- [x] 8.2 Implementar `planReassignments` puro (orden cronológico, ocupación y carga en memoria, `toTechnicianId: null`, `fullyResolvable`). Spec: TS-R7, SA-R4. Verif: RED, propuesta completa, cita sin reemplazo, carga acumulada entre citas.
+- [x] 8.3 Implementar `PreviewScheduleChange` y `POST /technicians/:id/schedule-changes/preview` (solo lectura). Spec: TS-R7. Verif: RED, devuelve `{affected, proposal, fullyResolvable}` sin modificar datos.
+- [x] 8.4 Implementar `ApplyScheduleChange` y `POST /technicians/:id/schedule-changes` con bloqueo del negocio, recálculo, `schedule_conflict`, `proposal_stale`, `slot_taken`, aplicación atómica y `technician_changed`. Spec: TS-R3, TS-R4, TS-R5, TS-R7. Verif: RED, escenarios día libre con citas, reducir horario, ampliar horario, propuesta aceptada, falla parcial, conjunto cambiado, propuesta rechazada (sin cambios).
+- [x] 8.5 Cubrir definición de horario semanal (cinco franjas), franja solapada y fin anterior al inicio con códigos documentados. Spec: TS-R2. Verif: RED, escenarios del spec.
+- [x] 8.6 Cubrir desactivar con y sin citas futuras y reactivar con `reassignments` vacío; el técnico inactivo no recibe cupos. Spec: TS-R5. Verif: RED.
+- [x] 8.7 Implementar `erase`: `DELETE /technicians/:id` invoca el mismo caso de uso; anonimiza con alias aleatorio único por negocio (`name` y `phone` en nulo, `anonymized_at`, `active = false`) solo si no quedan citas futuras activas, en la misma transacción. Spec: TS-R6. Verif: RED, con citas futuras responde `schedule_conflict`; tras reasignar queda anonimizado; alias único; historial legible con alias; sin tabla de correspondencia persona-alias.
+- [x] 8.8 Documentar el flujo (diagrama de secuencia de D5) en `api/README.md`. Spec: n/a. Verif: manual.
 
 ## Fase 9: Clientes y consentimiento (commit 9)
 

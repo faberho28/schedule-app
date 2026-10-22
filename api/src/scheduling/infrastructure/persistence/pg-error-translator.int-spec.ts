@@ -8,7 +8,7 @@ import {
   insertCustomer,
   insertTechnician,
 } from '../../../../test/support/schema-fixtures';
-import { CustomerPhoneTakenError, SlotTakenError } from '../../domain/errors';
+import { CustomerPhoneTakenError, ScheduleOverlapError, SlotTakenError } from '../../domain/errors';
 import { translatePgError } from './pg-error-translator';
 
 describe('translatePgError contra Postgres real', () => {
@@ -34,7 +34,7 @@ describe('translatePgError contra Postgres real', () => {
     expect(translated).toMatchObject({ code: 'slot_taken' });
   });
 
-  it('no traduce un cruce sobre otra restricción de exclusión', async () => {
+  it('convierte el solape de franjas semanales en schedule_overlap (TS-R2)', async () => {
     const ctx = await insertBookingContext(pool);
     const technicianId = await insertTechnician(pool, ctx.businessId);
     const insert = () =>
@@ -44,8 +44,23 @@ describe('translatePgError contra Postgres real', () => {
         [ctx.businessId, technicianId],
       );
     await insert();
-    const error = await captureError(insert());
-    expect(translatePgError(error)).toBe(error);
+    const translated = translatePgError(await captureError(insert()));
+    expect(translated).toBeInstanceOf(ScheduleOverlapError);
+    expect(translated).toMatchObject({ code: 'schedule_overlap' });
+  });
+
+  it('convierte el solape de días libres en schedule_overlap (TS-R3)', async () => {
+    const ctx = await insertBookingContext(pool);
+    const technicianId = await insertTechnician(pool, ctx.businessId);
+    const insert = () =>
+      pool.query(
+        `INSERT INTO time_off (business_id, technician_id, period)
+         VALUES ($1, $2, tstzrange('2026-11-06T00:00:00-05'::timestamptz, '2026-11-07T00:00:00-05'::timestamptz))`,
+        [ctx.businessId, technicianId],
+      );
+    await insert();
+    const translated = translatePgError(await captureError(insert()));
+    expect(translated).toBeInstanceOf(ScheduleOverlapError);
   });
 
   it('convierte el teléfono duplicado en customer_phone_taken (CR-R1)', async () => {

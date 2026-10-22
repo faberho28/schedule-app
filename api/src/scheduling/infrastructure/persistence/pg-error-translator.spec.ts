@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CustomerPhoneTakenError,
   DomainError,
+  ScheduleOverlapError,
   ServiceNameTakenError,
   SlotTakenError,
 } from '../../domain/errors';
@@ -48,8 +49,18 @@ describe('translatePgError', () => {
     expect(translated).toMatchObject({ code: 'service_name_taken', cause: original });
   });
 
+  it.each(['availability_no_overlap', 'time_off_no_overlap'])(
+    'traduce 23P01 sobre %s a schedule_overlap',
+    (constraint) => {
+      const original = pgError('23P01', constraint);
+      const translated = translatePgError(original);
+      expect(translated).toBeInstanceOf(ScheduleOverlapError);
+      expect(translated).toMatchObject({ code: 'schedule_overlap', cause: original });
+    },
+  );
+
   it('deja intactos los errores de pg que no tienen traducción', () => {
-    const overlapElsewhere = pgError('23P01', 'availability_no_overlap');
+    const overlapElsewhere = pgError('23P01', 'some_other_exclusion');
     const otherUnique = pgError('23505', 'uq_customers_business_alias');
     const noConstraint = pgError('23P01');
     expect(translatePgError(overlapElsewhere)).toBe(overlapElsewhere);

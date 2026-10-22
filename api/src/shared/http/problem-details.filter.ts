@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { DomainError } from '../../scheduling/domain/errors';
+import { DomainProblemError } from './domain-problem';
 import { ValidationFailedError } from './validation';
 
 export const PROBLEM_JSON = 'application/problem+json';
@@ -18,6 +19,7 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   not_found: HttpStatus.NOT_FOUND,
   slot_taken: HttpStatus.CONFLICT,
   schedule_conflict: HttpStatus.CONFLICT,
+  schedule_overlap: HttpStatus.CONFLICT,
   proposal_stale: HttpStatus.CONFLICT,
   customer_phone_taken: HttpStatus.CONFLICT,
   service_name_taken: HttpStatus.CONFLICT,
@@ -35,6 +37,7 @@ const TITLE_BY_CODE: Readonly<Record<string, string>> = {
   not_found: 'No encontrado',
   slot_taken: 'Cupo ocupado',
   schedule_conflict: 'Conflicto de horario',
+  schedule_overlap: 'Horario solapado',
   proposal_stale: 'La propuesta ya no está vigente',
   customer_phone_taken: 'Teléfono ya registrado',
   service_name_taken: 'Nombre de servicio ya registrado',
@@ -103,6 +106,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       }
       const problem = problemOf(exception.code, status, exception.message);
       if (exception instanceof ValidationFailedError) problem.errors = exception.errors;
+      if (exception instanceof DomainProblemError) return { ...exception.extensions, ...problem };
       return problem;
     }
 

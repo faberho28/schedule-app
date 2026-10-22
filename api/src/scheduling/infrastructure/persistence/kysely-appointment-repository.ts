@@ -160,6 +160,21 @@ export class KyselyAppointmentRepository implements AppointmentRepository {
     return row ? toView(row) : null;
   }
 
+  async listUpcomingActive(
+    businessId: string,
+    technicianId: string,
+    from: Instant,
+  ): Promise<AppointmentView[]> {
+    const rows = await this.viewQuery(businessId)
+      .where('a.technician_id', '=', technicianId)
+      .where('a.status', 'in', ['pending', 'confirmed'])
+      .where('a.starts_at', '>=', new Date(from))
+      .orderBy('a.starts_at')
+      .orderBy('a.id')
+      .execute();
+    return rows.map(toView);
+  }
+
   async listViews(businessId: string, range: Range): Promise<AppointmentView[]> {
     const rows = await this.viewQuery(businessId)
       .where('a.starts_at', '>=', new Date(range.start))

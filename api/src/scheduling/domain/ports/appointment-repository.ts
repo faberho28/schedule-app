@@ -103,6 +103,16 @@ export interface AppointmentRepository {
 
   findView(businessId: string, id: string): Promise<AppointmentView | null>;
 
+  /**
+   * Citas `pending` o `confirmed` del técnico que empiezan en `from` o después, por inicio. Son
+   * las que un cambio de horario del técnico puede dejar sin cobertura.
+   */
+  listUpcomingActive(
+    businessId: string,
+    technicianId: string,
+    from: Instant,
+  ): Promise<AppointmentView[]>;
+
   /** Citas de cualquier estado cuyo inicio cae en `[range.start, range.end)`, por inicio. */
   listViews(businessId: string, range: Range): Promise<AppointmentView[]>;
 }

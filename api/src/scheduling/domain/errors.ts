@@ -1,3 +1,5 @@
+import type { ScheduleChangePreview } from './model/schedule-change';
+
 /**
  * Error de dominio con un `code` estable. La capa HTTP traduce el `code` a un estado y a
  * `application/problem+json`; el dominio no conoce HTTP.
@@ -38,6 +40,40 @@ export class InvalidTransitionError extends DomainError {
 export class NotFoundError extends DomainError {
   constructor(message = 'Recurso no encontrado', options?: ErrorOptions) {
     super('not_found', message, options);
+  }
+}
+
+/** Franjas de disponibilidad o días libres del técnico que se solapan entre sí. */
+export class ScheduleOverlapError extends DomainError {
+  constructor(options?: ErrorOptions) {
+    super('schedule_overlap', 'El horario se solapa con otro ya registrado del técnico', options);
+  }
+}
+
+/** El cambio de horario no es válido (franjas mal formadas, por ejemplo). */
+export class InvalidScheduleChangeError extends DomainError {
+  constructor(message: string) {
+    super('validation_error', message);
+  }
+}
+
+/**
+ * El cambio dejaría citas activas futuras sin cobertura y la solicitud no trae reasignaciones.
+ * No se guardó nada; `preview` lista las citas afectadas y la propuesta de reasignación.
+ */
+export class ScheduleConflictError extends DomainError {
+  constructor(readonly preview: ScheduleChangePreview) {
+    super(
+      'schedule_conflict',
+      'El cambio afecta citas activas futuras del técnico. Reasígnalas antes de continuar',
+    );
+  }
+}
+
+/** El conjunto de citas afectadas cambió desde la vista previa. `preview` es el recalculado. */
+export class ProposalStaleError extends DomainError {
+  constructor(readonly preview: ScheduleChangePreview) {
+    super('proposal_stale', 'Las citas afectadas cambiaron desde la vista previa');
   }
 }
 

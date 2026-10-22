@@ -1,11 +1,13 @@
 import type { AppointmentRepository } from './appointment-repository';
 import type { CustomerDirectory } from './customer-directory';
 import type { ScheduleReader } from './schedule-reader';
+import type { TechnicianScheduleRepository } from './technician-schedule-repository';
 
 /** Puertos de persistencia ligados a una misma conexión o transacción. */
 export interface SchedulingPorts {
   readonly appointments: AppointmentRepository;
   readonly schedule: ScheduleReader;
+  readonly technicians: TechnicianScheduleRepository;
   readonly customers: CustomerDirectory;
 }
 

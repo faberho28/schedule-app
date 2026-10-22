@@ -3,7 +3,13 @@ import { Test } from '@nestjs/testing';
 import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { DomainError, NotFoundError, SlotTakenError } from '../../scheduling/domain/errors';
+import {
+  DomainError,
+  NotFoundError,
+  ScheduleOverlapError,
+  SlotTakenError,
+} from '../../scheduling/domain/errors';
+import { DomainProblemError } from './domain-problem';
 import { ProblemDetailsFilter } from './problem-details.filter';
 import { createValidationPipe } from './validation';
 
@@ -27,6 +33,21 @@ class ProbeController {
   @Get('invalid-transition')
   invalidTransition(): never {
     throw new DomainError('invalid_transition', 'No se puede cambiar de estado');
+  }
+
+  @Get('with-extensions')
+  withExtensions(): never {
+    throw new DomainProblemError('schedule_conflict', 'Hay citas afectadas', {
+      affected: [{ id: 'a' }],
+      fully_resolvable: false,
+      status: 200,
+      code: 'overridden',
+    });
+  }
+
+  @Get('overlap')
+  overlap(): never {
+    throw new ScheduleOverlapError();
   }
 
   @Get('missing')
@@ -88,6 +109,30 @@ describe('ProblemDetailsFilter (BS-R1)', () => {
       status: 404,
       code: 'not_found',
       detail: 'Servicio no encontrado',
+    });
+  });
+
+  it('agrega los miembros de extensión de un DomainProblemError sin pisar los estándar', async () => {
+    const response = await request(app.getHttpServer()).get('/probe/with-extensions').expect(409);
+
+    expect(response.headers['content-type']).toMatch(/^application\/problem\+json/);
+    expect(response.body).toEqual({
+      type: 'about:blank',
+      title: 'Conflicto de horario',
+      status: 409,
+      detail: 'Hay citas afectadas',
+      code: 'schedule_conflict',
+      affected: [{ id: 'a' }],
+      fully_resolvable: false,
+    });
+  });
+
+  it('schedule_overlap responde 409 con su título', async () => {
+    const response = await request(app.getHttpServer()).get('/probe/overlap').expect(409);
+    expect(response.body).toMatchObject({
+      status: 409,
+      code: 'schedule_overlap',
+      title: 'Horario solapado',
     });
   });
 
