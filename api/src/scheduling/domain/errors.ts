@@ -1,4 +1,5 @@
 import type { ScheduleChangePreview } from './model/schedule-change';
+import type { AppointmentView } from './ports/appointment-repository';
 
 /**
  * Error de dominio con un `code` estable. La capa HTTP traduce el `code` a un estado y a
@@ -143,6 +144,19 @@ export class ServiceNameTakenError extends DomainError {
 export class CustomerAnonymizedError extends DomainError {
   constructor(options?: ErrorOptions) {
     super('customer_anonymized', 'El cliente fue eliminado y no admite cambios', options);
+  }
+}
+
+/**
+ * El cliente tiene citas `pending` o `confirmed` desde ahora y no se puede anonimizar. No se
+ * cambió nada; `affected` lista esas citas para que el dueño las cancele primero.
+ */
+export class CustomerHasFutureAppointmentsError extends DomainError {
+  constructor(readonly affected: readonly AppointmentView[]) {
+    super(
+      'customer_has_future_appointments',
+      'El cliente tiene citas futuras activas. Cancélalas antes de eliminarlo',
+    );
   }
 }
 

@@ -113,7 +113,7 @@ El filtro global `ProblemDetailsFilter` (`src/shared/http/problem-details.filter
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | `validation_error`, `bad_request`                                                                                                                                                                               | 400    |
 | `not_found` (incluye rutas inexistentes)                                                                                                                                                                        | 404    |
-| `slot_taken`, `schedule_conflict`, `schedule_overlap`, `proposal_stale`, `customer_phone_taken`, `customer_anonymized`, `service_name_taken`                                                                    | 409    |
+| `slot_taken`, `schedule_conflict`, `schedule_overlap`, `proposal_stale`, `customer_phone_taken`, `customer_anonymized`, `customer_has_future_appointments`, `service_name_taken`                                | 409    |
 | `invalid_transition`, `slot_not_offered`, `closure_confirmation_required`, `early_closure_reason_required`, `early_closure_confirmation_required`, `reopen_confirmation_required`, `correction_reason_required` | 422    |
 | `internal_error` (y cualquier `DomainError` sin estado asignado)                                                                                                                                                | 500    |
 
@@ -440,7 +440,7 @@ El módulo `src/modules/customers/` expone la ficha (controlador, servicio, repo
 | `PATCH /customers/:id`         | Edita `name`, `phone`, `address` y `notes` (`null` borra dirección o notas). 409 `customer_anonymized` si está anonimizado.      |
 | `POST /customers/:id/consents` | Registra un evento de consentimiento (201). Ver abajo.                                                                           |
 | `GET /customers/:id/consents`  | Auditoría: tipo, fecha declarada, medio, origen, actor y registro; el más reciente primero.                                      |
-| `DELETE /customers/:id`        | Anonimiza al cliente en sitio (204). Idempotente.                                                                                |
+| `DELETE /customers/:id`        | Anonimiza al cliente en sitio (204). Idempotente. 409 `customer_has_future_appointments` si tiene citas futuras activas.         |
 
 ### Teléfono
 
@@ -495,7 +495,8 @@ sequenceDiagram
 | `consent_status`, `anonymized_at`                                             | `revoked` e instante de la anonimización.                                                       |
 | `scheduled_messages` `pending`                                                | `cancelled` con `cancel_reason = 'customer_erased'`.                                            |
 
-- Idempotente: sobre un cliente ya anonimizado no cambia nada, no genera valores aleatorios y responde 204. Un cliente inexistente o de otro negocio responde 404.
+- Citas futuras: un cliente con citas `pending` o `confirmed` que empiezan desde ahora (`starts_at >= now`) no se puede anonimizar. `DELETE /customers/:id` responde 409 `customer_has_future_appointments` con `affected` (las citas, con la misma forma que en `schedule_conflict`) como miembro de primer nivel del problema, y no modifica nada: ni la ficha, ni las direcciones copiadas, ni los seguimientos pendientes. El dueño debe cancelar esas citas con `POST /appointments/:id/cancel`; el sistema nunca las cancela por su cuenta. Las citas canceladas, completadas, `no_show` o pasadas no bloquean. La comprobación ocurre en la misma transacción y bajo el bloqueo del negocio, así que una reserva concurrente no puede dejar una cita futura activa en un cliente anonimizado (si la eliminación gana, la reserva recibe 409 `customer_anonymized`).
+- Idempotente: sobre un cliente ya anonimizado no cambia nada, no genera valores aleatorios, no revisa citas y responde 204. Un cliente inexistente o de otro negocio responde 404.
 - Un cliente anonimizado no aparece en `GET /customers` (salvo `includeAnonymized`), no se edita, no recibe consentimiento y no puede recibir citas nuevas: las tres operaciones responden 409 `customer_anonymized`. Su ficha y su historial se siguen leyendo.
 - Si la misma persona vuelve a escribir, se registra como un cliente nuevo con consentimiento `pending`; el teléfono original ya no está en ninguna tabla.
 - No se guarda ninguna correspondencia entre la persona y el alias. El alias y el token del teléfono salen de `crypto` y no dependen de datos de la persona. El registro de supresiones (HMAC del teléfono) y su comprobación tras restaurar respaldos son deuda técnica fuera del sprint 1.

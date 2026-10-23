@@ -129,6 +129,16 @@ export interface AppointmentRepository {
     from: Instant,
   ): Promise<AppointmentView[]>;
 
+  /**
+   * Citas `pending` o `confirmed` del cliente que empiezan en `from` o después, por inicio. Son
+   * las que impiden anonimizarlo.
+   */
+  listUpcomingActiveByCustomer(
+    businessId: string,
+    customerId: string,
+    from: Instant,
+  ): Promise<AppointmentView[]>;
+
   /** Citas de cualquier estado cuyo inicio cae en `[range.start, range.end)`, por inicio. */
   listViews(businessId: string, range: Range): Promise<AppointmentView[]>;
 

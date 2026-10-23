@@ -60,6 +60,40 @@ El sistema MUST ejecutar la supresión de un cliente (`DELETE /customers/:id`) c
 
 El riesgo residual de reidentificación por combinaciones raras de fechas y servicios se acepta una vez eliminados nombres y direcciones.
 
+### Requirement: Un cliente con citas futuras activas no se puede suprimir
+
+El sistema MUST rechazar la supresión (`DELETE /customers/:id`) de un cliente que tenga citas `pending` o `confirmed` que empiezan desde ahora. La solicitud MUST responder 409 con el código `customer_has_future_appointments` e incluir `affected` (las citas, con la misma forma que en `schedule_conflict`) como miembro de primer nivel del problema. Cuando se rechaza, el sistema MUST NOT modificar ningún dato: ni la ficha, ni las direcciones copiadas, ni los seguimientos pendientes. El dueño MUST cancelar esas citas primero; el sistema MUST NOT cancelarlas automáticamente. La comprobación MUST ejecutarse en la misma transacción y bajo el mismo bloqueo del negocio que la anonimización, de modo que una reserva concurrente no pueda dejar una cita futura activa en un cliente anonimizado. Las citas canceladas, completadas, `no_show` o pasadas MUST NOT bloquear la supresión.
+
+#### Scenario: Supresión bloqueada por citas futuras
+
+- GIVEN un cliente con una cita `confirmed` y otra `pending` que empiezan desde ahora, y un seguimiento `pending`
+- WHEN el dueño intenta eliminarlo
+- THEN la API responde 409 `customer_has_future_appointments` con las dos citas en `affected`, y la ficha, las direcciones copiadas, los seguimientos y el estado de las citas permanecen sin cambios
+
+#### Scenario: Supresión permitida tras cancelar
+
+- GIVEN un cliente cuya eliminación fue rechazada por citas futuras
+- WHEN el dueño cancela esas citas y repite la eliminación
+- THEN el cliente queda anonimizado como en el escenario de anonimización
+
+#### Scenario: Citas que no bloquean
+
+- GIVEN un cliente con citas canceladas, completadas, `no_show` o que empezaron antes de ahora
+- WHEN el dueño lo elimina
+- THEN la eliminación se completa
+
+#### Scenario: Cliente ya anonimizado con citas futuras
+
+- GIVEN un cliente ya anonimizado
+- WHEN se repite la eliminación
+- THEN responde éxito sin revisar citas ni cambiar datos
+
+#### Scenario: Reserva concurrente con la eliminación
+
+- GIVEN una reserva para un cliente y su eliminación que llegan al mismo tiempo
+- WHEN el sistema las serializa bajo el bloqueo del negocio
+- THEN o la reserva gana y la eliminación se rechaza, o la eliminación gana y la reserva recibe `customer_anonymized`; nunca queda una cita futura activa en un cliente anonimizado
+
 ### Requirement: Autorización previa registrada por el dueño
 
 El sistema MUST permitir al dueño registrar una autorización de tratamiento de datos previamente obtenida (Ley 1581 de 2012), con fecha y medio obligatorios. El medio MUST ser uno de los valores `in_person`, `phone_call`, `whatsapp`, `written` u `other`; la interfaz los muestra como "En persona", "Llamada telefónica", "WhatsApp", "Formulario o documento escrito" y "Otro". El registro MUST conservar un rastro de auditoría (quién, cuándo se registró, fecha y medio declarados) que MUST NOT poder sobrescribirse silenciosamente.

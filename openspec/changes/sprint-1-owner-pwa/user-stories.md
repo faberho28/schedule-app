@@ -279,9 +279,12 @@ Como dueño del negocio quiero eliminar a un cliente que pide la supresión de s
 - GIVEN un cliente con citas completadas, direcciones copiadas y un seguimiento `pending` WHEN lo elimino THEN conserva su `id` y sus citas, su nombre pasa a un alias como "Cliente eliminado (bear_1)", desaparecen teléfono, dirección, notas y direcciones copiadas, y el seguimiento queda anulado (CR-R2).
 - GIVEN dos clientes anonimizados del mismo negocio WHEN comparo sus teléfonos THEN son marcadores aleatorios distintos que no son números E.164 válidos (CR-R2).
 - GIVEN un cliente ya anonimizado WHEN repito la eliminación THEN no cambia ningún dato y responde éxito (CR-R2).
+- GIVEN un cliente con citas `pending` o `confirmed` desde ahora WHEN intento eliminarlo THEN se rechaza con `customer_has_future_appointments` (409), se listan esas citas, el cliente conserva todos sus datos y sus seguimientos, y el sistema no cancela ninguna cita por su cuenta (CR-R2).
+- GIVEN un cliente cuyas citas futuras ya canceló el dueño WHEN lo elimino THEN la eliminación se completa como siempre (CR-R2).
+- GIVEN un cliente con citas canceladas, completadas, no asistidas o pasadas WHEN lo elimino THEN esas citas no bloquean la eliminación (CR-R2).
 - GIVEN una persona anonimizada que vuelve a escribir desde el mismo teléfono WHEN se registra THEN se trata como un cliente nuevo con consentimiento `pending` (CR-R2).
 - GIVEN un cliente anonimizado WHEN intento crearle una cita o registrarle consentimiento THEN se rechaza (CR-R2).
-- Prioridad: Alta. Fases: 9, 16 (9.7, 9.8, 16.4). El registro de supresiones con HMAC queda como deuda del final del proyecto.
+- Prioridad: Alta. Fases: 9, 16 (9.7, 9.8, 16.4) y seguimiento posterior al sprint (bloqueo por citas futuras, bloque "Seguimiento posterior a la fase 18" de tasks.md). El registro de supresiones con HMAC queda como deuda del final del proyecto.
 
 ### HU-33 Eliminar (anonimizar) a un técnico
 Como dueño del negocio quiero eliminar a un técnico conservando su historial atribuido a un alias para proteger sus datos personales sin romper la agenda.

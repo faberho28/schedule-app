@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { afterAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import {
+  createAppointment,
   createBusiness,
   createCustomer,
   createService,
@@ -17,7 +18,11 @@ import { truncateAll } from '../../../test/support/postgres-container';
 import { captureError } from '../../../test/support/schema-fixtures';
 import { createDatabase } from '../../database/kysely.provider';
 import { TransactionRunner } from '../../database/transaction-runner';
-import { CustomerAnonymizedError, NotFoundError } from '../domain/errors';
+import {
+  CustomerAnonymizedError,
+  CustomerHasFutureAppointmentsError,
+  NotFoundError,
+} from '../domain/errors';
 import type { CommandExecutor } from '../domain/ports/command-executor';
 import { BusinessLockExecutor } from '../infrastructure/persistence/business-lock-executor';
 import { AnonymizeCustomer } from './anonymize-customer';
@@ -232,6 +237,109 @@ describe('comandos de cliente: atomicidad y aleatoriedad', () => {
       ]);
       expect(rows[0].alias).toMatch(/^[a-z]+_[1-9][0-9]*$/);
       expect(rows[0].phone).toMatch(/^anon-[0-9a-f]{26}$/);
+    });
+
+    describe('con citas futuras activas', () => {
+      const future = (customerId: string, startsAt: string, status: string) =>
+        createAppointment(pool, {
+          businessId: BUSINESS,
+          customerId,
+          serviceId,
+          technicianId,
+          startsAt,
+          status,
+        });
+
+      it('se rechaza con las citas afectadas y no cambia ningún dato', async () => {
+        const customerId = await createGrantedCustomer(pool, BUSINESS, {
+          name: 'María Pérez',
+          address: 'Calle 10 # 5-20',
+        });
+        const visit = await createCompletedVisit(pool, {
+          businessId: BUSINESS,
+          customerId,
+          serviceId,
+          technicianId,
+          completedAt: daysBefore(NOW, 30),
+        });
+        await createFollowup(pool, {
+          businessId: BUSINESS,
+          customerId,
+          appointmentId: visit,
+          serviceId,
+        });
+        const later = await future(customerId, '2026-11-04T08:00:00-05:00', 'confirmed');
+        const sooner = await future(customerId, '2026-11-02T08:00:00-05:00', 'pending');
+        const random = fixedRandom([0, 0]);
+        const before = (await pool.query(`SELECT * FROM customers WHERE id = $1`, [customerId]))
+          .rows;
+        const snapshotsBefore = (
+          await pool.query(`SELECT id, address_snapshot FROM appointments ORDER BY id`)
+        ).rows;
+
+        const error = await captureError(
+          new AnonymizeCustomer(executor, clock, random).execute(BUSINESS, customerId),
+        );
+
+        expect(error).toBeInstanceOf(CustomerHasFutureAppointmentsError);
+        expect(
+          (error as CustomerHasFutureAppointmentsError).affected.map((item) => item.id),
+        ).toEqual([sooner, later]);
+        expect(random.calls).toEqual({ int: 0, token: 0 });
+        expect(
+          (await pool.query(`SELECT * FROM customers WHERE id = $1`, [customerId])).rows,
+        ).toEqual(before);
+        expect(
+          (await pool.query(`SELECT id, address_snapshot FROM appointments ORDER BY id`)).rows,
+        ).toEqual(snapshotsBefore);
+        expect((await scheduledMessagesOf(pool, customerId)).map((row) => row.status)).toEqual([
+          'pending',
+        ]);
+      });
+
+      it('las citas canceladas, cerradas, pasadas o de otro cliente no bloquean', async () => {
+        const customerId = await createGrantedCustomer(pool, BUSINESS);
+        const other = await createGrantedCustomer(pool, BUSINESS, { phone: '+573009998877' });
+        await future(customerId, '2026-11-02T08:00:00-05:00', 'cancelled');
+        await future(customerId, '2026-11-03T08:00:00-05:00', 'completed');
+        await future(customerId, '2026-11-04T08:00:00-05:00', 'no_show');
+        await future(customerId, '2026-10-30T08:00:00-05:00', 'confirmed');
+        await future(other, '2026-11-05T08:00:00-05:00', 'confirmed');
+
+        await new AnonymizeCustomer(executor, clock).execute(BUSINESS, customerId);
+
+        const { rows } = await pool.query(`SELECT anonymized_at FROM customers WHERE id = $1`, [
+          customerId,
+        ]);
+        expect(rows[0].anonymized_at).not.toBeNull();
+      });
+
+      it('una cita que empieza justo ahora cuenta como futura', async () => {
+        const customerId = await createCustomer(pool, BUSINESS);
+        await future(customerId, '2026-11-01T07:00:00-05:00', 'confirmed');
+
+        const error = await captureError(
+          new AnonymizeCustomer(executor, clock).execute(BUSINESS, customerId),
+        );
+
+        expect(error).toBeInstanceOf(CustomerHasFutureAppointmentsError);
+      });
+
+      it('un cliente ya anonimizado sigue siendo idempotente aunque tenga citas futuras', async () => {
+        const customerId = await createCustomer(pool, BUSINESS, {
+          alias: 'deer_1',
+          phone: `anon-${'d'.repeat(26)}`,
+          anonymized_at: new Date(NOW),
+          consent_status: 'revoked',
+        });
+        await future(customerId, '2026-11-02T08:00:00-05:00', 'confirmed');
+
+        await new AnonymizeCustomer(executor, clock).execute(BUSINESS, customerId);
+
+        expect(
+          (await pool.query(`SELECT alias FROM customers WHERE id = $1`, [customerId])).rows,
+        ).toEqual([{ alias: 'deer_1' }]);
+      });
     });
 
     it('responde con NotFoundError para un cliente inexistente', async () => {

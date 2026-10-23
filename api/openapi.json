@@ -680,6 +680,21 @@
         ],
         "type": "object"
       },
+      "CustomerFutureAppointmentsProblemExtension": {
+        "description": "Miembro extra de `customer_has_future_appointments`: las citas `pending` o `confirmed` desde ahora que impiden eliminar al cliente.",
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/Appointment"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "affected"
+        ],
+        "type": "object"
+      },
       "DurationChangeWarning": {
         "description": "Aviso informativo: las citas futuras conservan la duración anterior.",
         "properties": {
@@ -796,6 +811,7 @@
               "proposal_stale",
               "customer_phone_taken",
               "customer_anonymized",
+              "customer_has_future_appointments",
               "service_name_taken",
               "invalid_transition",
               "closure_confirmation_required",
@@ -2922,7 +2938,7 @@
     },
     "/customers/{id}": {
       "delete": {
-        "description": "No borra la fila. Repetirlo no cambia nada.",
+        "description": "No borra la fila. Repetirlo no cambia nada. Si el cliente tiene citas `pending` o `confirmed` desde ahora, responde `customer_has_future_appointments` con `affected` y no modifica nada: el dueño debe cancelarlas antes; el sistema nunca las cancela por su cuenta.",
         "operationId": "Customers_erase",
         "parameters": [
           {
@@ -2988,6 +3004,34 @@
               }
             },
             "description": "Códigos posibles: not_found."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CustomerFutureAppointmentsProblemExtension"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "customer_has_future_appointments"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: customer_has_future_appointments."
           },
           "500": {
             "content": {

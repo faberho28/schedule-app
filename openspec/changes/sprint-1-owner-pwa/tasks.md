@@ -278,3 +278,10 @@ Deudas fuera del sprint 1 (solo referencia, sin tareas). La lista completa, con 
 - Row Level Security: política por `app.business_id` como migración aislada (la preparación ya está hecha).
 - Fuera de alcance, sin historias: WhatsApp, bot, bandeja de conversaciones, arrastrar y soltar, fotos de evidencia y caché sin conexión de la agenda (que deberá advertir que las citas pueden haber cambiado).
 - Diferidas: recalcular citas futuras al cambiar el buffer (opción C de D1) y verificar la política de opt-in de Meta antes del bot.
+
+## Seguimiento posterior a la fase 18: bloqueo de la supresión de clientes con citas futuras
+
+Corrección posterior al sprint, decidida por el usuario: un cliente con citas `pending` o `confirmed` desde ahora no se puede anonimizar. `DELETE /customers/:id` responde 409 `customer_has_future_appointments` con `affected`, no modifica nada y el dueño debe cancelar esas citas antes. Motivo: la anonimización dejaba esas citas vigentes atribuidas a un alias y sin dirección. Cambios en spec `customer-records`, `design.md` (D4 y D6), `user-stories.md` (HU-32) y los README de `api/` y `app/`. Se entrega en dos commits: `feat(api): block customer erasure while future appointments exist` y `feat(app): show future appointments when customer erasure is blocked`.
+
+- [x] F.1 API: `AnonymizeCustomer` rechaza con `CustomerHasFutureAppointmentsError` bajo el bloqueo del negocio, `listUpcomingActiveByCustomer`, código 409 en el filtro, `affected` en el problema, pruebas de integración, prueba HTTP de la secuencia bloqueo, cancelación y eliminación, prueba de concurrencia con una reserva y contrato OpenAPI regenerado.
+- [ ] F.2 App: mensaje del nuevo código, lista de citas afectadas en `EraseCustomerDialog` con enlace a la agenda, sin cancelar nada por su cuenta, y tipos regenerados (`gen:api`).

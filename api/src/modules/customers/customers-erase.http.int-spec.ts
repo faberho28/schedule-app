@@ -19,7 +19,12 @@ import {
 import { createTestApp } from '../../../test/support/http-app';
 import { truncateAll } from '../../../test/support/postgres-container';
 import { insertRow } from '../../../test/support/schema-fixtures';
-import { SCHEDULING_NOW } from '../../../test/support/scheduling-fixtures';
+import {
+  MONDAY,
+  SCHEDULING_NOW,
+  bogotaOffset,
+  technicianWorking,
+} from '../../../test/support/scheduling-fixtures';
 
 const BUSINESS = '00000000-0000-4000-8000-000000000001';
 const OTHER_BUSINESS = '00000000-0000-4000-8000-000000000002';
@@ -270,6 +275,121 @@ describe('DELETE /customers/:id: anonimización en sitio (CR-R2)', () => {
           ])
         ).rows,
       ).toEqual([{ notes: 'Autorizó el esposo Jorge' }]);
+    });
+  });
+
+  describe('con citas futuras activas', () => {
+    const makeFuture = (customerId: string, startsAt: string, status = 'confirmed') =>
+      createAppointment(pool, {
+        businessId: BUSINESS,
+        customerId,
+        serviceId,
+        technicianId,
+        startsAt,
+        status,
+      });
+
+    it('responde 409 customer_has_future_appointments con las citas afectadas y no cambia nada', async () => {
+      const { customerId } = await customerWithHistory();
+      const later = await makeFuture(customerId, '2026-11-04T08:00:00-05:00');
+      const sooner = await makeFuture(customerId, '2026-11-02T08:00:00-05:00', 'pending');
+      const before = await customerState(customerId);
+      const messagesBefore = await scheduledMessagesOf(pool, customerId);
+      const snapshotsBefore = (
+        await pool.query(`SELECT id, address_snapshot FROM appointments ORDER BY id`)
+      ).rows;
+
+      const response = await erase(customerId).expect(409);
+
+      expect(response.headers['content-type']).toMatch(/application\/problem\+json/);
+      expect(response.body).toMatchObject({
+        status: 409,
+        code: 'customer_has_future_appointments',
+        affected: [
+          {
+            id: sooner,
+            status: 'pending',
+            technician: { id: technicianId, name: 'Carlos' },
+            service_name_snapshot: expect.any(String),
+            starts_at: expect.any(String),
+          },
+          { id: later, status: 'confirmed' },
+        ],
+      });
+      expect(await customerState(customerId)).toEqual(before);
+      expect(await scheduledMessagesOf(pool, customerId)).toEqual(messagesBefore);
+      expect(messagesBefore.map((row) => row.status)).toEqual(['pending']);
+      expect(
+        (await pool.query(`SELECT id, address_snapshot FROM appointments ORDER BY id`)).rows,
+      ).toEqual(snapshotsBefore);
+      // La eliminación nunca cancela citas por su cuenta.
+      const statuses = await pool.query(
+        `SELECT id, status FROM appointments WHERE id = ANY($1) ORDER BY starts_at`,
+        [[later, sooner]],
+      );
+      expect(statuses.rows).toEqual([
+        { id: sooner, status: 'pending' },
+        { id: later, status: 'confirmed' },
+      ]);
+    });
+
+    it('tras cancelar las citas futuras, la eliminación se completa', async () => {
+      const { customerId } = await customerWithHistory();
+      const first = await makeFuture(customerId, '2026-11-02T08:00:00-05:00');
+      const second = await makeFuture(customerId, '2026-11-03T08:00:00-05:00', 'pending');
+      const blocked = await erase(customerId).expect(409);
+      expect(blocked.body.affected).toHaveLength(2);
+
+      await http().post(`/appointments/${first}/cancel`).send({}).expect(200);
+      const partial = await erase(customerId).expect(409);
+      expect(partial.body.affected.map((item: { id: string }) => item.id)).toEqual([second]);
+      await http().post(`/appointments/${second}/cancel`).send({}).expect(200);
+
+      await erase(customerId).expect(204);
+      expect((await customerState(customerId)).anonymized_at).toEqual(new Date(SCHEDULING_NOW));
+    });
+
+    it('una reserva que compite con la eliminación nunca deja una cita futura en un cliente anonimizado', async () => {
+      await technicianWorking(pool, BUSINESS);
+      for (let round = 0; round < 4; round += 1) {
+        const customerId = await createGrantedCustomer(pool, BUSINESS, {
+          phone: `+57300000${String(round).padStart(4, '0')}`,
+        });
+        const [booking, deletion] = await Promise.all([
+          http()
+            .post('/appointments')
+            .send({
+              customer_id: customerId,
+              service_id: serviceId,
+              starts_at: bogotaOffset(MONDAY, `${String(8 + round).padStart(2, '0')}:00`),
+              address: 'Calle 10 # 5-20',
+            }),
+          erase(customerId),
+        ]);
+
+        expect([201, 409]).toContain(booking.status);
+        expect([204, 409]).toContain(deletion.status);
+        if (booking.status === 201) expect(deletion.status).toBe(409);
+        if (deletion.status === 204) {
+          expect(booking.body.code).toBe('customer_anonymized');
+        }
+        const { rows } = await pool.query(
+          `SELECT count(*)::int AS n
+             FROM appointments a JOIN customers c ON c.id = a.customer_id
+            WHERE c.id = $1 AND c.anonymized_at IS NOT NULL AND a.status IN ('pending', 'confirmed')
+              AND a.starts_at >= $2`,
+          [customerId, new Date(SCHEDULING_NOW)],
+        );
+        expect(rows[0]).toEqual({ n: 0 });
+      }
+    });
+
+    it('las citas canceladas, cerradas o pasadas no bloquean', async () => {
+      const { customerId } = await customerWithHistory();
+      await makeFuture(customerId, '2026-11-02T08:00:00-05:00', 'cancelled');
+      await makeFuture(customerId, '2026-11-03T08:00:00-05:00', 'no_show');
+
+      await erase(customerId).expect(204);
     });
   });
 

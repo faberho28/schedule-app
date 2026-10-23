@@ -54,6 +54,16 @@ export class CustomerDetailSchema extends CustomerSchema {
 }
 
 @ApiSchema({
+  name: 'CustomerFutureAppointmentsProblemExtension',
+  description:
+    'Miembro extra de `customer_has_future_appointments`: las citas `pending` o `confirmed` desde ahora que impiden eliminar al cliente.',
+})
+export class CustomerFutureAppointmentsProblemExtensionSchema {
+  @ApiProperty({ type: () => [AppointmentSchema] })
+  affected!: AppointmentSchema[];
+}
+
+@ApiSchema({
   name: 'ConsentEvent',
   description: 'Evento del registro de autorizaciones. Es inmutable; solo se agregan eventos.',
 })

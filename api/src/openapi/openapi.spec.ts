@@ -327,6 +327,7 @@ describe('errores problem+json', () => {
       'schedule_overlap',
       'customer_phone_taken',
       'customer_anonymized',
+      'customer_has_future_appointments',
       'service_name_taken',
       'invalid_transition',
       'early_closure_reason_required',
@@ -398,6 +399,7 @@ describe('errores problem+json', () => {
       ['proposal_stale', 'schedule_conflict', 'schedule_overlap', 'slot_taken'],
     ],
     ['DELETE /technicians/{id}', 409, ['proposal_stale', 'schedule_conflict', 'slot_taken']],
+    ['DELETE /customers/{id}', 409, ['customer_has_future_appointments']],
     ['POST /technicians/{id}/schedule-changes/preview', 400, ['bad_request', 'validation_error']],
     ['GET /appointments/{id}', 400, ['bad_request']],
     ['GET /slots', 400, ['validation_error']],
@@ -426,6 +428,18 @@ describe('errores problem+json', () => {
       'fully_resolvable',
       'proposal',
     ]);
+  });
+
+  it('la eliminación de un cliente con citas futuras documenta las citas afectadas', () => {
+    const response = operation('DELETE /customers/{id}').responses['409'];
+    const parts = (response?.content?.['application/problem+json']?.schema?.allOf ?? []) as any[];
+    const extension = parts.find(
+      (part) => part.$ref && part.$ref !== '#/components/schemas/ProblemDetails',
+    );
+    expect(extension.$ref).toBe('#/components/schemas/CustomerFutureAppointmentsProblemExtension');
+    const schema = schemas()['CustomerFutureAppointmentsProblemExtension'];
+    expect(Object.keys(schema.properties)).toEqual(['affected']);
+    expect(schema.required).toEqual(['affected']);
   });
 });
 

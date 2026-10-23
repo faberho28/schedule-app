@@ -18,6 +18,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiProblems, ApiUuidParam } from '../../shared/http/api-problems';
+import { DomainProblemError } from '../../shared/http/domain-problem';
+import { CustomerHasFutureAppointmentsError } from '../../scheduling/domain/errors';
 import type { RegisterConsentResult } from '../../scheduling/application/register-consent';
 import type { ConsentEventRecord } from '../../scheduling/domain/ports/consent-repository';
 import {
@@ -34,6 +36,7 @@ import type { CustomerView } from './customers.repository';
 import {
   ConsentEventSchema,
   CustomerDetailSchema,
+  CustomerFutureAppointmentsProblemExtensionSchema,
   CustomerSchema,
   RegisterConsentResultSchema,
 } from './dto/customer.schema';
@@ -143,13 +146,27 @@ export class CustomersController {
   @HttpCode(204)
   @ApiOperation({
     summary: 'Eliminar un cliente por anonimización en sitio',
-    description: 'No borra la fila. Repetirlo no cambia nada.',
+    description:
+      'No borra la fila. Repetirlo no cambia nada. Si el cliente tiene citas `pending` o `confirmed` desde ahora, responde `customer_has_future_appointments` con `affected` y no modifica nada: el dueño debe cancelarlas antes; el sistema nunca las cancela por su cuenta.',
   })
   @ApiUuidParam()
   @ApiNoContentResponse({ description: 'Cliente anonimizado.' })
-  @ApiProblems(['bad_request', 'not_found'])
+  @ApiProblems(
+    ['bad_request', 'not_found', 'customer_has_future_appointments'],
+    CustomerFutureAppointmentsProblemExtensionSchema,
+  )
   async erase(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    await this.service.erase(id);
+    try {
+      await this.service.erase(id);
+    } catch (error) {
+      // Las citas que bloquean la eliminación viajan en el problema como `affected`.
+      if (error instanceof CustomerHasFutureAppointmentsError) {
+        throw new DomainProblemError(error.code, error.message, {
+          affected: error.affected.map(toAppointmentResponse),
+        });
+      }
+      throw error;
+    }
   }
 
   @Get(':id/consents')

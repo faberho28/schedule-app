@@ -1,5 +1,5 @@
 import { randomBytes, randomInt } from 'node:crypto';
-import { NotFoundError } from '../domain/errors';
+import { CustomerHasFutureAppointmentsError, NotFoundError } from '../domain/errors';
 import type { Clock } from '../domain/model/clock';
 import type { CommandExecutor } from '../domain/ports/command-executor';
 import { CUSTOMER_ALIAS_WORDS, generateAlias } from '../domain/services/alias';
@@ -28,7 +28,8 @@ const cryptoRandom: AnonymizationRandom = {
  * bloqueo del negocio: anula los seguimientos pendientes y reemplaza todo dato personal de la ficha
  * y de su historial por valores neutros y aleatorios, conservando el `id` y todas las filas. No se
  * guarda ninguna correspondencia entre la persona y el alias. Es idempotente: sobre un cliente ya
- * anonimizado no cambia nada.
+ * anonimizado no cambia nada. Si el cliente tiene citas `pending` o `confirmed` desde ahora, se
+ * rechaza con `CustomerHasFutureAppointmentsError` y no se modifica nada.
  */
 export class AnonymizeCustomer {
   constructor(
@@ -42,6 +43,15 @@ export class AnonymizeCustomer {
       const customer = await ports.customers.find(businessId, customerId);
       if (!customer) throw new NotFoundError('El cliente no existe');
       if (customer.anonymizedAt !== null) return;
+
+      // Una cita futura activa sobreviviría sin dirección y atribuida a un alias: el dueño debe
+      // cancelarla antes. No se cancela nada automáticamente.
+      const upcoming = await ports.appointments.listUpcomingActiveByCustomer(
+        businessId,
+        customerId,
+        this.clock.now(),
+      );
+      if (upcoming.length > 0) throw new CustomerHasFutureAppointmentsError(upcoming);
 
       const taken = new Set(await ports.customers.listAliases(businessId));
       const alias = generateAlias({
