@@ -7,12 +7,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Link } from 'react-router';
+import { STATUS_STYLES } from '@/features/agenda/appointment-status';
+import { formatDateTime, localDateOf } from '@/shared/lib/dates';
+import { technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { useEraseCustomer } from './customers-api';
+import { blockingAppointmentsOf } from './future-appointments';
 
 type EraseCustomerDialogProps = {
   customerId: string;
   customerName: string;
+  /** Zona horaria del negocio, para mostrar las citas que bloquean la eliminación. */
+  timeZone: string;
   onClose(): void;
   onDone(): void;
 };
@@ -20,14 +27,18 @@ type EraseCustomerDialogProps = {
 /**
  * Confirmación explícita de la supresión. En esta versión eliminar es anonimizar en sitio: el
  * cliente y su historial siguen existiendo, pero sin datos personales, y no se puede deshacer.
+ * Si el cliente tiene citas futuras activas la API se niega: el diálogo las lista y enlaza a la
+ * agenda, pero nunca cancela nada por su cuenta.
  */
 export function EraseCustomerDialog({
   customerId,
   customerName,
+  timeZone,
   onClose,
   onDone,
 }: EraseCustomerDialogProps) {
   const erase = useEraseCustomer(customerId);
+  const blocking = blockingAppointmentsOf(erase.error);
 
   function send() {
     erase.mutate(undefined, { onSuccess: onDone });
@@ -49,6 +60,40 @@ export function EraseCustomerDialog({
             error={erase.error}
             onRetry={erase.error instanceof TypeError ? send : undefined}
           />
+        ) : null}
+        {blocking ? (
+          <section className="flex flex-col gap-2 text-sm">
+            <p>
+              Los datos no se eliminarán hasta que canceles estas citas. El sistema no las cancela
+              por ti: ábrelas en la agenda, cancélalas y vuelve a intentar la eliminación.
+            </p>
+            <ul aria-label="Citas futuras del cliente" className="flex flex-col gap-2">
+              {blocking.map((appointment) => {
+                const status = STATUS_STYLES[appointment.status];
+                return (
+                  <li key={appointment.id} className="flex flex-col gap-1 rounded-md border p-3">
+                    <span className="font-medium">
+                      {formatDateTime(appointment.starts_at, timeZone)}
+                    </span>
+                    <span>{appointment.service_name_snapshot}</span>
+                    <span className="text-muted-foreground">
+                      {status.label} · Técnico: {technicianLabel(appointment.technician)}
+                    </span>
+                    <Link
+                      className="self-start text-primary underline underline-offset-4"
+                      to={`/agenda?view=day&date=${localDateOf(appointment.starts_at, timeZone)}`}
+                    >
+                      Abrir en la agenda
+                      <span className="sr-only">
+                        {' '}
+                        la cita del {formatDateTime(appointment.starts_at, timeZone)}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         ) : null}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>

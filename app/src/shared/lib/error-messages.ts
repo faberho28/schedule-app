@@ -18,6 +18,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   proposal_stale: 'La propuesta ya no está vigente. Revisa las citas afectadas de nuevo.',
   customer_phone_taken: 'Ya existe un cliente con ese teléfono.',
   customer_anonymized: 'El cliente fue eliminado y ya no admite cambios.',
+  customer_has_future_appointments:
+    'No se puede eliminar: el cliente tiene citas futuras. Cancélalas primero.',
   service_name_taken: 'Ya existe un servicio con ese nombre.',
   invalid_transition: 'La cita no admite ese cambio de estado.',
   closure_confirmation_required: 'Confirma el cierre para continuar.',

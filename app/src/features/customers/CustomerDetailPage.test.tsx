@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '@/shared/api/schema';
 import { apiUrl, appointment, business, customer, IDS, problem } from '@/test/api';
 import { renderPage } from '@/test/render';
@@ -635,6 +635,112 @@ describe('CustomerDetailPage: eliminar datos personales', () => {
     expect(screen.getByRole('list', { name: 'Historial de servicios' })).toBeInTheDocument();
   });
 
+  describe('con citas futuras activas', () => {
+    const FUTURE = [
+      appointment({
+        id: IDS.apt1,
+        status: 'confirmed',
+        starts_at: '2026-11-06T13:00:00.000Z',
+        service_name_snapshot: 'Mantenimiento de aire',
+        technician: { id: IDS.carlos, name: 'Carlos', alias: null },
+      }),
+      appointment({
+        id: IDS.apt2,
+        status: 'pending',
+        starts_at: '2026-11-09T15:30:00.000Z',
+        service_name_snapshot: 'Instalación',
+        technician: { id: IDS.marta, name: 'Marta', alias: null },
+      }),
+    ];
+
+    function blockErase(received: { erases: number }) {
+      const cancels: string[] = [];
+      let blocked = true;
+      server.use(
+        http.delete(apiUrl('/customers/:id'), () => {
+          if (blocked)
+            return problem('customer_has_future_appointments', 409, { affected: FUTURE });
+          received.erases += 1;
+          return new HttpResponse(null, { status: 204 });
+        }),
+        http.post(apiUrl('/appointments/:id/cancel'), ({ params }) => {
+          cancels.push(String(params['id']));
+          return HttpResponse.json(appointment({ status: 'cancelled' }));
+        }),
+      );
+      return {
+        cancels,
+        release: () => {
+          blocked = false;
+        },
+      };
+    }
+
+    it('lista las citas afectadas, explica que hay que cancelarlas primero y no cancela nada', async () => {
+      const { user, dialog, received } = await openEraseDialog({ appointments: FUTURE });
+      const { cancels } = blockErase(received);
+
+      await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
+
+      expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+        'No se puede eliminar: el cliente tiene citas futuras. Cancélalas primero.',
+      );
+      expect(dialog).toHaveTextContent(/no se eliminarán hasta que canceles estas citas/i);
+      expect(dialog).toHaveTextContent(/el sistema no las cancela por ti/i);
+      const list = within(dialog).getByRole('list', { name: 'Citas futuras del cliente' });
+      const [first, second] = within(list).getAllByRole('listitem');
+      expect(first).toHaveTextContent('vie 6 nov 08:00');
+      expect(first).toHaveTextContent('Mantenimiento de aire');
+      expect(first).toHaveTextContent('Confirmada');
+      expect(first).toHaveTextContent('Carlos');
+      expect(second).toHaveTextContent('lun 9 nov 10:30');
+      expect(second).toHaveTextContent('Instalación');
+      expect(second).toHaveTextContent('Pendiente');
+      expect(second).toHaveTextContent('Marta');
+      expect(received.erases).toBe(0);
+      expect(cancels).toEqual([]);
+    });
+
+    it('cada cita enlaza a la agenda de su día para abrirla y cancelarla desde allí', async () => {
+      const { user, dialog, received } = await openEraseDialog({ appointments: FUTURE });
+      blockErase(received);
+
+      await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
+
+      const links = await within(dialog).findAllByRole('link', { name: /Abrir en la agenda/ });
+      expect(links.map((link) => link.getAttribute('href'))).toEqual([
+        '/agenda?view=day&date=2026-11-06',
+        '/agenda?view=day&date=2026-11-09',
+      ]);
+    });
+
+    it('tras cancelar las citas se puede repetir la eliminación y se completa', async () => {
+      const { user, dialog, received } = await openEraseDialog({ appointments: FUTURE });
+      const { release } = blockErase(received);
+      await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
+      await within(dialog).findByRole('list', { name: 'Citas futuras del cliente' });
+
+      release();
+      await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(received.erases).toBe(1);
+    });
+
+    it('cerrar el diálogo bloqueado no cambia nada', async () => {
+      const { user, dialog, received } = await openEraseDialog({ appointments: FUTURE });
+      blockErase(received);
+      await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
+      await within(dialog).findByRole('list', { name: 'Citas futuras del cliente' });
+
+      await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByLabelText('Nombre')).toHaveValue('Ana Pérez');
+      expect(received.erases).toBe(0);
+    });
+  });
+
   it('un error de red ofrece reintentar la eliminación', async () => {
     const { user, dialog, received } = await openEraseDialog();
     let attempts = 0;
@@ -653,6 +759,48 @@ describe('CustomerDetailPage: eliminar datos personales', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(received.erases).toBe(1);
+  });
+});
+
+describe('CustomerDetailPage: aviso de citas futuras', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function setNow(iso: string) {
+    // Solo se simula `Date`: los temporizadores reales siguen sirviendo a MSW y a Testing Library.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(iso));
+  }
+
+  it('avisa antes de pulsar el botón cuántas citas futuras activas hay', async () => {
+    setNow('2026-11-01T12:00:00.000Z');
+    serve({
+      appointments: [
+        appointment({ id: IDS.apt1, status: 'confirmed', starts_at: '2026-11-06T13:00:00.000Z' }),
+        appointment({ id: IDS.apt2, status: 'pending', starts_at: '2026-11-09T13:00:00.000Z' }),
+      ],
+    });
+    renderDetail();
+
+    const section = await screen.findByRole('region', { name: 'Eliminar datos personales' });
+    expect(section).toHaveTextContent(
+      'Este cliente tiene 2 citas futuras activas. Cancélalas antes de eliminar sus datos.',
+    );
+  });
+
+  it('no avisa si las citas están canceladas, cerradas o ya pasaron', async () => {
+    setNow('2026-11-01T12:00:00.000Z');
+    serve({
+      appointments: [
+        appointment({ id: IDS.apt1, status: 'cancelled', starts_at: '2026-11-06T13:00:00.000Z' }),
+        appointment({ id: IDS.apt2, status: 'confirmed', starts_at: '2026-10-30T13:00:00.000Z' }),
+      ],
+    });
+    renderDetail();
+
+    const section = await screen.findByRole('region', { name: 'Eliminar datos personales' });
+    expect(section).not.toHaveTextContent(/citas? futuras? activas?/i);
   });
 });
 

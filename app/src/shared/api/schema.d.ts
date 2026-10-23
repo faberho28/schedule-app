@@ -194,7 +194,7 @@ export interface paths {
     post?: never;
     /**
      * Eliminar un cliente por anonimización en sitio
-     * @description No borra la fila. Repetirlo no cambia nada.
+     * @description No borra la fila. Repetirlo no cambia nada. Si el cliente tiene citas `pending` o `confirmed` desde ahora, responde `customer_has_future_appointments` con `affected` y no modifica nada: el dueño debe cancelarlas antes; el sistema nunca las cancela por su cuenta.
      */
     delete: operations['Customers_erase'];
     options?: never;
@@ -660,6 +660,10 @@ export interface components {
       /** @description Teléfono en formato E.164. */
       phone: string;
     };
+    /** @description Miembro extra de `customer_has_future_appointments`: las citas `pending` o `confirmed` desde ahora que impiden eliminar al cliente. */
+    CustomerFutureAppointmentsProblemExtension: {
+      affected: components['schemas']['Appointment'][];
+    };
     /** @description Aviso informativo: las citas futuras conservan la duración anterior. */
     DurationChangeWarning: {
       /** @enum {string} */
@@ -711,6 +715,7 @@ export interface components {
         | 'proposal_stale'
         | 'customer_phone_taken'
         | 'customer_anonymized'
+        | 'customer_has_future_appointments'
         | 'service_name_taken'
         | 'invalid_transition'
         | 'closure_confirmation_required'
@@ -1841,6 +1846,19 @@ export interface operations {
             /** @enum {string} */
             code?: 'not_found';
           };
+        };
+      };
+      /** @description Códigos posibles: customer_has_future_appointments. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] &
+            components['schemas']['CustomerFutureAppointmentsProblemExtension'] & {
+              /** @enum {string} */
+              code?: 'customer_has_future_appointments';
+            };
         };
       };
       /** @description Códigos posibles: internal_error. */

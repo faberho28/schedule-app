@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useBusiness } from '@/features/settings/business-api';
 import { ApiError } from '@/shared/api/errors';
 import { formatDate } from '@/shared/lib/dates';
+import { pluralize } from '@/shared/lib/format';
 import { customerRecordLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageTitle } from '@/shared/ui/PageTitle';
@@ -13,6 +14,7 @@ import { ConsentDialog } from './ConsentDialog';
 import { CustomerEditForm } from './CustomerEditForm';
 import { useConsentEvents, useCustomer, type CustomerDetail } from './customers-api';
 import { EraseCustomerDialog } from './EraseCustomerDialog';
+import { upcomingActiveAppointments } from './future-appointments';
 import { ServiceHistory } from './ServiceHistory';
 
 export function CustomerDetailPage() {
@@ -49,6 +51,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
   const erased = customer.anonymized_at !== null;
   const timeZone = business.data?.timezone;
   const status = CONSENT_STATUS_INFO[customer.consent_status];
+  const upcoming = upcomingActiveAppointments(customer.appointments, new Date());
 
   function finish(message: string) {
     setDialog(null);
@@ -154,6 +157,13 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
             Se borran el nombre, el teléfono, la dirección y las notas, y el historial queda con un
             alias. No se puede deshacer.
           </p>
+          {upcoming.length > 0 ? (
+            <p className="text-sm font-medium">
+              Este cliente tiene {upcoming.length}{' '}
+              {pluralize(upcoming.length, 'cita futura activa', 'citas futuras activas')}.
+              Cancélalas antes de eliminar sus datos.
+            </p>
+          ) : null}
           <Button
             variant="destructive"
             className="self-start"
@@ -178,10 +188,11 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
           />
         ) : null
       ) : null}
-      {dialog === 'erase' ? (
+      {dialog === 'erase' && timeZone ? (
         <EraseCustomerDialog
           customerId={customer.id}
           customerName={customerRecordLabel(customer)}
+          timeZone={timeZone}
           onClose={() => setDialog(null)}
           onDone={() => finish('Datos personales eliminados.')}
         />
