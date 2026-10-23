@@ -6,7 +6,7 @@ Códigos de spec: BS business-settings, SC service-catalog, TS technician-schedu
 
 ## Fuera de alcance (no hay historias)
 
-Este sprint NO incluye, y por eso no tiene historias para: autenticación y roles, integración con WhatsApp, bot, bandeja de conversaciones, arrastrar y soltar en la agenda, fotos de evidencia y caché de agenda sin conexión. Tampoco incluye una interfaz para revocar el consentimiento (la revocación existe solo en la API, HU-24) ni el registro de supresiones con respaldos, que son deudas del final del proyecto.
+Este sprint NO incluye, y por eso no tiene historias para: autenticación y roles, integración con WhatsApp, bot, bandeja de conversaciones, arrastrar y soltar en la agenda, fotos de evidencia y caché de agenda sin conexión. Tampoco incluye el registro de supresiones con respaldos, que es una deuda del final del proyecto. La revocación del consentimiento sí tiene acción en la ficha del cliente (HU-24, tarea 16.5).
 
 ---
 
@@ -200,11 +200,11 @@ Como dueño del negocio quiero ver el historial de servicios y el rastro de cons
 - GIVEN la ficha WHEN la abro THEN veo su última dirección guardada (CR-R4, UI-R6).
 - Prioridad: Media. Fases: 9, 16 (9.5, 16.2).
 
-### HU-24 Revocación del consentimiento (solo API en este sprint)
+### HU-24 Revocación del consentimiento (API y pantalla de clientes)
 Como dueño del negocio quiero que, si un cliente revoca su consentimiento, se cancelen de inmediato sus seguimientos pendientes sin borrar su ficha para respetar su decisión.
 - GIVEN un cliente con consentimiento otorgado y un seguimiento `pending` WHEN se registra la revocación THEN el seguimiento pasa a `cancelled` con `cancel_reason='consent_revoked'` y la ficha y las citas permanecen (CR-R5).
 - GIVEN un cliente que revocó WHEN vuelve a consentir THEN se aplica la revisión de consentimiento tardío (CR-R5, CR-R7).
-- Nota: el modelo y la API lo soportan, pero no hay pantalla de revocación en este sprint.
+- Nota: por decisión posterior del dueño del proyecto, la ficha del cliente ofrece la acción "Revocar consentimiento" con confirmación y explicación de sus efectos (tarea 16.5).
 - Prioridad: Media. Fases: 9, 16 (9.3, 16.5).
 
 ### HU-25 Seguimiento por consentimiento tardío

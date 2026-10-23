@@ -24,7 +24,7 @@ Formato de cada tarea: `[ ] ID` + resultado concreto + área/archivos + `Spec:` 
 | Estimated changed lines | 9.000-12.000 (sin lockfiles ni cliente generado) |
 | 400-line budget risk | High (aceptado mediante `size:exception`) |
 | Chained PRs recommended | No (el usuario indicó que el tamaño del PR no importa) |
-| Suggested split | Una sola rama de sprint con 17 commits por unidad de trabajo, más la fase 18 de verificación sin commit propio de código |
+| Suggested split | Una sola rama de sprint con 17 commits por unidad de trabajo, más un commit de la fase 18 con las pruebas de aceptación, la prueba de arranque y la documentación de deudas |
 | Delivery strategy | exception-ok |
 | Chain strategy | size-exception |
 
@@ -228,16 +228,50 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 Verificaciones de los criterios de éxito de la propuesta (sin commit de código propio; los fallos se corrigen en la unidad que corresponda):
 
-- [ ] 18.1 Criterio 1: configurar servicios, técnicos, disponibilidad, días libres y buffer desde la PWA. Spec: UI-R5. Verif: recorrido manual completo.
-- [ ] 18.2 Criterio 2: agenda día y semana por técnico; crear, mover y cancelar solo por cupos ofrecidos. Spec: UI-R3, UI-R4. Verif: recorrido manual y pruebas de las fases 14 y 15.
-- [ ] 18.3 Criterio 3: concurrencia del mismo cupo devuelve `slot_taken` (409) y la UI muestra "Cupo ocupado". Spec: AM-R2, UI-R2. Verif: prueba de la tarea 6.7 y verificación manual con dos pestañas.
-- [ ] 18.4 Criterio 4: un día libre sobre citas se rechaza listando las afectadas. Spec: TS-R3. Verif: prueba de la tarea 8.4 y verificación manual.
-- [ ] 18.5 Criterio 5: completar una cita de un cliente con consentimiento e intervalo crea exactamente una fila de seguimiento; corregir la anula o recalcula. Spec: CL-R3, CL-R4. Verif: pruebas de 10.4 a 10.6 y consulta directa a `scheduled_messages`.
-- [ ] 18.6 Criterio 6: clientes sin consentimiento nunca tienen filas en `scheduled_messages`. Spec: CR-R6. Verif: pruebas 2.5, 9.6 y 10.4.
-- [ ] 18.7 Criterio 7: el cliente de `app/` se genera desde `api/openapi.json`. Spec: UI-R7. Verif: `npm run gen:api` sin diferencias y `npm run typecheck` sin errores.
-- [ ] 18.8 Ejecutar la suite completa de ambos proyectos (`npm test`, `lint`, `typecheck`, `openapi:check`) y confirmar que cada migración tiene su `down`. Spec: n/a. Verif: todo en verde.
+- [ ] 18.1 Criterio 1: configurar servicios, técnicos, disponibilidad, días libres y buffer desde la PWA. Spec: UI-R5. Verif: recorrido manual completo. _Parcial: la parte de API está verificada por prueba de aceptación (ver tabla) y las pantallas por las pruebas de la fase 13; el recorrido manual en navegador queda PENDIENTE (pasos M1)._
+- [ ] 18.2 Criterio 2: agenda día y semana por técnico; crear, mover y cancelar solo por cupos ofrecidos. Spec: UI-R3, UI-R4. Verif: recorrido manual y pruebas de las fases 14 y 15. _Parcial: API y pruebas de las fases 14 y 15 verificadas (ver tabla); recorrido manual y aspecto visual de la agenda PENDIENTES (pasos M2)._
+- [ ] 18.3 Criterio 3: concurrencia del mismo cupo devuelve `slot_taken` (409) y la UI muestra "Cupo ocupado". Spec: AM-R2, UI-R2. Verif: prueba de la tarea 6.7 y verificación manual con dos pestañas. _Parcial: la prueba de concurrencia real con Postgres y el mensaje "Cupo ocupado" con MSW pasan (ver tabla); la carrera con dos pestañas reales queda PENDIENTE (pasos M3)._
+- [ ] 18.4 Criterio 4: un día libre sobre citas se rechaza listando las afectadas. Spec: TS-R3. Verif: prueba de la tarea 8.4 y verificación manual. _Parcial: API y diálogo verificados por pruebas (ver tabla); la verificación manual del diálogo en el navegador queda PENDIENTE (pasos M4)._
+- [x] 18.5 Criterio 5: completar una cita de un cliente con consentimiento e intervalo crea exactamente una fila de seguimiento; corregir la anula o recalcula. Spec: CL-R3, CL-R4. Verif: pruebas de 10.4 a 10.6 y consulta directa a `scheduled_messages`.
+- [x] 18.6 Criterio 6: clientes sin consentimiento nunca tienen filas en `scheduled_messages`. Spec: CR-R6. Verif: pruebas 2.5, 9.6 y 10.4 y pruebas de aceptación (ver tabla).
+- [x] 18.7 Criterio 7: el cliente de `app/` se genera desde `api/openapi.json`. Spec: UI-R7. Verif: `npm run gen:api:check` ("schema.d.ts está al día con api/openapi.json"), `npm run openapi:check` ("api/openapi.json está al día") y `npm run typecheck` sin errores.
+- [x] 18.8 Ejecutar la suite completa de ambos proyectos (`npm test`, `lint`, `typecheck`, `openapi:check`) y confirmar que cada migración tiene su `down`. Spec: n/a. Verif: api 72 archivos y 1228 pruebas en verde; app 528 pruebas en verde; lint, typecheck, formato, build, `openapi:check` y `gen:api:check` sin errores; las migraciones 001 a 004 exportan `up` y `down` y `migrator.int-spec.ts` aplica todo `up` y luego todo `down`.
+- [x] 18.9 Prueba automatizada del arranque con un `.env` real: `loadEnvFile` (`api/src/config/load-env-file.ts`), `createApplication` (`api/src/bootstrap.ts`) y `main.ts` reducido a llamarla. Spec: n/a (corrige un error de arranque hallado a mano). Verif: RED (módulos inexistentes), GREEN `load-env-file.spec.ts` (5) y `bootstrap.int-spec.ts` (3); comprobación de mutación: sin la llamada a `loadEnvFile`, fallan 2 de las 3 pruebas de arranque.
+- [x] 18.10 Documentar deudas (`debts.md`), actualizar el `README.md` de la raíz y corregir la redacción de la revocación en `design.md` y `user-stories.md`. Spec: n/a. Verif: manual.
 
-Deudas fuera del sprint 1 (solo referencia, sin tareas):
+### Trazabilidad de los criterios de éxito
+
+"Aceptación" es `api/test/acceptance/sprint-1.acceptance.int-spec.ts`. Todas las pruebas de la tabla pasaron en la ejecución completa de la fase 18.
+
+| Criterio | Prueba (archivo y nombre) | Resultado |
+|----------|---------------------------|-----------|
+| 1. Configuración desde la PWA | Aceptación: "lo configurado por la API determina los cupos ofrecidos" (buffer 30 y 0), "un día libre quita los cupos de ese día y la franja nueva los cambia", "un servicio desactivado deja de ofrecer cupos y reactivarlo los devuelve". Pantallas: `app/src/features/settings/*.test.tsx` (fase 13). | Automatizado en verde. Recorrido manual PENDIENTE (M1) |
+| 2. Agenda día y semana; crear, mover y cancelar solo por cupos ofrecidos | Aceptación: "recorrido completo: crear en un cupo ofrecido, mover a otro, cancelar y liberar el cupo", "rechaza crear o mover a una hora que la API no ofreció (slot_not_offered, 422)". UI: `app/src/features/agenda/AgendaGrid*.test.tsx`, `AgendaPage*.test.tsx`, `app/src/features/appointments/*Dialog.test.tsx`. | Automatizado en verde. Visual y recorrido manual PENDIENTES (M2) |
+| 3. Mismo cupo concurrente: 409 `slot_taken` y "Cupo ocupado" | API: `api/src/scheduling/infrastructure/http/appointments-concurrency.http.int-spec.ts` ("dos solicitudes simultáneas para el mismo cupo crean una cita y la otra recibe slot_taken (409)", "con diez solicitudes simultáneas gana exactamente una…") y `appointments-move-concurrency.http.int-spec.ts`. Aceptación: "una segunda cita en un bloque ocupado por el mismo técnico falla en SQL (23P01) y la API responde slot_taken". UI: `app/src/features/appointments/CreateAppointmentDialog.test.tsx` ("muestra "Cupo ocupado", recarga los cupos y deja elegir otro"), `MoveAppointmentDialog.test.tsx`, `app/src/shared/lib/error-messages.test.ts`. | Automatizado en verde. Dos pestañas reales PENDIENTE (M3) |
+| 4. Día libre sobre citas rechazado con las afectadas | API: `schedule-changes.http.int-spec.ts` ("con dos citas confirmadas: rechaza con schedule_conflict, lista las dos y no guarda nada"). Aceptación: "responde schedule_conflict (409) con las citas afectadas y no guarda el día libre". UI: `app/src/features/settings/ScheduleConflictDialog.test.tsx`. | Automatizado en verde. Manual PENDIENTE (M4) |
+| 5. Completar crea un solo seguimiento; corregir lo anula o recalcula | Aceptación: "al completar hay una sola fila pendiente, a la fecha de completado más el intervalo" (2027-01-31 09:00 Bogotá), "corregir a no asistió la anula y volver a completada deja otra única fila activa", "corregir la fecha de completado recalcula sin duplicar y reabrir la anula" (2027-02-03). API: `appointments-close.http.int-spec.ts` ("programa un único seguimiento pendiente…"), `appointments-correct-closure.http.int-spec.ts` ("recalcula el seguimiento pendiente a 2027-02-03 sin duplicarlo"). | Automatizado en verde |
+| 6. Sin consentimiento no hay filas en `scheduled_messages` | Aceptación: "completar la cita de un cliente sin consentimiento no crea ninguna fila", "tras revocar, los seguimientos pendientes se cancelan y no se crean nuevos", "la base de datos rechaza un seguimiento pendiente para un cliente sin consentimiento" (trigger), "solo al otorgar el consentimiento aparece el seguimiento…". API: `appointments-close.http.int-spec.ts` ("no crea fila si el consentimiento del cliente está pending/revoked"), `scheduled-messages-schema.int-spec.ts`. | Automatizado en verde |
+| 7. Cliente de `app/` generado desde OpenAPI | `npm run openapi:check --prefix api` ("api/openapi.json está al día"), `npm run gen:api:check --prefix app` ("schema.d.ts está al día con api/openapi.json"), `npm run typecheck --prefix app` sin errores, `api/src/openapi/openapi.spec.ts`. | Verificado (ejecución real) |
+
+Comprobación de mutación de las pruebas de aceptación (nacieron en verde porque el comportamiento ya existía, así que se verificó que fallan si el comportamiento se rompe): permitir seguimientos con consentimiento `pending` en `followup-policy.ts` hizo fallar 2 pruebas del criterio 6; reemplazar la anulación `closure_corrected` por no hacer nada hizo fallar la prueba de corrección del criterio 5. Ambos cambios se revirtieron.
+
+### Verificación manual pendiente (no ejecutada por el agente)
+
+Preparación: seguir el `README.md` de la raíz (compose, `db:migrate`, `db:seed`, `start:dev`, `npm run dev --prefix app`) y, para M5, `npm run build && npm run preview` en `app/`.
+
+- M1 (criterio 1): en `/settings/business` cambia el buffer a 30 y guarda; en `/settings/services` crea un servicio de 60 minutos; en `/settings/technicians` crea un técnico, define el lunes 08:00 a 12:00 y agrega un día libre. Esperado: cada pantalla confirma lo guardado en español y, en la agenda, los cupos del lunes reflejan la franja y el buffer.
+- M2 (criterio 2): en `/agenda` alterna día y semana, filtra por técnico en un ancho de 375 px, crea una cita desde una celda vacía, muévela y cancélala. Esperado: solo se pueden elegir cupos listados, no hay arrastrar y soltar, los colores de estado se distinguen por ícono y texto y la agenda se lee bien en móvil y escritorio.
+- M3 (criterio 3): abre dos pestañas con el diálogo de crear cita en el mismo cupo; confirma en una y luego en la otra. Esperado: la segunda muestra "Cupo ocupado", recarga los cupos y permite elegir otro.
+- M4 (criterio 4): con un técnico con citas el mismo día, agrega un día libre ese día. Esperado: se abre el diálogo con las citas afectadas; Rechazar no cambia nada y Aceptar (si hay reemplazo) reasigna y guarda el día libre.
+- M5 (PWA): con `preview`, instala la aplicación desde el navegador (ícono y nombre "Schedule App"), luego en DevTools, pestaña Network, activa "Offline" y recarga. Esperado: aparece "Sin conexión" con el botón "Reintentar", y al volver la conexión el botón recupera la aplicación. Revisa también que los botones tengan al menos 44 px de alto en móvil.
+
+Hallazgos de consistencia entre la propuesta, las especificaciones, el diseño y lo construido (la revocación en la interfaz ya se corrigió en `design.md` y `user-stories.md`):
+
+- `proposal.md` no menciona la acción de revocar en la interfaz; no contradice lo construido, solo no lo recoge. Sin cambio.
+- El pronóstico de carga de este archivo hablaba de una fase 18 "sin commit propio de código"; la fase 18 aporta código de prueba y de arranque y tiene su propio commit.
+- Los criterios de la propuesta siguen sin marcar (`[ ]`): se marcan en la verificación y el archivo, no en esta fase.
+
+Deudas fuera del sprint 1 (solo referencia, sin tareas). La lista completa, con el motivo y la fase sugerida de cada una, está en [`debts.md`](debts.md); este resumen es el original de la planificación:
 
 - Registro de supresiones (HMAC del identificador) y respaldos: mecanismo que vuelva a purgar a las personas suprimidas tras una restauración (Ley 1581). Al final del proyecto.
 - Autenticación y roles: tabla `users`, `recorded_by_user_id` en `consent_events` y actor real en cierres. Al final del proyecto.

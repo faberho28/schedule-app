@@ -23,6 +23,8 @@ Variables (validadas con zod al iniciar; si falta alguna obligatoria el proceso 
 | `CORS_ORIGIN`         | Origen permitido de la PWA (por defecto `http://localhost:5173`) |
 | `DEFAULT_BUSINESS_ID` | UUID del negocio por defecto hasta que exista autenticación      |
 
+Al arrancar (`npm run start:dev` o `npm start`), `src/bootstrap.ts` carga el `.env` de la carpeta de trabajo con `src/config/load-env-file.ts`. Las variables que ya estén definidas en el entorno del proceso tienen prioridad sobre las del archivo, y si el archivo no existe se usan solo las del entorno. Si falta una variable obligatoria el proceso termina con código 1 y el mensaje indica cuál.
+
 ## Comandos
 
 | Comando                    | Qué hace                                                         |
@@ -537,3 +539,5 @@ sequenceDiagram
 - Dos proyectos de Vitest: `unit` (dominio puro, sin Docker) e `integration`.
 - Integración: `test/support/postgres-container.ts` actúa como `globalSetup`. Levanta un único contenedor `postgres:16-alpine` con Testcontainers por ejecución, aplica todas las migraciones y publica la URL con `inject('databaseUrl')`. Las pruebas de migraciones usan una base vacía propia (`test/support/scratch-database.ts`) y las de restricciones insertan con SQL crudo (`test/support/schema-fixtures.ts`). Entre pruebas se usa `truncateAll(pool)`; no hay rollback por prueba porque las pruebas de concurrencia necesitan conexiones reales.
 - La primera ejecución descarga la imagen de Postgres y puede tardar más.
+- Aceptación: `test/acceptance/sprint-1.acceptance.int-spec.ts` recorre por HTTP, contra Postgres real, los criterios de éxito del sprint 1 que no dependen de un navegador (configuración del dueño, crear/mover/cancelar por cupos ofrecidos, día libre sobre citas, seguimiento al completar y corregir, ausencia de mensajes sin consentimiento, restricción contra la doble reserva). La tabla criterio a prueba está en `openspec/changes/sprint-1-owner-pwa/tasks.md`, fase 18.
+- Arranque: `src/bootstrap.int-spec.ts` crea la aplicación con un `.env` en un directorio temporal y comprueba que base de datos, negocio y CORS salen del archivo (cubre el error de arranque en que el `.env` no se cargaba).
