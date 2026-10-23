@@ -32,6 +32,7 @@ Lista de referencia, sin tareas asignadas. Cada elemento tiene el motivo en una 
 | Endpoint para listar técnicos libres en un cupo exacto | El diálogo de reasignación lista todos los demás técnicos activos y la API responde "Cupo ocupado" si el elegido está ocupado. | Mejora de reasignación |
 | Búsqueda de clientes insensible a acentos | "Maria" no encuentra "María". | Mejora de clientes |
 | Validación E.164 en el cliente que acepte números locales sin prefijo | La interfaz precarga `+57`; si se borra, la validación local rechaza números sin prefijo aunque la API los normaliza. | Mejora de clientes |
+| Ventana visible por defecto de la agenda (07:00 a 19:00) | Las citas fuera de esa ventana se omiten de la agenda sin aviso. Sugerencia: derivar la ventana de la disponibilidad de los técnicos. | Mejora de agenda |
 
 ## Calidad y operación
 
@@ -41,3 +42,4 @@ Lista de referencia, sin tareas asignadas. Cada elemento tiene el motivo en una 
 | Hallazgos de `npm audit` en `api/` (3 altos) | Vienen de `kysely-codegen` mediante `micromatch` y `braces` (denegación de servicio por patrones anidados). Es una dependencia de desarrollo; la corrección sugerida baja `kysely-codegen` a 0.6.1 (cambio incompatible). `app/` no tiene hallazgos. | Cuando `kysely-codegen` publique una versión corregida |
 | Arranque como proceso real | La prueba `src/bootstrap.int-spec.ts` cubre la carga del `.env` y la creación de la aplicación, pero no ejecuta `node dist/main.js` (`main.ts` solo llama a `createApplication` y escucha). | Opcional, con un smoke test de despliegue |
 | Estado de pruebas de concurrencia en la interfaz | "Cupo ocupado" se prueba con MSW simulando el 409; la carrera real con dos pestañas es verificación manual. | Verificación manual |
+| Asimetría en `DELETE`: `DELETE /technicians/:id` responde 200 con cuerpo y `DELETE /customers/:id` responde 204 | El borrado de técnicos puede traer reasignaciones, por eso devuelve cuerpo; el contrato no lo documentaba como excepción. Sugerencia: documentar la excepción en OpenAPI o unificar las respuestas. | Mejora de API, antes de integrar el bot |

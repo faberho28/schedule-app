@@ -157,6 +157,12 @@ api/src/
 - Errores: `DomainError` tiene un `code`. El filtro global responde `application/problem+json`. `slot_taken` (colisión con una cita no cancelada, incluida la concurrente; pg `23P01` sobre `appointments_no_overlap`), `schedule_conflict` (incluye `affected`), `proposal_stale` (cambió el conjunto de citas afectadas) y `customer_phone_taken` devuelven 409. `invalid_transition`, `early_closure_reason_required`, `early_closure_confirmation_required`, `reopen_confirmation_required` (falta `confirmReopen: true` al devolver una cita cerrada a `confirmed`) y `slot_not_offered` (hora fuera de la grilla generada) devuelven 422. `customer_has_future_appointments` (409, seguimiento posterior al sprint) rechaza `DELETE /customers/:id` cuando el cliente tiene citas `pending|confirmed` desde ahora; incluye `affected` como miembro de primer nivel, con la misma forma de cita que `schedule_conflict`. `not_found` devuelve 404 y los errores de validación de DTO, 400. `DELETE` existe solo para `customers` y `technicians` (anonimización en sitio con alias para técnicos y clientes, ver D4); los servicios nunca se borran.
 - OpenAPI: se usan DTO con `class-validator` y el plugin CLI de `@nestjs/swagger`. `npm run openapi:export` crea la app sin escuchar (el pool de `pg` conecta en forma diferida) y escribe `api/openapi.json`, que se versiona. En `app/`, `npm run gen:api` corre `openapi-typescript ../api/openapi.json -o src/shared/api/schema.d.ts`. El cliente en tiempo de ejecución es `openapi-fetch`.
 
+### D6.1 Convenciones de contrato de la API
+
+- Los cuerpos de solicitud y de respuesta usan `snake_case`; los parámetros de consulta usan `camelCase` (por ejemplo `excludeAppointmentId` y `preferredTechnicianId` en `GET /slots`).
+- `DELETE /technicians/:id` responde 200 con el resultado (reasignaciones y técnico), porque la supresión de un técnico puede llevar reasignaciones. `DELETE /customers/:id` responde 204 porque no tiene resultado que devolver. La asimetría queda registrada en `debts.md`.
+- Precios: la interfaz los muestra en pesos colombianos (COP). Es un supuesto del sprint 1; los specs no definen moneda y la base guarda `price numeric(12,2)` sin código de moneda.
+
 ### D7. Pruebas
 
 | Proyecto | Runner | Capas |

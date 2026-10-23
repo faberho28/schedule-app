@@ -100,7 +100,7 @@ Al completar una cita de un cliente con consentimiento otorgado y cuyo servicio 
 
 ### Requirement: Corrección del cierre
 
-El sistema MUST permitir corregir el cierre de una cita entre `completed` y `no_show`, devolver una cita cerrada (`completed` o `no_show`) a `confirmed` con confirmación reforzada (la API MUST rechazar con 422 la solicitud sin la bandera de confirmación), y corregir su fecha de completado. Toda corrección y reapertura MUST registrar quién, cuándo y por qué. Al devolver una cita a `confirmed`, el seguimiento asociado MUST anularse, MUST limpiarse la información de cierre (fecha de completado, marca y motivo de cierre anticipado) y el bloque de tiempo de la cita MUST seguir ocupado sin cambios. Al corregir de `completed` a `no_show`, el seguimiento asociado MUST anularse. Al corregir la fecha de completado, el seguimiento pendiente MUST recalcularse. Al corregir de `no_show` a `completed`, MUST aplicarse la regla de seguimiento al completar. La corrección MUST NOT dejar más de un seguimiento activo para la cita.
+El sistema MUST permitir corregir el cierre de una cita entre `completed` y `no_show`, devolver una cita cerrada (`completed` o `no_show`) a `confirmed` con confirmación reforzada (la API MUST rechazar con 422 la solicitud sin la bandera de confirmación), y corregir su fecha de completado. Toda corrección y reapertura MUST registrar quién, cuándo y por qué. Toda corrección (cambio entre `completed` y `no_show`, cambio de fecha de completado y devolución a `confirmed`) MUST incluir un motivo; si falta, la API MUST responder 422 con `correction_reason_required` y no cambiar nada. Al devolver una cita a `confirmed`, el seguimiento asociado MUST anularse, MUST limpiarse la información de cierre (fecha de completado, marca y motivo de cierre anticipado) y el bloque de tiempo de la cita MUST seguir ocupado sin cambios. Al corregir de `completed` a `no_show`, el seguimiento asociado MUST anularse. Al corregir la fecha de completado, el seguimiento pendiente MUST recalcularse. Al corregir de `no_show` a `completed`, MUST aplicarse la regla de seguimiento al completar. La corrección MUST NOT dejar más de un seguimiento activo para la cita.
 
 #### Scenario: De completada a no asistió
 
@@ -137,6 +137,12 @@ El sistema MUST permitir corregir el cierre de una cita entre `completed` y `no_
 - GIVEN una cita `no_show` de cliente con consentimiento y servicio con intervalo
 - WHEN el dueño corrige a `completed`
 - THEN se crea exactamente un seguimiento pendiente
+
+#### Scenario: Corrección sin motivo
+
+- GIVEN una cita `completed` con seguimiento pendiente
+- WHEN el dueño intenta corregirla a `no_show` sin motivo
+- THEN la API responde 422 con `correction_reason_required`, la cita sigue `completed` y el seguimiento pendiente no cambia
 
 ### Requirement: Citas canceladas no se reabren
 
