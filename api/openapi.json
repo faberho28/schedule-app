@@ -1423,6 +1423,49 @@
           }
         },
         "type": "object"
+      },
+      "VisibleHours": {
+        "description": "Horas visibles de la grilla por día, derivadas de la disponibilidad semanal menos los días libres de los técnicos pedidos.",
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/VisibleHoursDay"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "days"
+        ],
+        "type": "object"
+      },
+      "VisibleHoursDay": {
+        "description": "Horas de trabajo de un día local: minutos de pared desde la medianoche (0 a 1440). Ambos son nulos si ningún técnico pedido trabaja ese día.",
+        "properties": {
+          "date": {
+            "example": "2026-11-02",
+            "format": "date",
+            "type": "string"
+          },
+          "end_minute": {
+            "maximum": 1440,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "start_minute": {
+            "maximum": 1440,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "start_minute",
+          "end_minute"
+        ],
+        "type": "object"
       }
     }
   },
@@ -1434,6 +1477,116 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/agenda/visible-hours": {
+      "get": {
+        "description": "Solo lectura. Para cada día local del rango (ambos extremos incluidos, hasta 62 días) devuelve el menor inicio y el mayor fin de trabajo, en minutos de pared desde la medianoche del negocio, entre los técnicos pedidos (hasta 10): su disponibilidad semanal menos los días libres. Un día en que ninguno trabaja devuelve `start_minute` y `end_minute` nulos. Los ids desconocidos, de otro negocio, inactivos o anonimizados se ignoran. El redondeo a horas completas y el rango por defecto los resuelve la interfaz.",
+        "operationId": "Agenda_visibleHours",
+        "parameters": [
+          {
+            "description": "Primer día local.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "example": "2026-11-02",
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Último día local, incluido. El rango admite hasta 62 días.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "example": "2026-11-08",
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Técnicos a considerar; el parámetro se repite por cada uno (hasta 10). Los ids desconocidos o no reservables se ignoran.",
+            "in": "query",
+            "name": "technicianIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 10,
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisibleHours"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "validation_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: validation_error."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Consultar las horas visibles de la grilla de la agenda",
+        "tags": [
+          "Agenda"
+        ]
+      }
+    },
     "/appointments": {
       "get": {
         "description": "Ambos días se incluyen y el rango admite hasta 62 días. Las citas canceladas se incluyen con su estado.",

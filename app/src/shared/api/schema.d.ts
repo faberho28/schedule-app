@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+  '/agenda/visible-hours': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar las horas visibles de la grilla de la agenda
+     * @description Solo lectura. Para cada día local del rango (ambos extremos incluidos, hasta 62 días) devuelve el menor inicio y el mayor fin de trabajo, en minutos de pared desde la medianoche del negocio, entre los técnicos pedidos (hasta 10): su disponibilidad semanal menos los días libres. Un día en que ninguno trabaja devuelve `start_minute` y `end_minute` nulos. Los ids desconocidos, de otro negocio, inactivos o anonimizados se ignoran. El redondeo a horas completas y el rango por defecto los resuelve la interfaz.
+     */
+    get: operations['Agenda_visibleHours'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/appointments': {
     parameters: {
       query?: never;
@@ -975,6 +995,20 @@ export interface components {
       /** @description `null` borra el teléfono. */
       phone?: string | null;
     };
+    /** @description Horas visibles de la grilla por día, derivadas de la disponibilidad semanal menos los días libres de los técnicos pedidos. */
+    VisibleHours: {
+      days: components['schemas']['VisibleHoursDay'][];
+    };
+    /** @description Horas de trabajo de un día local: minutos de pared desde la medianoche (0 a 1440). Ambos son nulos si ningún técnico pedido trabaja ese día. */
+    VisibleHoursDay: {
+      /**
+       * Format: date
+       * @example 2026-11-02
+       */
+      date: string;
+      end_minute: number | null;
+      start_minute: number | null;
+    };
   };
   responses: never;
   parameters: never;
@@ -984,6 +1018,56 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  Agenda_visibleHours: {
+    parameters: {
+      query: {
+        /** @description Primer día local. */
+        from: string;
+        /** @description Último día local, incluido. El rango admite hasta 62 días. */
+        to: string;
+        /** @description Técnicos a considerar; el parámetro se repite por cada uno (hasta 10). Los ids desconocidos o no reservables se ignoran. */
+        technicianIds?: string[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VisibleHours'];
+        };
+      };
+      /** @description Códigos posibles: validation_error. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'validation_error';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
   Appointments_list: {
     parameters: {
       query: {

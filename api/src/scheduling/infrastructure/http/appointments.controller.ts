@@ -2,7 +2,6 @@ import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } fr
 import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiProblems, ApiUuidParam } from '../../../shared/http/api-problems';
 import { BusinessContext } from '../../../shared/http/business-context';
-import { ValidationFailedError } from '../../../shared/http/validation';
 import { CancelAppointment } from '../../application/cancel-appointment';
 import { CloseAppointment } from '../../application/close-appointment';
 import { CorrectClosure } from '../../application/correct-closure';
@@ -11,7 +10,7 @@ import { ListFreeTechnicians } from '../../application/list-free-technicians';
 import { MoveAppointment } from '../../application/move-appointment';
 import { QueryAppointments } from '../../application/query-appointments';
 import { ReassignAppointment } from '../../application/reassign-appointment';
-import { addDays } from '../../domain/time/zoned-clock';
+import { assertAgendaRange } from './agenda-range';
 import { toAppointmentResponse, type AppointmentResponse } from './appointment-response';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CloseAppointmentDto } from './dto/close-appointment.dto';
@@ -45,16 +44,7 @@ export class AppointmentsController {
   @ApiOkResponse({ type: [AppointmentSchema] })
   @ApiProblems(['validation_error'])
   async list(@Query() query: ListAppointmentsQueryDto): Promise<AppointmentResponse[]> {
-    if (query.to < query.from) {
-      throw new ValidationFailedError([
-        { field: 'to', messages: ['to no puede ser anterior a from'] },
-      ]);
-    }
-    if (query.to > addDays(query.from, MAX_AGENDA_DAYS - 1)) {
-      throw new ValidationFailedError([
-        { field: 'to', messages: [`El rango admite hasta ${MAX_AGENDA_DAYS} días`] },
-      ]);
-    }
+    assertAgendaRange(query);
     const views = await this.queries.list(this.context.businessId, query);
     return views.map(toAppointmentResponse);
   }

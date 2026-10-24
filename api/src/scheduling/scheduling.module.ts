@@ -6,6 +6,7 @@ import { CancelAppointment } from './application/cancel-appointment';
 import { CloseAppointment } from './application/close-appointment';
 import { CorrectClosure } from './application/correct-closure';
 import { CreateAppointment } from './application/create-appointment';
+import { GetVisibleHours } from './application/get-visible-hours';
 import { ListFreeTechnicians } from './application/list-free-technicians';
 import { ListSlots } from './application/list-slots';
 import { MoveAppointment } from './application/move-appointment';
@@ -16,6 +17,7 @@ import { RegisterConsent } from './application/register-consent';
 import { CLOCK, COMMAND_EXECUTOR, READ_PORTS } from './application/tokens';
 import type { Clock } from './domain/model/clock';
 import type { CommandExecutor, SchedulingPorts } from './domain/ports/command-executor';
+import { AgendaController } from './infrastructure/http/agenda.controller';
 import { AppointmentsController } from './infrastructure/http/appointments.controller';
 import { ScheduleChangesController } from './infrastructure/http/schedule-changes.controller';
 import { SlotsController } from './infrastructure/http/slots.controller';
@@ -28,7 +30,12 @@ import { SystemClock } from './infrastructure/system-clock';
  * Nest; este módulo lo conecta con los adaptadores de Kysely, el reloj y los controladores.
  */
 @Module({
-  controllers: [SlotsController, AppointmentsController, ScheduleChangesController],
+  controllers: [
+    SlotsController,
+    AppointmentsController,
+    AgendaController,
+    ScheduleChangesController,
+  ],
   providers: [
     { provide: CLOCK, useClass: SystemClock },
     { provide: COMMAND_EXECUTOR, useExisting: BusinessLockExecutor },
@@ -51,6 +58,11 @@ import { SystemClock } from './infrastructure/system-clock';
     {
       provide: ListFreeTechnicians,
       useFactory: (ports: SchedulingPorts) => new ListFreeTechnicians(ports),
+      inject: [READ_PORTS],
+    },
+    {
+      provide: GetVisibleHours,
+      useFactory: (ports: SchedulingPorts) => new GetVisibleHours(ports),
       inject: [READ_PORTS],
     },
     {

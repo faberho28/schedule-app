@@ -12,6 +12,7 @@ import type {
 import type { CustomerView } from '../modules/customers/customers.repository';
 import type { ServiceUpdateResult } from '../modules/services/services.service';
 import type { FreeTechnician } from '../scheduling/application/list-free-technicians';
+import type { VisibleHoursResponse } from '../scheduling/infrastructure/http/agenda.controller';
 import type { AppointmentResponse } from '../scheduling/infrastructure/http/appointment-response';
 import type { SlotListingResponse } from '../scheduling/infrastructure/http/slots.controller';
 import type {
@@ -41,6 +42,7 @@ import type {
   ScheduleChangeApplySchema,
   SchedulePreviewSchema,
   SlotListingSchema,
+  VisibleHoursSchema,
 } from '../scheduling/infrastructure/http/dto/responses.schema';
 
 type Operation = {
@@ -84,6 +86,7 @@ const EXPECTED_OPERATIONS = [
   'POST /appointments',
   'GET /appointments/{id}',
   'GET /appointments/{id}/free-technicians',
+  'GET /agenda/visible-hours',
   'POST /appointments/{id}/cancel',
   'POST /appointments/{id}/close',
   'POST /appointments/{id}/correct-closure',
@@ -236,6 +239,12 @@ describe('solicitudes y respuestas', () => {
     const range = (operation('GET /appointments').parameters ?? []).map((p) => p.name).sort();
     expect(range).toEqual(['from', 'to']);
 
+    const visibleHours = operation('GET /agenda/visible-hours').parameters ?? [];
+    expect(visibleHours.map((p) => p.name).sort()).toEqual(['from', 'technicianIds', 'to']);
+    expect(visibleHours.every((p) => p.in === 'query')).toBe(true);
+    expect(visibleHours.find((p) => p.name === 'technicianIds')?.required).not.toBe(true);
+    expect(visibleHours.find((p) => p.name === 'from')?.required).toBe(true);
+
     const customers = (operation('GET /customers').parameters ?? []).map((p) => p.name).sort();
     expect(customers).toEqual(['includeAnonymized', 'search']);
 
@@ -248,6 +257,14 @@ describe('solicitudes y respuestas', () => {
     expect(listing.required).toEqual(expect.arrayContaining(['slots', 'has_availability']));
     expect(listing.properties.has_availability.type).toBe('boolean');
     expect(listing.properties.slots.type).toBe('array');
+
+    const visibleHoursDays = schemas()['VisibleHours'].properties.days;
+    expect(visibleHoursDays.type).toBe('array');
+    expect(Object.keys(schemas()['VisibleHoursDay'].properties).sort()).toEqual([
+      'date',
+      'end_minute',
+      'start_minute',
+    ]);
 
     const arrays = [
       'GET /services',
@@ -410,6 +427,7 @@ describe('errores problem+json', () => {
     ['GET /appointments/{id}/free-technicians', 404, ['not_found']],
     ['GET /appointments/{id}/free-technicians', 422, ['invalid_transition']],
     ['GET /slots', 400, ['validation_error']],
+    ['GET /agenda/visible-hours', 400, ['validation_error']],
   ])('%s responde %i con %j', (key, status, codes) => {
     expect(problemCodes(key, status)).toEqual(codes);
   });
@@ -516,6 +534,7 @@ describe('tipos de respuesta alineados con los controladores', () => {
     assertSame<AppointmentResponse, AppointmentSchema>();
     assertSame<SlotListingResponse, SlotListingSchema>();
     assertSame<FreeTechnician[], FreeTechnicianSchema[]>();
+    assertSame<VisibleHoursResponse, VisibleHoursSchema>();
     assertSame<ReturnType<typeof toPreviewResponse>, SchedulePreviewSchema>();
     assertSame<ReturnType<typeof toApplyResponse>, ScheduleChangeApplySchema>();
     assertSame<CustomerDetailSchema, CustomerSchema & { appointments: AppointmentSchema[] }>();

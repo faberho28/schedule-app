@@ -225,6 +225,7 @@ Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos)
 | `GET /appointments`                      | Citas de cualquier estado con técnico, cliente y servicio. Consulta: `from` y `to` (días locales, ambos incluidos, hasta 62 días), ordenadas por inicio.                                                            |
 | `GET /appointments/:id`                  | Detalle de una cita (404 si no existe en el negocio).                                                                                                                                                               |
 | `GET /appointments/:id/free-technicians` | Técnicos libres en el horario exacto de una cita `pending` o `confirmed` (200, `[{ id, name }]`). Solo lectura. Ver "Técnicos libres para una cita".                                                                |
+| `GET /agenda/visible-hours`              | Horas de trabajo por día para la grilla (200, `{ days: [{ date, start_minute, end_minute }] }`). Consulta: `from`, `to` y `technicianIds` repetido. Solo lectura. Ver "Horas visibles de la agenda".                |
 
 Cada cupo de `GET /slots` es `{ starts_at, ends_at, occupied_until, technician_id, available_technician_ids }`: un inicio aparece una sola vez con el técnico asignado, y `available_technician_ids` (por antigüedad) alimenta la reasignación manual. Sin técnicos, con un servicio inactivo o sin huecos, `slots` es `[]` y `has_availability` es `false`. Los instantes se devuelven en ISO 8601 UTC.
 
@@ -293,6 +294,16 @@ COMMIT
 - **Errores.** Una cita inexistente o de otro negocio responde `not_found` (404). Una cita `cancelled`, `completed` o `no_show` responde `invalid_transition` (422), igual que reasignar. No hay códigos nuevos.
 - **Sin bloqueo.** `ListFreeTechnicians` lee con `READ_PORTS` y no toma el bloqueo del negocio: la lista es una foto del momento. Si otro cliente ocupa al técnico elegido antes de confirmar, `POST /appointments/:id/reassign` responde `slot_taken` (409) y el diálogo debe volver a pedir la lista.
 - **Paridad.** `appointment-fit.ts` arma el `AppointmentFit` (inicio, duración real y buffer congelado) para los dos casos de uso. `free-technicians.http.int-spec.ts` recorre técnicos ocupados, fuera de turno, con día libre, con buffer, con vecinos `completed`, `no_show` y `cancelled`, desactivados y eliminados, y comprueba que el conjunto devuelto es exactamente aquel para el que reasignar responde 200.
+
+### Horas visibles de la agenda
+
+`GET /agenda/visible-hours?from=YYYY-MM-DD&to=YYYY-MM-DD&technicianIds=<uuid>&technicianIds=<uuid>` responde `{ days: [{ date, start_minute, end_minute }] }` con un registro por día local del rango. La grilla de escritorio lo usa para elegir sus horas con una sola solicitud en lugar de una por técnico.
+
+- **Cálculo.** Para cada día, `visibleMinutesOn` toma `workingRangesOn` (disponibilidad semanal menos días libres) de los técnicos pedidos y devuelve el menor inicio y el mayor fin, en minutos de pared desde la medianoche local del negocio (0 a 1440). `minuteOfDay` vive en `zoned-clock.ts`, el único archivo del dominio que importa Luxon. Un tramo que llega a la medianoche del día siguiente vale 1440. En los días de 23 y 25 horas cuenta la hora de pared, no las horas transcurridas.
+- **Día sin trabajo.** Si ninguno de los técnicos pedidos trabaja ese día (sin franja, o con días libres que cubren todas), `start_minute` y `end_minute` son `null`. La interfaz redondea el inicio hacia abajo y el fin hacia arriba a horas completas, amplía el rango para incluir los servicios visibles y usa 07:00-19:00 cuando todos los días son `null`.
+- **Validación.** `from` y `to` son fechas locales válidas, ambas incluidas, con `from <= to` y hasta 62 días. `technicianIds` es opcional, admite hasta 10 UUID y acepta ids repetidos. Cualquier incumplimiento responde `validation_error` (400). Sin `technicianIds` todos los días salen en `null`.
+- **Aislamiento.** Solo cuentan técnicos activos y no anonimizados del negocio de la sesión (`listBookableTechnicians`). Los ids desconocidos, de otro negocio, desactivados o anonimizados se ignoran sin error y no revelan si existen.
+- **Solo lectura.** `GetVisibleHours` lee con `READ_PORTS`, sin bloqueo del negocio y sin escribir. No hay códigos de error nuevos.
 
 ### Códigos de error del flujo
 

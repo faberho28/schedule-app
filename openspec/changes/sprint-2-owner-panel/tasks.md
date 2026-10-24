@@ -81,12 +81,12 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 3: Horas visibles de la grilla (commit 3)
 
-- [ ] 3.1 `minuteOfDay(instant, day, tz)` en `zoned-clock.ts` (Luxon sigue importándose solo allí). Área: `api/src/scheduling/domain/time/zoned-clock.ts`, `zoned-clock.spec.ts`. Spec: AU-R9. Verif: RED, 08:00 en `America/Bogota` da 480; día de 23 y de 25 horas en `America/New_York`; valores de 0 a 1440.
-- [ ] 3.2 Función pura `visibleMinutesOn(technicians, day, tz)`. Área: `api/src/scheduling/domain/services/visible-hours.ts`, `visible-hours.spec.ts` (a crear). Spec: AU-R9. Verif: RED, mínimo inicio y máximo fin; un día libre que cubre el inicio de la mañana acorta el rango; día libre total o nadie trabaja da `null`.
-- [ ] 3.3 Caso de uso `GetVisibleHours` (filtra `listBookableTechnicians` por los ids pedidos; ignora ids desconocidos o no reservables sin error). Área: `api/src/scheduling/application/get-visible-hours.ts`. Spec: AU-R9. Verif: RED con puertos falsos.
-- [ ] 3.4 Ruta `GET /agenda/visible-hours?from&to&technicianIds=...` en `AgendaController` con `VisibleHoursSchema` y validación de más de 10 ids, rango mayor a 62 días y `from > to` como `validation_error`; `technicianIds` repetido. Área: `api/src/scheduling/infrastructure/http/agenda.controller.ts`, `dto/*`, `agenda-visible-hours.http.int-spec.ts` (a crear). Spec: AU-R9. Verif: RED por HTTP: una sola respuesta agregada, 11 ids rechazados, 63 días rechazados, ids repetidos aceptados, aislamiento por negocio, sin cambios en la base.
-- [ ] 3.5 Aserción de contrato en `openapi.spec.ts`, regenerar y versionar `openapi.json` y `schema.d.ts`. Área: contrato. Spec: n/a. Verif: `openapi:check` y `gen:api:check` en verde.
-- [ ] 3.6 Documentar la ruta en `api/README.md`. Área: `api/README.md`. Spec: n/a. Verif: manual.
+- [x] 3.1 `minuteOfDay(instant, day, tz)` en `zoned-clock.ts` (Luxon sigue importándose solo allí). Área: `api/src/scheduling/domain/time/zoned-clock.ts`, `zoned-clock.spec.ts`. Spec: AU-R9. Verif: RED, 08:00 en `America/Bogota` da 480; día de 23 y de 25 horas en `America/New_York`; valores de 0 a 1440.
+- [x] 3.2 Función pura `visibleMinutesOn(technicians, day, tz)`. Área: `api/src/scheduling/domain/services/visible-hours.ts`, `visible-hours.spec.ts` (a crear). Spec: AU-R9. Verif: RED, mínimo inicio y máximo fin; un día libre que cubre el inicio de la mañana acorta el rango; día libre total o nadie trabaja da `null`.
+- [x] 3.3 Caso de uso `GetVisibleHours` (filtra `listBookableTechnicians` por los ids pedidos; ignora ids desconocidos o no reservables sin error). Área: `api/src/scheduling/application/get-visible-hours.ts`. Spec: AU-R9. Verif: RED con puertos falsos.
+- [x] 3.4 Ruta `GET /agenda/visible-hours?from&to&technicianIds=...` en `AgendaController` con `VisibleHoursSchema` y validación de más de 10 ids, rango mayor a 62 días y `from > to` como `validation_error`; `technicianIds` repetido. Área: `api/src/scheduling/infrastructure/http/agenda.controller.ts`, `dto/*`, `agenda-visible-hours.http.int-spec.ts` (a crear). Spec: AU-R9. Verif: RED por HTTP: una sola respuesta agregada, 11 ids rechazados, 63 días rechazados, ids repetidos aceptados, aislamiento por negocio, sin cambios en la base.
+- [x] 3.5 Aserción de contrato en `openapi.spec.ts`, regenerar y versionar `openapi.json` y `schema.d.ts`. Área: contrato. Spec: n/a. Verif: `openapi:check` y `gen:api:check` en verde.
+- [x] 3.6 Documentar la ruta en `api/README.md`. Área: `api/README.md`. Spec: n/a. Verif: manual.
 
 ## Fase 4: Resumen del Panel y servicios por cerrar (commit 4)
 

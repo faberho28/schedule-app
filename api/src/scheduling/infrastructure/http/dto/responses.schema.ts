@@ -135,6 +135,32 @@ export class SlotListingSchema {
 }
 
 @ApiSchema({
+  name: 'VisibleHoursDay',
+  description:
+    'Horas de trabajo de un día local: minutos de pared desde la medianoche (0 a 1440). Ambos son nulos si ningún técnico pedido trabaja ese día.',
+})
+export class VisibleHoursDaySchema {
+  @ApiProperty({ type: String, format: 'date', example: '2026-11-02' })
+  date!: string;
+
+  @ApiProperty({ type: 'integer', nullable: true, minimum: 0, maximum: 1440 })
+  start_minute!: number | null;
+
+  @ApiProperty({ type: 'integer', nullable: true, minimum: 0, maximum: 1440 })
+  end_minute!: number | null;
+}
+
+@ApiSchema({
+  name: 'VisibleHours',
+  description:
+    'Horas visibles de la grilla por día, derivadas de la disponibilidad semanal menos los días libres de los técnicos pedidos.',
+})
+export class VisibleHoursSchema {
+  @ApiProperty({ type: () => [VisibleHoursDaySchema] })
+  days!: VisibleHoursDaySchema[];
+}
+
+@ApiSchema({
   name: 'FreeTechnician',
   description: 'Técnico libre en el horario exacto de una cita.',
 })
