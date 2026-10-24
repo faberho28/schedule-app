@@ -226,6 +226,8 @@ Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos)
 | `GET /appointments/:id`                  | Detalle de una cita (404 si no existe en el negocio).                                                                                                                                                               |
 | `GET /appointments/:id/free-technicians` | Técnicos libres en el horario exacto de una cita `pending` o `confirmed` (200, `[{ id, name }]`). Solo lectura. Ver "Técnicos libres para una cita".                                                                |
 | `GET /agenda/visible-hours`              | Horas de trabajo por día para la grilla (200, `{ days: [{ date, start_minute, end_minute }] }`). Consulta: `from`, `to` y `technicianIds` repetido. Solo lectura. Ver "Horas visibles de la agenda".                |
+| `GET /agenda/to-close`                   | Servicios `confirmed` con inicio pasado y sin cerrar (200, `{ items, total }`, hasta 200 por antigüedad). Solo lectura. Ver "Resumen del Panel de control y servicios por cerrar".                                  |
+| `GET /dashboard/summary`                 | Tarjetas y lista "Servicios de hoy" del Panel (200). Solo lectura. Ver "Resumen del Panel de control y servicios por cerrar".                                                                                       |
 
 Cada cupo de `GET /slots` es `{ starts_at, ends_at, occupied_until, technician_id, available_technician_ids }`: un inicio aparece una sola vez con el técnico asignado, y `available_technician_ids` (por antigüedad) alimenta la reasignación manual. Sin técnicos, con un servicio inactivo o sin huecos, `slots` es `[]` y `has_availability` es `false`. Los instantes se devuelven en ISO 8601 UTC.
 
@@ -304,6 +306,41 @@ COMMIT
 - **Validación.** `from` y `to` son fechas locales válidas, ambas incluidas, con `from <= to` y hasta 62 días. `technicianIds` es opcional, admite hasta 10 UUID y acepta ids repetidos. Cualquier incumplimiento responde `validation_error` (400). Sin `technicianIds` todos los días salen en `null`.
 - **Aislamiento.** Solo cuentan técnicos activos y no anonimizados del negocio de la sesión (`listBookableTechnicians`). Los ids desconocidos, de otro negocio, desactivados o anonimizados se ignoran sin error y no revelan si existen.
 - **Solo lectura.** `GetVisibleHours` lee con `READ_PORTS`, sin bloqueo del negocio y sin escribir. No hay códigos de error nuevos.
+
+### Resumen del Panel de control y servicios por cerrar
+
+`GET /dashboard/summary` (sin parámetros) responde, para "ahora" en la zona del negocio:
+
+```json
+{
+  "today": "2026-10-24",
+  "services_today": 4,
+  "active_technicians": { "working": 2, "total": 3 },
+  "efficiency": { "rate": 0.2, "completed": 1, "due": 5, "from": "2026-09-25" },
+  "pending_to_close": 2,
+  "remaining_today": [
+    {
+      "id": "…",
+      "status": "confirmed",
+      "starts_at": "…",
+      "ends_at": "…",
+      "customer": {},
+      "service": {},
+      "technician": {}
+    }
+  ]
+}
+```
+
+`GET /agenda/to-close` responde `{ items: Appointment[], total }`. Ambas rutas son de solo lectura, filtran por el negocio de la sesión y no agregan códigos de error.
+
+- **Hoy y ventana.** `today` es el día local del negocio (`localDateOf` con `CLOCK`), de 00:00 a 24:00 local aunque dure 23 o 25 horas. La ventana de eficiencia son 30 días calendario locales que incluyen hoy: `[00:00 local de hoy - 29 días, ahora)`. No se resta 720 horas, de modo que el cambio de horario no la desplaza. `efficiency.from` es la fecha de corte (2026-09-25 si hoy es 2026-10-24) y `today` evita que la interfaz use el reloj del navegador.
+- **Servicios hoy.** Servicios de hoy en cualquier estado salvo `cancelled` (`servicesToday`).
+- **Técnicos activos X/Y.** Y son los técnicos activos y no anonimizados. X son los que tienen turno hoy (`workingRangesOn` no vacío): la disponibilidad semanal cubre el día de la semana y ningún día libre cubre todo su turno. Un día libre igual o mayor que el turno lo saca de X; uno parcial no; sin disponibilidad hoy no cuenta en X.
+- **Eficiencia.** `completed / due`, con `due` igual a los servicios no cancelados de la ventana cuyo inicio ya pasó (incluye `no_show` y los sin cerrar). `rate` es una fracción de 0 a 1, o `null` si `due` es 0; la interfaz redondea el porcentaje y muestra "Sin datos".
+- **Pendientes y por cerrar.** Solo `confirmed` con inicio anterior a ahora y sin cerrar, de cualquier fecha (`TO_CLOSE_STATUSES`); `pending` no cuenta. La tarjeta (`pending_to_close`) cuenta todos y `to-close` devuelve los 200 más antiguos primero con `total` igual a ese conteo. Un servicio que empezó hace un minuto ya cuenta.
+- **Lista de hoy.** `remaining_today` son los `pending` y `confirmed` de hoy (iniciados sin cerrar y por empezar), por inicio y luego por nombre del técnico. Cada fila trae solo hora, estado, cliente, servicio y técnico: sin teléfono, dirección ni notas. Hasta la fase 5 un cliente anonimizado aparece con su alias como nombre.
+- **Capas.** Las reglas son funciones puras en `dashboard-kpis.ts` y los límites de tiempo salen de `zoned-clock`. El puerto `AgendaReadModel` (token `AGENDA_READ_MODEL`, fuera de `SchedulingPorts`) solo cuenta por estado y rango; `AppointmentRepository.listStartedBefore` devuelve la lista acotada y el total.
 
 ### Códigos de error del flujo
 

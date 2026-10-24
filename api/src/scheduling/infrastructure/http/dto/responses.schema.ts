@@ -161,6 +161,170 @@ export class VisibleHoursSchema {
 }
 
 @ApiSchema({
+  name: 'ToCloseList',
+  description:
+    'Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha: los 200 más antiguos primero y el total completo.',
+})
+export class ToCloseListSchema {
+  @ApiProperty({
+    type: () => [AppointmentSchema],
+    description: 'Hasta 200, el más antiguo primero.',
+  })
+  items!: AppointmentSchema[];
+
+  @ApiProperty({
+    type: 'integer',
+    minimum: 0,
+    description: 'Cantidad completa por cerrar; es el número de la tarjeta "Servicios pendientes".',
+  })
+  total!: number;
+}
+
+@ApiSchema({
+  name: 'PartyRef',
+  description:
+    'Referencia mínima a un técnico o cliente. Si fue anonimizado, `name` es nulo y se muestra `alias`.',
+})
+export class PartyRefSchema {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  name!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  alias!: string | null;
+}
+
+@ApiSchema({
+  name: 'AppointmentSummary',
+  description:
+    'Fila de la lista "Servicios de hoy": solo hora, estado, cliente, tipo de servicio y técnico. No incluye teléfono, dirección ni notas.',
+})
+export class AppointmentSummarySchema {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ enum: APPOINTMENT_STATUSES })
+  status!: AppointmentStatus;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  starts_at!: string;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  ends_at!: string;
+
+  @ApiProperty({ type: () => PartyRefSchema })
+  customer!: PartyRefSchema;
+
+  @ApiProperty({ type: () => ServiceRefSchema })
+  service!: ServiceRefSchema;
+
+  @ApiProperty({ type: () => PartyRefSchema })
+  technician!: PartyRefSchema;
+}
+
+@ApiSchema({
+  name: 'DashboardActiveTechnicians',
+  description: 'Tarjeta "Técnicos activos X/Y".',
+})
+export class DashboardActiveTechniciansSchema {
+  @ApiProperty({
+    type: 'integer',
+    minimum: 0,
+    description:
+      'X: técnicos activos cuya disponibilidad cubre hoy y que ningún día libre deja sin todo su turno.',
+  })
+  working!: number;
+
+  @ApiProperty({
+    type: 'integer',
+    minimum: 0,
+    description: 'Y: técnicos activos (ni desactivados ni anonimizados).',
+  })
+  total!: number;
+}
+
+@ApiSchema({
+  name: 'DashboardEfficiency',
+  description: 'Tarjeta "Eficiencia de servicios" sobre los últimos 30 días calendario.',
+})
+export class DashboardEfficiencySchema {
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    minimum: 0,
+    maximum: 1,
+    description:
+      'Fracción `completed / due`. Nula si `due` es 0 (la interfaz muestra "Sin datos"); el redondeo a porcentaje lo hace la interfaz.',
+  })
+  rate!: number | null;
+
+  @ApiProperty({ type: 'integer', minimum: 0 })
+  completed!: number;
+
+  @ApiProperty({
+    type: 'integer',
+    minimum: 0,
+    description:
+      'Servicios no cancelados de la ventana cuyo inicio ya pasó (incluye `no_show` y los sin cerrar).',
+  })
+  due!: number;
+
+  @ApiProperty({
+    type: String,
+    format: 'date',
+    example: '2026-09-25',
+    description: 'Fecha de corte: primer día local de la ventana de 30 días que incluye hoy.',
+  })
+  from!: string;
+}
+
+@ApiSchema({
+  name: 'DashboardSummary',
+  description:
+    'Resumen del Panel de control calculado para "ahora" en la zona horaria del negocio.',
+})
+export class DashboardSummarySchema {
+  @ApiProperty({
+    type: String,
+    format: 'date',
+    example: '2026-10-24',
+    description:
+      'Día local del negocio; la interfaz no debe calcular "hoy" con el reloj del navegador.',
+  })
+  today!: string;
+
+  @ApiProperty({
+    type: 'integer',
+    minimum: 0,
+    description: 'Servicios de hoy en cualquier estado excepto `cancelled`.',
+  })
+  services_today!: number;
+
+  @ApiProperty({ type: () => DashboardActiveTechniciansSchema })
+  active_technicians!: DashboardActiveTechniciansSchema;
+
+  @ApiProperty({ type: () => DashboardEfficiencySchema })
+  efficiency!: DashboardEfficiencySchema;
+
+  @ApiProperty({
+    type: 'integer',
+    minimum: 0,
+    description:
+      'Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha. Igual a `total` de `GET /agenda/to-close`.',
+  })
+  pending_to_close!: number;
+
+  @ApiProperty({
+    type: () => [AppointmentSummarySchema],
+    description:
+      'Servicios `pending` y `confirmed` de hoy, por hora de inicio y luego por técnico.',
+  })
+  remaining_today!: AppointmentSummarySchema[];
+}
+
+@ApiSchema({
   name: 'FreeTechnician',
   description: 'Técnico libre en el horario exacto de una cita.',
 })

@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+  '/agenda/to-close': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Listar los servicios por cerrar
+     * @description Solo lectura. Servicios `confirmed` cuyo inicio ya pasó y siguen sin cerrar, de cualquier fecha, del más antiguo al más reciente (hasta 200 en `items`). `total` es la cantidad completa y coincide con `pending_to_close` del resumen. Los servicios `pending` no se incluyen.
+     */
+    get: operations['Agenda_toClose'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/agenda/visible-hours': {
     parameters: {
       query?: never;
@@ -264,6 +284,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/dashboard/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar el resumen del Panel de control
+     * @description Solo lectura, sin parámetros. Se calcula para "ahora" en la zona horaria del negocio. Devuelve las cuatro tarjetas y la lista "Servicios de hoy" en una sola respuesta. `today` y `efficiency.from` son días locales del negocio: la interfaz no usa el reloj del navegador. No incluye teléfono, dirección ni notas del cliente.
+     */
+    get: operations['Dashboard_summary'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/services': {
     parameters: {
       query?: never;
@@ -502,6 +542,20 @@ export interface components {
       /** @description Teléfono en formato E.164. */
       phone: string;
     };
+    /** @description Fila de la lista "Servicios de hoy": solo hora, estado, cliente, tipo de servicio y técnico. No incluye teléfono, dirección ni notas. */
+    AppointmentSummary: {
+      customer: components['schemas']['PartyRef'];
+      /** Format: date-time */
+      ends_at: string;
+      /** Format: uuid */
+      id: string;
+      service: components['schemas']['ServiceRef'];
+      /** Format: date-time */
+      starts_at: string;
+      /** @enum {string} */
+      status: 'pending' | 'confirmed' | 'completed' | 'no_show' | 'cancelled';
+      technician: components['schemas']['PartyRef'];
+    };
     /** @description Franja semanal de disponibilidad. */
     AvailabilityWindow: {
       /**
@@ -704,6 +758,44 @@ export interface components {
     CustomerFutureAppointmentsProblemExtension: {
       affected: components['schemas']['Appointment'][];
     };
+    /** @description Tarjeta "Técnicos activos X/Y". */
+    DashboardActiveTechnicians: {
+      /** @description Y: técnicos activos (ni desactivados ni anonimizados). */
+      total: number;
+      /** @description X: técnicos activos cuya disponibilidad cubre hoy y que ningún día libre deja sin todo su turno. */
+      working: number;
+    };
+    /** @description Tarjeta "Eficiencia de servicios" sobre los últimos 30 días calendario. */
+    DashboardEfficiency: {
+      completed: number;
+      /** @description Servicios no cancelados de la ventana cuyo inicio ya pasó (incluye `no_show` y los sin cerrar). */
+      due: number;
+      /**
+       * Format: date
+       * @description Fecha de corte: primer día local de la ventana de 30 días que incluye hoy.
+       * @example 2026-09-25
+       */
+      from: string;
+      /** @description Fracción `completed / due`. Nula si `due` es 0 (la interfaz muestra "Sin datos"); el redondeo a porcentaje lo hace la interfaz. */
+      rate: number | null;
+    };
+    /** @description Resumen del Panel de control calculado para "ahora" en la zona horaria del negocio. */
+    DashboardSummary: {
+      active_technicians: components['schemas']['DashboardActiveTechnicians'];
+      efficiency: components['schemas']['DashboardEfficiency'];
+      /** @description Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha. Igual a `total` de `GET /agenda/to-close`. */
+      pending_to_close: number;
+      /** @description Servicios `pending` y `confirmed` de hoy, por hora de inicio y luego por técnico. */
+      remaining_today: components['schemas']['AppointmentSummary'][];
+      /** @description Servicios de hoy en cualquier estado excepto `cancelled`. */
+      services_today: number;
+      /**
+       * Format: date
+       * @description Día local del negocio; la interfaz no debe calcular "hoy" con el reloj del navegador.
+       * @example 2026-10-24
+       */
+      today: string;
+    };
     /** @description Aviso informativo: las citas futuras conservan la duración anterior. */
     DurationChangeWarning: {
       /** @enum {string} */
@@ -738,6 +830,13 @@ export interface components {
     };
     /** @description Técnico o cliente de una cita. Si fue anonimizado, `name` es nulo y se muestra `alias`. */
     Party: {
+      alias: string | null;
+      /** Format: uuid */
+      id: string;
+      name: string | null;
+    };
+    /** @description Referencia mínima a un técnico o cliente. Si fue anonimizado, `name` es nulo y se muestra `alias`. */
+    PartyRef: {
       alias: string | null;
       /** Format: uuid */
       id: string;
@@ -961,6 +1060,13 @@ export interface components {
       /** Format: date-time */
       starts_at: string;
     };
+    /** @description Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha: los 200 más antiguos primero y el total completo. */
+    ToCloseList: {
+      /** @description Hasta 200, el más antiguo primero. */
+      items: components['schemas']['Appointment'][];
+      /** @description Cantidad completa por cerrar; es el número de la tarjeta "Servicios pendientes". */
+      total: number;
+    };
     UpdateBusinessDto: {
       /**
        * @description Hora local de envío del seguimiento, HH:MM.
@@ -1018,6 +1124,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  Agenda_toClose: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ToCloseList'];
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
   Agenda_visibleHours: {
     parameters: {
       query: {
@@ -2240,6 +2377,49 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'] & {
             /** @enum {string} */
             code?: 'customer_anonymized';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
+  Dashboard_summary: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DashboardSummary'];
+        };
+      };
+      /** @description Códigos posibles: not_found. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'not_found';
           };
         };
       };

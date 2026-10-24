@@ -3,9 +3,13 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiProblems } from '../../../shared/http/api-problems';
 import { BusinessContext } from '../../../shared/http/business-context';
 import { GetVisibleHours } from '../../application/get-visible-hours';
+import { QueryAppointments } from '../../application/query-appointments';
 import { assertAgendaRange } from './agenda-range';
-import { VisibleHoursSchema } from './dto/responses.schema';
+import { toAppointmentResponse, type AppointmentResponse } from './appointment-response';
+import { ToCloseListSchema, VisibleHoursSchema } from './dto/responses.schema';
 import { VisibleHoursQueryDto } from './dto/visible-hours.dto';
+
+export type ToCloseResponse = { items: AppointmentResponse[]; total: number };
 
 export type VisibleHoursResponse = {
   days: { date: string; start_minute: number | null; end_minute: number | null }[];
@@ -17,7 +21,21 @@ export class AgendaController {
   constructor(
     private readonly context: BusinessContext,
     private readonly visibleHoursUseCase: GetVisibleHours,
+    private readonly queryAppointments: QueryAppointments,
   ) {}
+
+  @Get('to-close')
+  @ApiOperation({
+    summary: 'Listar los servicios por cerrar',
+    description:
+      'Solo lectura. Servicios `confirmed` cuyo inicio ya pasó y siguen sin cerrar, de cualquier fecha, del más antiguo al más reciente (hasta 200 en `items`). `total` es la cantidad completa y coincide con `pending_to_close` del resumen. Los servicios `pending` no se incluyen.',
+  })
+  @ApiOkResponse({ type: ToCloseListSchema })
+  @ApiProblems([])
+  async toClose(): Promise<ToCloseResponse> {
+    const { items, total } = await this.queryAppointments.listToClose(this.context.businessId);
+    return { items: items.map(toAppointmentResponse), total };
+  }
 
   @Get('visible-hours')
   @ApiOperation({

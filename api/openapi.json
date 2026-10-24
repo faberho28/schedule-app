@@ -175,6 +175,52 @@
         ],
         "type": "object"
       },
+      "AppointmentSummary": {
+        "description": "Fila de la lista \"Servicios de hoy\": solo hora, estado, cliente, tipo de servicio y técnico. No incluye teléfono, dirección ni notas.",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/PartyRef"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceRef"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "completed",
+              "no_show",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "technician": {
+            "$ref": "#/components/schemas/PartyRef"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "starts_at",
+          "ends_at",
+          "customer",
+          "service",
+          "technician"
+        ],
+        "type": "object"
+      },
       "AvailabilityWindow": {
         "description": "Franja semanal de disponibilidad.",
         "properties": {
@@ -695,6 +741,103 @@
         ],
         "type": "object"
       },
+      "DashboardActiveTechnicians": {
+        "description": "Tarjeta \"Técnicos activos X/Y\".",
+        "properties": {
+          "total": {
+            "description": "Y: técnicos activos (ni desactivados ni anonimizados).",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "working": {
+            "description": "X: técnicos activos cuya disponibilidad cubre hoy y que ningún día libre deja sin todo su turno.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "working",
+          "total"
+        ],
+        "type": "object"
+      },
+      "DashboardEfficiency": {
+        "description": "Tarjeta \"Eficiencia de servicios\" sobre los últimos 30 días calendario.",
+        "properties": {
+          "completed": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "due": {
+            "description": "Servicios no cancelados de la ventana cuyo inicio ya pasó (incluye `no_show` y los sin cerrar).",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "from": {
+            "description": "Fecha de corte: primer día local de la ventana de 30 días que incluye hoy.",
+            "example": "2026-09-25",
+            "format": "date",
+            "type": "string"
+          },
+          "rate": {
+            "description": "Fracción `completed / due`. Nula si `due` es 0 (la interfaz muestra \"Sin datos\"); el redondeo a porcentaje lo hace la interfaz.",
+            "maximum": 1,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "rate",
+          "completed",
+          "due",
+          "from"
+        ],
+        "type": "object"
+      },
+      "DashboardSummary": {
+        "description": "Resumen del Panel de control calculado para \"ahora\" en la zona horaria del negocio.",
+        "properties": {
+          "active_technicians": {
+            "$ref": "#/components/schemas/DashboardActiveTechnicians"
+          },
+          "efficiency": {
+            "$ref": "#/components/schemas/DashboardEfficiency"
+          },
+          "pending_to_close": {
+            "description": "Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha. Igual a `total` de `GET /agenda/to-close`.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "remaining_today": {
+            "description": "Servicios `pending` y `confirmed` de hoy, por hora de inicio y luego por técnico.",
+            "items": {
+              "$ref": "#/components/schemas/AppointmentSummary"
+            },
+            "type": "array"
+          },
+          "services_today": {
+            "description": "Servicios de hoy en cualquier estado excepto `cancelled`.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "today": {
+            "description": "Día local del negocio; la interfaz no debe calcular \"hoy\" con el reloj del navegador.",
+            "example": "2026-10-24",
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "today",
+          "services_today",
+          "active_technicians",
+          "efficiency",
+          "pending_to_close",
+          "remaining_today"
+        ],
+        "type": "object"
+      },
       "DurationChangeWarning": {
         "description": "Aviso informativo: las citas futuras conservan la duración anterior.",
         "properties": {
@@ -782,6 +925,29 @@
       },
       "Party": {
         "description": "Técnico o cliente de una cita. Si fue anonimizado, `name` es nulo y se muestra `alias`.",
+        "properties": {
+          "alias": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "alias"
+        ],
+        "type": "object"
+      },
+      "PartyRef": {
+        "description": "Referencia mínima a un técnico o cliente. Si fue anonimizado, `name` es nulo y se muestra `alias`.",
         "properties": {
           "alias": {
             "nullable": true,
@@ -1339,6 +1505,28 @@
         ],
         "type": "object"
       },
+      "ToCloseList": {
+        "description": "Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha: los 200 más antiguos primero y el total completo.",
+        "properties": {
+          "items": {
+            "description": "Hasta 200, el más antiguo primero.",
+            "items": {
+              "$ref": "#/components/schemas/Appointment"
+            },
+            "type": "array"
+          },
+          "total": {
+            "description": "Cantidad completa por cerrar; es el número de la tarjeta \"Servicios pendientes\".",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "type": "object"
+      },
       "UpdateBusinessDto": {
         "properties": {
           "followup_send_time": {
@@ -1477,6 +1665,54 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/agenda/to-close": {
+      "get": {
+        "description": "Solo lectura. Servicios `confirmed` cuyo inicio ya pasó y siguen sin cerrar, de cualquier fecha, del más antiguo al más reciente (hasta 200 en `items`). `total` es la cantidad completa y coincide con `pending_to_close` del resumen. Los servicios `pending` no se incluyen.",
+        "operationId": "Agenda_toClose",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToCloseList"
+                }
+              }
+            },
+            "description": ""
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar los servicios por cerrar",
+        "tags": [
+          "Agenda"
+        ]
+      }
+    },
     "/agenda/visible-hours": {
       "get": {
         "description": "Solo lectura. Para cada día local del rango (ambos extremos incluidos, hasta 62 días) devuelve el menor inicio y el mayor fin de trabajo, en minutos de pared desde la medianoche del negocio, entre los técnicos pedidos (hasta 10): su disponibilidad semanal menos los días libres. Un día en que ninguno trabaja devuelve `start_minute` y `end_minute` nulos. Los ids desconocidos, de otro negocio, inactivos o anonimizados se ignoran. El redondeo a horas completas y el rango por defecto los resuelve la interfaz.",
@@ -3867,6 +4103,79 @@
         "summary": "Registrar una autorización o su retiro",
         "tags": [
           "Clientes"
+        ]
+      }
+    },
+    "/dashboard/summary": {
+      "get": {
+        "description": "Solo lectura, sin parámetros. Se calcula para \"ahora\" en la zona horaria del negocio. Devuelve las cuatro tarjetas y la lista \"Servicios de hoy\" en una sola respuesta. `today` y `efficiency.from` son días locales del negocio: la interfaz no usa el reloj del navegador. No incluye teléfono, dirección ni notas del cliente.",
+        "operationId": "Dashboard_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummary"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Consultar el resumen del Panel de control",
+        "tags": [
+          "Dashboard"
         ]
       }
     },

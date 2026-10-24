@@ -12,7 +12,11 @@ import type {
 import type { CustomerView } from '../modules/customers/customers.repository';
 import type { ServiceUpdateResult } from '../modules/services/services.service';
 import type { FreeTechnician } from '../scheduling/application/list-free-technicians';
-import type { VisibleHoursResponse } from '../scheduling/infrastructure/http/agenda.controller';
+import type {
+  ToCloseResponse,
+  VisibleHoursResponse,
+} from '../scheduling/infrastructure/http/agenda.controller';
+import type { DashboardSummaryResponse } from '../scheduling/infrastructure/http/dashboard.controller';
 import type { AppointmentResponse } from '../scheduling/infrastructure/http/appointment-response';
 import type { SlotListingResponse } from '../scheduling/infrastructure/http/slots.controller';
 import type {
@@ -38,10 +42,12 @@ import type {
 } from '../modules/technicians/dto/technician.schema';
 import type {
   AppointmentSchema,
+  DashboardSummarySchema,
   FreeTechnicianSchema,
   ScheduleChangeApplySchema,
   SchedulePreviewSchema,
   SlotListingSchema,
+  ToCloseListSchema,
   VisibleHoursSchema,
 } from '../scheduling/infrastructure/http/dto/responses.schema';
 
@@ -87,6 +93,8 @@ const EXPECTED_OPERATIONS = [
   'GET /appointments/{id}',
   'GET /appointments/{id}/free-technicians',
   'GET /agenda/visible-hours',
+  'GET /agenda/to-close',
+  'GET /dashboard/summary',
   'POST /appointments/{id}/cancel',
   'POST /appointments/{id}/close',
   'POST /appointments/{id}/correct-closure',
@@ -266,6 +274,35 @@ describe('solicitudes y respuestas', () => {
       'start_minute',
     ]);
 
+    const toClose = schemas()['ToCloseList'];
+    expect(toClose.required).toEqual(expect.arrayContaining(['items', 'total']));
+    expect(toClose.properties.items.type).toBe('array');
+    expect(toClose.properties.total.type).toBe('integer');
+
+    const dashboard = schemas()['DashboardSummary'];
+    expect(Object.keys(dashboard.properties).sort()).toEqual([
+      'active_technicians',
+      'efficiency',
+      'pending_to_close',
+      'remaining_today',
+      'services_today',
+      'today',
+    ]);
+    expect(dashboard.properties.remaining_today.type).toBe('array');
+    expect(schemas()['DashboardEfficiency'].properties.rate.nullable).toBe(true);
+    expect(Object.keys(schemas()['AppointmentSummary'].properties).sort()).toEqual([
+      'customer',
+      'ends_at',
+      'id',
+      'service',
+      'starts_at',
+      'status',
+      'technician',
+    ]);
+    expect(Object.keys(schemas()['PartyRef'].properties).sort()).toEqual(['alias', 'id', 'name']);
+    expect(operation('GET /dashboard/summary').parameters ?? []).toEqual([]);
+    expect(operation('GET /agenda/to-close').parameters ?? []).toEqual([]);
+
     const arrays = [
       'GET /services',
       'GET /technicians',
@@ -428,6 +465,7 @@ describe('errores problem+json', () => {
     ['GET /appointments/{id}/free-technicians', 422, ['invalid_transition']],
     ['GET /slots', 400, ['validation_error']],
     ['GET /agenda/visible-hours', 400, ['validation_error']],
+    ['GET /dashboard/summary', 404, ['not_found']],
   ])('%s responde %i con %j', (key, status, codes) => {
     expect(problemCodes(key, status)).toEqual(codes);
   });
@@ -535,6 +573,8 @@ describe('tipos de respuesta alineados con los controladores', () => {
     assertSame<SlotListingResponse, SlotListingSchema>();
     assertSame<FreeTechnician[], FreeTechnicianSchema[]>();
     assertSame<VisibleHoursResponse, VisibleHoursSchema>();
+    assertSame<ToCloseResponse, ToCloseListSchema>();
+    assertSame<DashboardSummaryResponse, DashboardSummarySchema>();
     assertSame<ReturnType<typeof toPreviewResponse>, SchedulePreviewSchema>();
     assertSame<ReturnType<typeof toApplyResponse>, ScheduleChangeApplySchema>();
     assertSame<CustomerDetailSchema, CustomerSchema & { appointments: AppointmentSchema[] }>();

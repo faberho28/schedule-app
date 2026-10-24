@@ -266,6 +266,33 @@ export class KyselyAppointmentRepository implements AppointmentRepository {
     return rows.map(toView);
   }
 
+  async listStartedBefore(
+    businessId: string,
+    instant: Instant,
+    statuses: readonly AppointmentStatus[],
+    limit: number,
+  ): Promise<{ items: AppointmentView[]; total: number }> {
+    if (statuses.length === 0) return { items: [], total: 0 };
+    const [rows, count] = await Promise.all([
+      this.viewQuery(businessId)
+        .where('a.status', 'in', [...statuses])
+        .where('a.starts_at', '<', new Date(instant))
+        .orderBy('a.starts_at')
+        .orderBy('a.id')
+        .limit(limit)
+        .execute(),
+      this.db
+        .selectFrom('appointments')
+        .select((eb) => eb.fn.countAll<string>().as('total'))
+        .where('business_id', '=', businessId)
+        .where('deleted_at', 'is', null)
+        .where('status', 'in', [...statuses])
+        .where('starts_at', '<', new Date(instant))
+        .executeTakeFirstOrThrow(),
+    ]);
+    return { items: rows.map(toView), total: Number(count.total) };
+  }
+
   private viewQuery(businessId: string) {
     return viewQuery(this.db, businessId);
   }
