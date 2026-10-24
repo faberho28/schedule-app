@@ -3,6 +3,7 @@ import * as m001 from './001_core_schema';
 import * as m002 from './002_customers_consent';
 import * as m003 from './003_appointments';
 import * as m004 from './004_scheduled_messages';
+import * as m005 from './005_search_and_reads';
 
 /**
  * Registro ordenado de migraciones. Cada módulo exporta `up` y `down` con SQL crudo.
@@ -13,4 +14,5 @@ export const migrations: Record<string, Migration> = {
   '002_customers_consent': m002,
   '003_appointments': m003,
   '004_scheduled_messages': m004,
+  '005_search_and_reads': m005,
 };

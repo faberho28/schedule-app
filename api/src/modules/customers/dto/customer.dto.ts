@@ -157,7 +157,8 @@ export class ListCustomersQueryDto {
 
   @ApiPropertyOptional({
     maxLength: SEARCH_MAX_LENGTH,
-    description: 'Busca por nombre o teléfono.',
+    description:
+      'Busca por nombre (sin distinguir acentos ni mayúsculas) o por dígitos del teléfono.',
   })
   @IsOptional()
   @IsString({ message: 'search debe ser texto' })

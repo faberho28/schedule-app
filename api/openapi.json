@@ -2748,7 +2748,7 @@
             }
           },
           {
-            "description": "Busca por nombre o teléfono.",
+            "description": "Busca por nombre (sin distinguir acentos ni mayúsculas) o por dígitos del teléfono.",
             "in": "query",
             "name": "search",
             "required": false,

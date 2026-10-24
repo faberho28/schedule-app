@@ -80,6 +80,15 @@ Para agregar una migración: crear `src/database/migrations/NNN_nombre.ts` con `
 | `002_customers_consent`  | `customers`, `consent_events` (solo inserción) y la función `audit_rows_append_only`                |
 | `003_appointments`       | `appointments` (con `appointments_no_overlap`) y `appointment_closures` (solo inserción)            |
 | `004_scheduled_messages` | `scheduled_messages`, unicidad de seguimientos y trigger de consentimiento                          |
+| `005_search_and_reads`   | Extensiones `unaccent` y `pg_trgm`, `immutable_unaccent` e índices de búsqueda y de citas por fecha |
+
+La migración 005 no modifica datos. Su `down` borra los índices, la función y las extensiones en orden inverso.
+
+- **Extensiones**: `unaccent` y `pg_trgm` vienen en los módulos `contrib` de la imagen `postgres:16-alpine` (Docker Compose y Testcontainers). Son extensiones _trusted_ desde Postgres 13: las crea el dueño de la base sin ser superusuario.
+- **Permiso en un Postgres administrado**: el usuario que ejecuta `npm run db:migrate` necesita el permiso `CREATE` sobre la base de datos para ejecutar `CREATE EXTENSION`. Si el proveedor no lo concede, hay que crear las dos extensiones una vez con un rol que sí lo tenga y volver a migrar.
+- **`immutable_unaccent(text)`**: envoltura `IMMUTABLE PARALLEL SAFE STRICT` de `unaccent` con el diccionario fijo `public.unaccent`. Hace falta porque `unaccent(text)` es `STABLE` y Postgres no la acepta en un índice.
+- **Índices**: `ix_customers_name_search` (GIN trigram sobre `lower(immutable_unaccent(name))`), `ix_appointments_business_starts (business_id, starts_at)` e `ix_appointments_open_starts`, parcial sobre `pending` y `confirmed`.
+- **`src/database/text-search.ts`**: fragmentos SQL compartidos. `normalizedContains(columna, texto)` compara sin distinguir acentos ni mayúsculas con la misma expresión del índice; `phoneDigitsContain(columna, texto)` busca los dígitos del texto (ignora espacios y guiones) y devuelve `null` si no hay dígitos; `escapeLike` trata `%`, `_` y `\` como texto literal. Es infraestructura: el dominio de `scheduling` no la importa.
 
 Reglas que garantiza la base de datos:
 
@@ -432,15 +441,15 @@ sequenceDiagram
 
 El módulo `src/modules/customers/` expone la ficha (controlador, servicio, repositorio y DTO). El registro de consentimiento y la supresión ejecutan casos de uso de `scheduling` (`RegisterConsent`, `AnonymizeCustomer`) dentro de la transacción que bloquea la fila del negocio (D1). Cuerpos en `snake_case`, consultas en `camelCase`.
 
-| Método y ruta                  | Descripción                                                                                                                      |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /customers`              | Crea un cliente (201) con consentimiento `pending`. `name` y `phone` obligatorios; `address` y `notes` opcionales.               |
-| `GET /customers`               | Lista por nombre. Excluye anonimizados; `?includeAnonymized=true` los suma. `?search=` filtra por nombre o dígitos del teléfono. |
-| `GET /customers/:id`           | Ficha más `appointments`: historial de la más reciente a la más antigua, con snapshots de dirección y precio y técnico o alias.  |
-| `PATCH /customers/:id`         | Edita `name`, `phone`, `address` y `notes` (`null` borra dirección o notas). 409 `customer_anonymized` si está anonimizado.      |
-| `POST /customers/:id/consents` | Registra un evento de consentimiento (201). Ver abajo.                                                                           |
-| `GET /customers/:id/consents`  | Auditoría: tipo, fecha declarada, medio, origen, actor y registro; el más reciente primero.                                      |
-| `DELETE /customers/:id`        | Anonimiza al cliente en sitio (204). Idempotente. 409 `customer_has_future_appointments` si tiene citas futuras activas.         |
+| Método y ruta                  | Descripción                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /customers`              | Crea un cliente (201) con consentimiento `pending`. `name` y `phone` obligatorios; `address` y `notes` opcionales.                                           |
+| `GET /customers`               | Lista por nombre. Excluye anonimizados; `?includeAnonymized=true` los suma. `?search=` filtra por nombre (sin acentos ni mayúsculas) o dígitos del teléfono. |
+| `GET /customers/:id`           | Ficha más `appointments`: historial de la más reciente a la más antigua, con snapshots de dirección y precio y técnico o alias.                              |
+| `PATCH /customers/:id`         | Edita `name`, `phone`, `address` y `notes` (`null` borra dirección o notas). 409 `customer_anonymized` si está anonimizado.                                  |
+| `POST /customers/:id/consents` | Registra un evento de consentimiento (201). Ver abajo.                                                                                                       |
+| `GET /customers/:id/consents`  | Auditoría: tipo, fecha declarada, medio, origen, actor y registro; el más reciente primero.                                                                  |
+| `DELETE /customers/:id`        | Anonimiza al cliente en sitio (204). Idempotente. 409 `customer_has_future_appointments` si tiene citas futuras activas.                                     |
 
 ### Teléfono
 

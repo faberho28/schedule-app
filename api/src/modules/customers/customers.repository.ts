@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
 import { DATABASE, type Database } from '../../database/kysely.provider';
+import { normalizedContains, phoneDigitsContain } from '../../database/text-search';
 import type {
   ConsentKind,
   ConsentMedium,
@@ -52,11 +53,6 @@ const COLUMNS = [
   'created_at',
 ] as const;
 
-/** Escapa `%`, `_` y `\` para que la búsqueda los trate como texto literal. */
-function escapeLike(text: string): string {
-  return text.replace(/[\\%_]/g, (character) => `\\${character}`);
-}
-
 /**
  * Acceso a la ficha del cliente. Todos los métodos reciben el `businessId` y filtran por él. La
  * anonimización y el registro de consentimiento viven en `scheduling` (transacción con bloqueo).
@@ -65,7 +61,7 @@ function escapeLike(text: string): string {
 export class CustomersRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  /** Por defecto excluye a los clientes anonimizados; `search` filtra por nombre o por dígitos del teléfono. */
+  /** Por defecto excluye a los clientes anonimizados; `search` filtra por nombre (sin distinguir acentos ni mayúsculas) o por dígitos del teléfono. */
   async list(businessId: string, options: CustomerListOptions): Promise<CustomerView[]> {
     let query = this.db
       .selectFrom('customers')
@@ -75,13 +71,9 @@ export class CustomersRepository {
 
     const term = options.search?.trim() ?? '';
     if (term.length > 0) {
-      const digits = term.replace(/\D/g, '');
-      // El escape por defecto de LIKE en Postgres es la barra invertida.
+      const phoneCondition = phoneDigitsContain('phone', term);
       query = query.where((eb) =>
-        eb.or([
-          eb('name', 'ilike', `%${escapeLike(term)}%`),
-          ...(digits.length > 0 ? [eb('phone', 'like', `%${digits}%`)] : []),
-        ]),
+        eb.or([normalizedContains('name', term), ...(phoneCondition ? [phoneCondition] : [])]),
       );
     }
     return query

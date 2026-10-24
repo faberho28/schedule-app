@@ -1647,7 +1647,7 @@ export interface operations {
       query?: {
         /** @description Incluye los clientes eliminados (anonimizados). */
         includeAnonymized?: boolean;
-        /** @description Busca por nombre o teléfono. */
+        /** @description Busca por nombre (sin distinguir acentos ni mayúsculas) o por dígitos del teléfono. */
         search?: string;
       };
       header?: never;
