@@ -1,10 +1,10 @@
 import { NotFoundError, SlotTakenError } from '../domain/errors';
-import { msToMinutes } from '../domain/model/time';
 import type { AppointmentView } from '../domain/ports/appointment-repository';
 import type { CommandExecutor } from '../domain/ports/command-executor';
 import { assertOpen } from '../domain/services/appointment-status';
 import { isTechnicianFree } from '../domain/services/technician-availability';
 import { localDateOf } from '../domain/time/zoned-clock';
+import { appointmentFit } from './appointment-fit';
 import { loadDaySchedule } from './day-schedule';
 
 export interface ReassignAppointmentCommand {
@@ -49,13 +49,7 @@ export class ReassignAppointment {
           (technician) => technician.id === command.technicianId,
         );
         const free =
-          target !== undefined &&
-          isTechnicianFree(target, {
-            startsAt: record.startsAt,
-            durationMin: msToMinutes(record.endsAt - record.startsAt),
-            bufferMin: record.bufferMin,
-            timeZone: config.timeZone,
-          });
+          target !== undefined && isTechnicianFree(target, appointmentFit(record, config.timeZone));
         if (!free) throw new SlotTakenError();
 
         await ports.appointments.reassign(businessId, record.id, command.technicianId);

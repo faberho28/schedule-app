@@ -135,6 +135,18 @@ export class SlotListingSchema {
 }
 
 @ApiSchema({
+  name: 'FreeTechnician',
+  description: 'Técnico libre en el horario exacto de una cita.',
+})
+export class FreeTechnicianSchema {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+}
+
+@ApiSchema({
   name: 'ReassignmentProposalItem',
   description: 'Reasignación propuesta para una cita afectada por un cambio de horario.',
 })

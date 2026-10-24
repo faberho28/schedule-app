@@ -65,6 +65,22 @@ export class KyselyScheduleReader implements ScheduleReader {
     return row !== undefined;
   }
 
+  async technicianNames(
+    businessId: string,
+    technicianIds: readonly string[],
+  ): Promise<ReadonlyMap<string, string>> {
+    if (technicianIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('technicians')
+      .select(['id', 'name'])
+      .where('business_id', '=', businessId)
+      .where('id', 'in', [...technicianIds])
+      .execute();
+    // Un técnico anonimizado no tiene nombre: no figura en el mapa.
+    const named = rows.filter((row): row is typeof row & { name: string } => row.name !== null);
+    return new Map(named.map((row) => [row.id, row.name]));
+  }
+
   async listBookableTechnicians(businessId: string, window: Range): Promise<BookableTechnician[]> {
     const technicians = await this.db
       .selectFrom('technicians')

@@ -7,6 +7,7 @@ import { CancelAppointment } from '../../application/cancel-appointment';
 import { CloseAppointment } from '../../application/close-appointment';
 import { CorrectClosure } from '../../application/correct-closure';
 import { CreateAppointment } from '../../application/create-appointment';
+import { ListFreeTechnicians } from '../../application/list-free-technicians';
 import { MoveAppointment } from '../../application/move-appointment';
 import { QueryAppointments } from '../../application/query-appointments';
 import { ReassignAppointment } from '../../application/reassign-appointment';
@@ -19,7 +20,7 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { ListAppointmentsQueryDto, MAX_AGENDA_DAYS } from './dto/list-appointments.dto';
 import { MoveAppointmentDto } from './dto/move-appointment.dto';
 import { ReassignAppointmentDto } from './dto/reassign-appointment.dto';
-import { AppointmentSchema } from './dto/responses.schema';
+import { AppointmentSchema, FreeTechnicianSchema } from './dto/responses.schema';
 
 @ApiTags('Citas')
 @Controller('appointments')
@@ -33,6 +34,7 @@ export class AppointmentsController {
     private readonly moveAppointment: MoveAppointment,
     private readonly reassignAppointment: ReassignAppointment,
     private readonly queries: QueryAppointments,
+    private readonly freeTechniciansUseCase: ListFreeTechnicians,
   ) {}
 
   @Get()
@@ -64,6 +66,19 @@ export class AppointmentsController {
   @ApiProblems(['bad_request', 'not_found'])
   async get(@Param('id', ParseUUIDPipe) id: string): Promise<AppointmentResponse> {
     return toAppointmentResponse(await this.queries.get(this.context.businessId, id));
+  }
+
+  @Get(':id/free-technicians')
+  @ApiOperation({
+    summary: 'Listar los técnicos libres en el horario de una cita',
+    description:
+      'Solo lectura. Devuelve los técnicos activos que pueden atender la cita en su inicio y duración exactos, sin contar su propio bloque y sin el técnico actual. Aplica las mismas reglas que la reasignación manual; la lista es una foto del momento y `POST /appointments/{id}/reassign` sigue validando (`slot_taken`). Una cita cancelada o cerrada responde `invalid_transition`.',
+  })
+  @ApiUuidParam()
+  @ApiOkResponse({ type: [FreeTechnicianSchema] })
+  @ApiProblems(['bad_request', 'not_found', 'invalid_transition'])
+  async freeTechnicians(@Param('id', ParseUUIDPipe) id: string): Promise<FreeTechnicianSchema[]> {
+    return this.freeTechniciansUseCase.execute(this.context.businessId, id);
   }
 
   @Post(':id/cancel')

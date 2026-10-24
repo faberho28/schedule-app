@@ -6,6 +6,7 @@ import { CancelAppointment } from './application/cancel-appointment';
 import { CloseAppointment } from './application/close-appointment';
 import { CorrectClosure } from './application/correct-closure';
 import { CreateAppointment } from './application/create-appointment';
+import { ListFreeTechnicians } from './application/list-free-technicians';
 import { ListSlots } from './application/list-slots';
 import { MoveAppointment } from './application/move-appointment';
 import { PreviewScheduleChange } from './application/preview-schedule-change';
@@ -45,6 +46,11 @@ import { SystemClock } from './infrastructure/system-clock';
     {
       provide: QueryAppointments,
       useFactory: (ports: SchedulingPorts) => new QueryAppointments(ports),
+      inject: [READ_PORTS],
+    },
+    {
+      provide: ListFreeTechnicians,
+      useFactory: (ports: SchedulingPorts) => new ListFreeTechnicians(ports),
       inject: [READ_PORTS],
     },
     {

@@ -105,6 +105,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/appointments/{id}/free-technicians': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Listar los técnicos libres en el horario de una cita
+     * @description Solo lectura. Devuelve los técnicos activos que pueden atender la cita en su inicio y duración exactos, sin contar su propio bloque y sin el técnico actual. Aplica las mismas reglas que la reasignación manual; la lista es una foto del momento y `POST /appointments/{id}/reassign` sigue validando (`slot_taken`). Una cita cancelada o cerrada responde `invalid_transition`.
+     */
+    get: operations['Appointments_freeTechnicians'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/appointments/{id}/move': {
     parameters: {
       query?: never;
@@ -681,6 +701,12 @@ export interface components {
       field: string;
       /** @description Mensajes de validación en español. */
       messages: string[];
+    };
+    /** @description Técnico libre en el horario exacto de una cita. */
+    FreeTechnician: {
+      /** Format: uuid */
+      id: string;
+      name: string;
     };
     MoveAppointmentDto: {
       /**
@@ -1353,6 +1379,75 @@ export interface operations {
             /** @enum {string} */
             code?:
               'correction_reason_required' | 'invalid_transition' | 'reopen_confirmation_required';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
+  Appointments_freeTechnicians: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FreeTechnician'][];
+        };
+      };
+      /** @description Códigos posibles: bad_request. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'bad_request';
+          };
+        };
+      };
+      /** @description Códigos posibles: not_found. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'not_found';
+          };
+        };
+      };
+      /** @description Códigos posibles: invalid_transition. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'invalid_transition';
           };
         };
       };

@@ -749,6 +749,23 @@
         ],
         "type": "object"
       },
+      "FreeTechnician": {
+        "description": "Técnico libre en el horario exacto de una cita.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "MoveAppointmentDto": {
         "properties": {
           "starts_at": {
@@ -2213,6 +2230,142 @@
           }
         },
         "summary": "Corregir el cierre de una cita",
+        "tags": [
+          "Citas"
+        ]
+      }
+    },
+    "/appointments/{id}/free-technicians": {
+      "get": {
+        "description": "Solo lectura. Devuelve los técnicos activos que pueden atender la cita en su inicio y duración exactos, sin contar su propio bloque y sin el técnico actual. Aplica las mismas reglas que la reasignación manual; la lista es una foto del momento y `POST /appointments/{id}/reassign` sigue validando (`slot_taken`). Una cita cancelada o cerrada responde `invalid_transition`.",
+        "operationId": "Appointments_freeTechnicians",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FreeTechnician"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "bad_request"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: bad_request."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "not_found"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: not_found."
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "invalid_transition"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: invalid_transition."
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "internal_error"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Códigos posibles: internal_error."
+          }
+        },
+        "summary": "Listar los técnicos libres en el horario de una cita",
         "tags": [
           "Citas"
         ]

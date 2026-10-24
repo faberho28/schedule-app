@@ -174,25 +174,26 @@ Las rutas de escritura de horario viven en `ScheduleChangesController` (`schedul
 
 `src/scheduling/domain/` contiene funciones puras de TypeScript, sin Nest, Kysely ni Postgres (una prueba lo verifica). Los instantes son milisegundos desde la época Unix y los rangos son semiabiertos `[start, end)`.
 
-| Archivo                               | Responsabilidad                                                                                                                                                                                              |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `time/zoned-clock.ts`                 | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia.                                                  |
-| `services/generate-slots.ts`          | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                                                                    |
-| `services/occupied-blocks.ts`         | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.                                                         |
-| `services/assign-technician.ts`       | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                                                                        |
-| `services/technician-load.ts`         | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                                                                                |
-| `services/appointment-status.ts`      | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                                                                  |
-| `services/appointment-closure.ts`     | `planClosure` (cierre normal y anticipado) y `planCorrection` (corrección, fecha de completado y reapertura): estado nuevo, fila de auditoría y efecto sobre el seguimiento.                                 |
-| `services/book-slot.ts`               | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede. Acepta un técnico pedido (restringe) o preferido (prioridad).                                           |
-| `services/technician-availability.ts` | `isTechnicianFree`: el técnico trabaja en un horario exacto y su bloque ocupado no choca con el de la cita (reasignación manual).                                                                            |
-| `services/schedule-change.ts`         | `findAffectedAppointments`: citas `pending`/`confirmed` desde `now` que un `ScheduleChange` (modelo en `model/schedule-change.ts`) deja sin cobertura.                                                       |
-| `services/plan-reassignments.ts`      | `planReassignments` (propuesta cronológica con carga y ocupación en memoria) y `findUnavailableTargets` (verifica los destinos al aplicar).                                                                  |
-| `services/availability-windows.ts`    | `validateAvailabilityWindows`: día 1 a 7, horas `HH:MM` hasta 23:59, fin posterior al inicio y sin solapes por día.                                                                                          |
-| `services/alias.ts`                   | `generateAlias`: alias aleatorio `palabra_número` que no esté ya usado en el negocio. Listas de palabras de técnicos (`tiger_1`) y de clientes (`bear_1`).                                                   |
-| `services/followup-policy.ts`         | `followupSendAt` (fecha local de cierre más intervalo, a la hora de envío del negocio), `canScheduleFollowups`, `planCompletionFollowup` (al completar) y `selectBackfillFollowups` (consentimiento tardío). |
-| `services/customer-anonymization.ts`  | `anonymizedPhone` (`anon-` más 26 hexadecimales, nunca un E.164), `isAnonymizedPhone` y el texto neutro que reemplaza motivos libres.                                                                        |
-| `model/consent.ts`                    | Tipos de consentimiento: estado, tipo de evento y medio (`in_person`, `phone_call`, `whatsapp`, `written`, `other`).                                                                                         |
-| `ports/`                              | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`, `ConsentRepository`, `FollowupRepository`) y `CommandExecutor`. Solo tipos.                                      |
+| Archivo                               | Responsabilidad                                                                                                                                                                                                       |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time/zoned-clock.ts`                 | Único lugar donde se convierte fecha y hora locales de una zona IANA a instantes (Luxon). Hora inexistente avanza; hora ambigua toma la primera ocurrencia.                                                           |
+| `services/generate-slots.ts`          | `generateSlots`: cupos adaptativos por técnico y franja, agrupados por inicio. Recibe los bloques ocupados ya calculados.                                                                                             |
+| `services/occupied-blocks.ts`         | Bloque ocupado de una cita `[starts_at, ends_at + buffer_min)`. Solo `cancelled` lo libera. `excludeAppointmentId` libera el bloque propio al mover.                                                                  |
+| `services/assign-technician.ts`       | `assignTechnician`: técnico preferido si está libre; si no, el de menos minutos agendados. Devuelve `null` si no hay técnicos libres.                                                                                 |
+| `services/technician-load.ts`         | Minutos de servicio por técnico en un día local (sin buffer, sin canceladas).                                                                                                                                         |
+| `services/appointment-status.ts`      | Máquina de estados de la cita (D11) y `invalid_transition`.                                                                                                                                                           |
+| `services/appointment-closure.ts`     | `planClosure` (cierre normal y anticipado) y `planCorrection` (corrección, fecha de completado y reapertura): estado nuevo, fila de auditoría y efecto sobre el seguimiento.                                          |
+| `services/book-slot.ts`               | `bookSlot`: técnico que atiende una hora pedida, o `slot_taken` / `slot_not_offered` si no se puede. Acepta un técnico pedido (restringe) o preferido (prioridad).                                                    |
+| `services/technician-availability.ts` | `isTechnicianFree`: el técnico trabaja en un horario exacto y su bloque ocupado no choca con el de la cita (reasignación manual).                                                                                     |
+| `services/working-day.ts`             | `workingRangesOn`: tramos (instantes) en los que un técnico trabaja un día local: sus franjas de ese día de la semana menos los días libres, completos o parciales. Vacío si no hay franjas o todas quedan cubiertas. |
+| `services/schedule-change.ts`         | `findAffectedAppointments`: citas `pending`/`confirmed` desde `now` que un `ScheduleChange` (modelo en `model/schedule-change.ts`) deja sin cobertura.                                                                |
+| `services/plan-reassignments.ts`      | `planReassignments` (propuesta cronológica con carga y ocupación en memoria) y `findUnavailableTargets` (verifica los destinos al aplicar).                                                                           |
+| `services/availability-windows.ts`    | `validateAvailabilityWindows`: día 1 a 7, horas `HH:MM` hasta 23:59, fin posterior al inicio y sin solapes por día.                                                                                                   |
+| `services/alias.ts`                   | `generateAlias`: alias aleatorio `palabra_número` que no esté ya usado en el negocio. Listas de palabras de técnicos (`tiger_1`) y de clientes (`bear_1`).                                                            |
+| `services/followup-policy.ts`         | `followupSendAt` (fecha local de cierre más intervalo, a la hora de envío del negocio), `canScheduleFollowups`, `planCompletionFollowup` (al completar) y `selectBackfillFollowups` (consentimiento tardío).          |
+| `services/customer-anonymization.ts`  | `anonymizedPhone` (`anon-` más 26 hexadecimales, nunca un E.164), `isAnonymizedPhone` y el texto neutro que reemplaza motivos libres.                                                                                 |
+| `model/consent.ts`                    | Tipos de consentimiento: estado, tipo de evento y medio (`in_person`, `phone_call`, `whatsapp`, `written`, `other`).                                                                                                  |
+| `ports/`                              | Interfaces de persistencia (`AppointmentRepository`, `ScheduleReader`, `CustomerDirectory`, `ConsentRepository`, `FollowupRepository`) y `CommandExecutor`. Solo tipos.                                               |
 
 Reglas de `generateSlots`:
 
@@ -204,7 +205,7 @@ Reglas de `generateSlots`:
 
 ## Cupos y citas
 
-Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos), `application/` (casos de uso sin Nest: `ListSlots`, `CreateAppointment`, `CancelAppointment`, `CloseAppointment`, `CorrectClosure`, `MoveAppointment`, `ReassignAppointment`, `PreviewScheduleChange`, `ApplyScheduleChange`, `QueryAppointments` y `loadDaySchedule`), `infrastructure/` (adaptadores de Kysely, controladores, DTO) y `scheduling.module.ts`, que cablea todo con los tokens de `application/tokens.ts` (`CLOCK`, `COMMAND_EXECUTOR`, `READ_PORTS`). Las pruebas fijan el reloj con `createTestApp({ now })`.
+Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos), `application/` (casos de uso sin Nest: `ListSlots`, `CreateAppointment`, `CancelAppointment`, `CloseAppointment`, `CorrectClosure`, `MoveAppointment`, `ReassignAppointment`, `ListFreeTechnicians`, `PreviewScheduleChange`, `ApplyScheduleChange`, `QueryAppointments`, `loadDaySchedule` y `appointmentFit`), `infrastructure/` (adaptadores de Kysely, controladores, DTO) y `scheduling.module.ts`, que cablea todo con los tokens de `application/tokens.ts` (`CLOCK`, `COMMAND_EXECUTOR`, `READ_PORTS`). Las pruebas fijan el reloj con `createTestApp({ now })`.
 
 ### Ejecutor de comandos y bloqueo del negocio
 
@@ -223,6 +224,7 @@ Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos)
 | `POST /appointments/:id/reassign`        | Cambia solo el técnico de una cita `pending` o `confirmed` (200). Cuerpo: `technician_id`. Ver "Mover y reasignar".                                                                                                 |
 | `GET /appointments`                      | Citas de cualquier estado con técnico, cliente y servicio. Consulta: `from` y `to` (días locales, ambos incluidos, hasta 62 días), ordenadas por inicio.                                                            |
 | `GET /appointments/:id`                  | Detalle de una cita (404 si no existe en el negocio).                                                                                                                                                               |
+| `GET /appointments/:id/free-technicians` | Técnicos libres en el horario exacto de una cita `pending` o `confirmed` (200, `[{ id, name }]`). Solo lectura. Ver "Técnicos libres para una cita".                                                                |
 
 Cada cupo de `GET /slots` es `{ starts_at, ends_at, occupied_until, technician_id, available_technician_ids }`: un inicio aparece una sola vez con el técnico asignado, y `available_technician_ids` (por antigüedad) alimenta la reasignación manual. Sin técnicos, con un servicio inactivo o sin huecos, `slots` es `[]` y `has_availability` es `false`. Los instantes se devuelven en ISO 8601 UTC.
 
@@ -281,6 +283,16 @@ COMMIT
 - Un destino que existe pero no cumple (ocupado, sin franja ese día u hora, con día libre, inactivo o anonimizado) responde `slot_taken` (409) y la cita no cambia. Un técnico que no existe en el negocio responde `not_found`.
 - Reasignar al técnico que ya tiene la cita responde 200 sin cambios y sin marcar `technician_changed`.
 - Este endpoint también sirve para resolver a mano las citas sin reemplazo de una propuesta de reasignación (fase 8).
+
+### Técnicos libres para una cita
+
+`GET /appointments/:id/free-technicians` responde `[{ id, name }]` con los técnicos que `POST /appointments/:id/reassign` aceptaría como destino, ordenados por antigüedad (`created_at`, luego `id`). Alimenta el diálogo de reasignar.
+
+- **Regla de "libre".** Es la de `isTechnicianFree`, la misma que usa reasignar: el técnico es activo y no está anonimizado, una franja semanal contiene el servicio completo, ningún día libre (completo o parcial) se solapa con el servicio y ningún bloque ajeno se solapa con el bloque de la cita (servicio más su buffer congelado). Todo estado distinto de `cancelled` conserva su bloque, incluidos `completed` y `no_show`. El bloque de la propia cita se ignora (`loadDaySchedule` con `excludeAppointmentId`).
+- **Técnico actual.** No se ofrece. Reasignar a él es una operación sin efecto.
+- **Errores.** Una cita inexistente o de otro negocio responde `not_found` (404). Una cita `cancelled`, `completed` o `no_show` responde `invalid_transition` (422), igual que reasignar. No hay códigos nuevos.
+- **Sin bloqueo.** `ListFreeTechnicians` lee con `READ_PORTS` y no toma el bloqueo del negocio: la lista es una foto del momento. Si otro cliente ocupa al técnico elegido antes de confirmar, `POST /appointments/:id/reassign` responde `slot_taken` (409) y el diálogo debe volver a pedir la lista.
+- **Paridad.** `appointment-fit.ts` arma el `AppointmentFit` (inicio, duración real y buffer congelado) para los dos casos de uso. `free-technicians.http.int-spec.ts` recorre técnicos ocupados, fuera de turno, con día libre, con buffer, con vecinos `completed`, `no_show` y `cancelled`, desactivados y eliminados, y comprueba que el conjunto devuelto es exactamente aquel para el que reasignar responde 200.
 
 ### Códigos de error del flujo
 

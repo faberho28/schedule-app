@@ -11,6 +11,7 @@ import type {
 } from '../modules/technicians/technicians.repository';
 import type { CustomerView } from '../modules/customers/customers.repository';
 import type { ServiceUpdateResult } from '../modules/services/services.service';
+import type { FreeTechnician } from '../scheduling/application/list-free-technicians';
 import type { AppointmentResponse } from '../scheduling/infrastructure/http/appointment-response';
 import type { SlotListingResponse } from '../scheduling/infrastructure/http/slots.controller';
 import type {
@@ -36,6 +37,7 @@ import type {
 } from '../modules/technicians/dto/technician.schema';
 import type {
   AppointmentSchema,
+  FreeTechnicianSchema,
   ScheduleChangeApplySchema,
   SchedulePreviewSchema,
   SlotListingSchema,
@@ -53,7 +55,7 @@ type PathItem = Record<string, Operation>;
 
 const METHODS = ['get', 'post', 'patch', 'put', 'delete'] as const;
 
-/** Operaciones esperadas: 31 rutas de las fases 3 a 10, ni una más ni una menos. */
+/** Operaciones esperadas: 31 rutas del sprint 1 y las del sprint 2 que ya existen. */
 const EXPECTED_OPERATIONS = [
   'GET /business',
   'PATCH /business',
@@ -81,6 +83,7 @@ const EXPECTED_OPERATIONS = [
   'GET /appointments',
   'POST /appointments',
   'GET /appointments/{id}',
+  'GET /appointments/{id}/free-technicians',
   'POST /appointments/{id}/cancel',
   'POST /appointments/{id}/close',
   'POST /appointments/{id}/correct-closure',
@@ -254,6 +257,7 @@ describe('solicitudes y respuestas', () => {
       'GET /customers',
       'GET /customers/{id}/consents',
       'GET /appointments',
+      'GET /appointments/{id}/free-technicians',
     ];
     for (const key of arrays) {
       const response = operation(key).responses['200']?.content?.['application/json']?.schema;
@@ -402,6 +406,9 @@ describe('errores problem+json', () => {
     ['DELETE /customers/{id}', 409, ['customer_has_future_appointments']],
     ['POST /technicians/{id}/schedule-changes/preview', 400, ['bad_request', 'validation_error']],
     ['GET /appointments/{id}', 400, ['bad_request']],
+    ['GET /appointments/{id}/free-technicians', 400, ['bad_request']],
+    ['GET /appointments/{id}/free-technicians', 404, ['not_found']],
+    ['GET /appointments/{id}/free-technicians', 422, ['invalid_transition']],
     ['GET /slots', 400, ['validation_error']],
   ])('%s responde %i con %j', (key, status, codes) => {
     expect(problemCodes(key, status)).toEqual(codes);
@@ -508,6 +515,7 @@ describe('tipos de respuesta alineados con los controladores', () => {
     assertSame<Json<CustomerView>, CustomerSchema>();
     assertSame<AppointmentResponse, AppointmentSchema>();
     assertSame<SlotListingResponse, SlotListingSchema>();
+    assertSame<FreeTechnician[], FreeTechnicianSchema[]>();
     assertSame<ReturnType<typeof toPreviewResponse>, SchedulePreviewSchema>();
     assertSame<ReturnType<typeof toApplyResponse>, ScheduleChangeApplySchema>();
     assertSame<CustomerDetailSchema, CustomerSchema & { appointments: AppointmentSchema[] }>();
