@@ -86,6 +86,8 @@ function setup(options: Setup = {}) {
       calls.toClose.push({ instant, statuses });
       return Promise.resolve(options.toClose ?? 0);
     },
+    searchCustomers: () => Promise.resolve([]),
+    searchAppointments: () => Promise.resolve([]),
   };
   const useCase = new GetDashboardSummary(ports, readModel, {
     now: () => options.now ?? MONDAY_NOW,

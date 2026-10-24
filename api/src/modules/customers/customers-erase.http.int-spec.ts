@@ -188,7 +188,8 @@ describe('DELETE /customers/:id: anonimización en sitio (CR-R2)', () => {
           price_snapshot: 100000,
           technician: { id: technicianId, name: 'Carlos' },
         });
-        expect(appointment.customer.name).toMatch(ALIAS_PATTERN);
+        expect(appointment.customer.name).toBeNull();
+        expect(appointment.customer.alias).toMatch(ALIAS_PATTERN);
       }
       const byId = new Map(
         detail.body.appointments.map((item: { id: string }) => [item.id, item] as const),

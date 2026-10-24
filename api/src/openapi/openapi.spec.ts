@@ -17,6 +17,7 @@ import type {
   VisibleHoursResponse,
 } from '../scheduling/infrastructure/http/agenda.controller';
 import type { DashboardSummaryResponse } from '../scheduling/infrastructure/http/dashboard.controller';
+import type { SearchResponse } from '../scheduling/infrastructure/http/search.controller';
 import type { AppointmentResponse } from '../scheduling/infrastructure/http/appointment-response';
 import type { SlotListingResponse } from '../scheduling/infrastructure/http/slots.controller';
 import type {
@@ -46,6 +47,7 @@ import type {
   FreeTechnicianSchema,
   ScheduleChangeApplySchema,
   SchedulePreviewSchema,
+  SearchResultSchema,
   SlotListingSchema,
   ToCloseListSchema,
   VisibleHoursSchema,
@@ -95,6 +97,7 @@ const EXPECTED_OPERATIONS = [
   'GET /agenda/visible-hours',
   'GET /agenda/to-close',
   'GET /dashboard/summary',
+  'GET /search',
   'POST /appointments/{id}/cancel',
   'POST /appointments/{id}/close',
   'POST /appointments/{id}/correct-closure',
@@ -300,6 +303,18 @@ describe('solicitudes y respuestas', () => {
       'technician',
     ]);
     expect(Object.keys(schemas()['PartyRef'].properties).sort()).toEqual(['alias', 'id', 'name']);
+    const search = schemas()['SearchResult'];
+    expect(Object.keys(search.properties).sort()).toEqual(['customers', 'services']);
+    expect(search.properties.customers.type).toBe('array');
+    expect(search.properties.services.type).toBe('array');
+    expect(Object.keys(schemas()['CustomerHit'].properties).sort()).toEqual([
+      'id',
+      'name',
+      'phone',
+    ]);
+    const searchParams = operation('GET /search').parameters ?? [];
+    expect(searchParams.map((p) => p.name)).toEqual(['q']);
+    expect(searchParams[0]?.required).toBe(true);
     expect(operation('GET /dashboard/summary').parameters ?? []).toEqual([]);
     expect(operation('GET /agenda/to-close').parameters ?? []).toEqual([]);
 
@@ -466,6 +481,7 @@ describe('errores problem+json', () => {
     ['GET /slots', 400, ['validation_error']],
     ['GET /agenda/visible-hours', 400, ['validation_error']],
     ['GET /dashboard/summary', 404, ['not_found']],
+    ['GET /search', 400, ['validation_error']],
   ])('%s responde %i con %j', (key, status, codes) => {
     expect(problemCodes(key, status)).toEqual(codes);
   });
@@ -575,6 +591,7 @@ describe('tipos de respuesta alineados con los controladores', () => {
     assertSame<VisibleHoursResponse, VisibleHoursSchema>();
     assertSame<ToCloseResponse, ToCloseListSchema>();
     assertSame<DashboardSummaryResponse, DashboardSummarySchema>();
+    assertSame<SearchResponse, SearchResultSchema>();
     assertSame<ReturnType<typeof toPreviewResponse>, SchedulePreviewSchema>();
     assertSame<ReturnType<typeof toApplyResponse>, ScheduleChangeApplySchema>();
     assertSame<CustomerDetailSchema, CustomerSchema & { appointments: AppointmentSchema[] }>();

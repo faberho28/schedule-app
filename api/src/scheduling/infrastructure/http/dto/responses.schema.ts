@@ -21,7 +21,11 @@ export class PartySchema {
   alias!: string | null;
 }
 
-@ApiSchema({ name: 'AppointmentCustomer', description: 'Cliente de una cita.' })
+@ApiSchema({
+  name: 'AppointmentCustomer',
+  description:
+    'Cliente de una cita. Si fue anonimizado, `name` es nulo y `alias` identifica al cliente; la interfaz muestra "Cliente eliminado (alias)".',
+})
 export class AppointmentCustomerSchema extends PartySchema {
   @ApiProperty({ description: 'Teléfono en formato E.164.' })
   phone!: string;
@@ -334,6 +338,41 @@ export class FreeTechnicianSchema {
 
   @ApiProperty()
   name!: string;
+}
+
+@ApiSchema({
+  name: 'CustomerHit',
+  description: 'Cliente encontrado por la búsqueda global. Nunca es un cliente anonimizado.',
+})
+export class CustomerHitSchema {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ description: 'Teléfono en formato E.164.' })
+  phone!: string;
+}
+
+@ApiSchema({
+  name: 'SearchResult',
+  description:
+    'Resultado de la búsqueda global: hasta 10 clientes y hasta 10 servicios. Los servicios no incluyen teléfono, dirección ni precio.',
+})
+export class SearchResultSchema {
+  @ApiProperty({
+    type: () => [CustomerHitSchema],
+    description: 'Por nombre o teléfono, por nombre y luego id.',
+  })
+  customers!: CustomerHitSchema[];
+
+  @ApiProperty({
+    type: () => [AppointmentSummarySchema],
+    description:
+      'Servicios de cualquier fecha y estado (incluye cancelados), por cercanía en días a hoy, luego no cancelados primero, inicio e id.',
+  })
+  services!: AppointmentSummarySchema[];
 }
 
 @ApiSchema({

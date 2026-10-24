@@ -134,6 +134,35 @@ describe('GET /dashboard/summary (DB-R8)', () => {
       expect(row.technician).toMatchObject({ id: carlos, name: 'Carlos' });
     });
 
+    it('un cliente y un técnico anonimizados salen con nombre nulo y alias (DB-R6, AU-R14)', async () => {
+      const erasedCustomer = await createCustomer(pool, BUSINESS, {
+        name: 'bear_1',
+        alias: 'bear_1',
+        phone: 'anon-0123456789abcdef0123456789',
+        anonymized_at: new Date('2026-10-30T12:00:00Z'),
+        consent_status: 'revoked',
+      });
+      const erasedTechnician = await createAnonymizedTechnician(pool, BUSINESS, {
+        alias: 'tiger_1',
+      });
+      const id = await createAppointment(pool, {
+        businessId: BUSINESS,
+        customerId: erasedCustomer,
+        serviceId,
+        technicianId: erasedTechnician,
+        startsAt: bogotaOffset(MONDAY, '12:00'),
+        status: 'confirmed',
+        durationMin: 30,
+      });
+
+      const row = (await summary().expect(200)).body.remaining_today.find(
+        (item: { id: string }) => item.id === id,
+      );
+
+      expect(row.customer).toEqual({ id: erasedCustomer, name: null, alias: 'bear_1' });
+      expect(row.technician).toEqual({ id: erasedTechnician, name: null, alias: 'tiger_1' });
+    });
+
     it('no expone teléfono, dirección ni notas', async () => {
       const text = JSON.stringify((await summary().expect(200)).body);
       expect(text).not.toContain('+573001112233');

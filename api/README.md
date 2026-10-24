@@ -228,6 +228,7 @@ Estructura hexagonal de `src/scheduling/`: `domain/` (funciones puras y puertos)
 | `GET /agenda/visible-hours`              | Horas de trabajo por día para la grilla (200, `{ days: [{ date, start_minute, end_minute }] }`). Consulta: `from`, `to` y `technicianIds` repetido. Solo lectura. Ver "Horas visibles de la agenda".                |
 | `GET /agenda/to-close`                   | Servicios `confirmed` con inicio pasado y sin cerrar (200, `{ items, total }`, hasta 200 por antigüedad). Solo lectura. Ver "Resumen del Panel de control y servicios por cerrar".                                  |
 | `GET /dashboard/summary`                 | Tarjetas y lista "Servicios de hoy" del Panel (200). Solo lectura. Ver "Resumen del Panel de control y servicios por cerrar".                                                                                       |
+| `GET /search`                            | Búsqueda global (200, `{ customers, services }`, hasta 10 por grupo). Consulta: `q` de 2 a 100 caracteres. Solo lectura. Ver "Búsqueda global".                                                                     |
 
 Cada cupo de `GET /slots` es `{ starts_at, ends_at, occupied_until, technician_id, available_technician_ids }`: un inicio aparece una sola vez con el técnico asignado, y `available_technician_ids` (por antigüedad) alimenta la reasignación manual. Sin técnicos, con un servicio inactivo o sin huecos, `slots` es `[]` y `has_availability` es `false`. Los instantes se devuelven en ISO 8601 UTC.
 
@@ -339,8 +340,19 @@ COMMIT
 - **Técnicos activos X/Y.** Y son los técnicos activos y no anonimizados. X son los que tienen turno hoy (`workingRangesOn` no vacío): la disponibilidad semanal cubre el día de la semana y ningún día libre cubre todo su turno. Un día libre igual o mayor que el turno lo saca de X; uno parcial no; sin disponibilidad hoy no cuenta en X.
 - **Eficiencia.** `completed / due`, con `due` igual a los servicios no cancelados de la ventana cuyo inicio ya pasó (incluye `no_show` y los sin cerrar). `rate` es una fracción de 0 a 1, o `null` si `due` es 0; la interfaz redondea el porcentaje y muestra "Sin datos".
 - **Pendientes y por cerrar.** Solo `confirmed` con inicio anterior a ahora y sin cerrar, de cualquier fecha (`TO_CLOSE_STATUSES`); `pending` no cuenta. La tarjeta (`pending_to_close`) cuenta todos y `to-close` devuelve los 200 más antiguos primero con `total` igual a ese conteo. Un servicio que empezó hace un minuto ya cuenta.
-- **Lista de hoy.** `remaining_today` son los `pending` y `confirmed` de hoy (iniciados sin cerrar y por empezar), por inicio y luego por nombre del técnico. Cada fila trae solo hora, estado, cliente, servicio y técnico: sin teléfono, dirección ni notas. Hasta la fase 5 un cliente anonimizado aparece con su alias como nombre.
+- **Lista de hoy.** `remaining_today` son los `pending` y `confirmed` de hoy (iniciados sin cerrar y por empezar), por inicio y luego por nombre del técnico. Cada fila trae solo hora, estado, cliente, servicio y técnico: sin teléfono, dirección ni notas. Un cliente anonimizado aparece con `name: null` y su `alias`.
 - **Capas.** Las reglas son funciones puras en `dashboard-kpis.ts` y los límites de tiempo salen de `zoned-clock`. El puerto `AgendaReadModel` (token `AGENDA_READ_MODEL`, fuera de `SchedulingPorts`) solo cuenta por estado y rango; `AppointmentRepository.listStartedBefore` devuelve la lista acotada y el total.
+
+### Búsqueda global
+
+`GET /search?q=` (solo lectura, sin bloqueo del negocio) responde `{ customers, services }`. `q` se recorta y debe tener de 2 a 100 caracteres; fuera de ese rango responde 400 `validation_error`.
+
+- **`customers`** (hasta 10): clientes no anonimizados cuyo nombre contiene `q` (sin distinguir acentos ni mayúsculas) o cuyo teléfono contiene los dígitos de `q`. Orden por nombre normalizado y luego `id`. Cada uno trae `id`, `name` y `phone`.
+- **`services`** (hasta 10): servicios de cualquier fecha y estado, incluidos los `cancelled` con su estado. Coinciden por el nombre del cliente, el nombre del servicio guardado en la cita (`service_name_snapshot`) o el nombre del técnico; nunca por teléfono. Cada fila tiene la forma de `AppointmentSummary` (hora, estado, cliente, servicio y técnico), sin teléfono, dirección ni precio.
+- **Orden de `services`.** Cercanía en días de calendario entre el inicio (en la zona del negocio) y hoy; a igual cercanía, los no cancelados primero; luego `starts_at` e `id`. El orden se aplica en SQL antes del `LIMIT`; ayer y mañana empatan en cercanía.
+- **Privacidad.** Un cliente anonimizado nunca coincide por su nombre original, su alias ni su teléfono, y un técnico eliminado nunca coincide por nombre ni alias (su `name` es nulo). El servicio de un cliente anonimizado todavía se encuentra por técnico o servicio, y se devuelve con `name: null` y `alias`; la interfaz lo formatea como "Cliente eliminado (alias)" y "Técnico eliminado (alias)".
+- **Nombre nulo del cliente anonimizado.** La consulta de citas (`GET /appointments`, `GET /appointments/:id`, acciones, historial del cliente, `GET /agenda/to-close` y `remaining_today`) devuelve `customer.name: null` cuando el cliente está anonimizado y conserva `alias`. Solo cambia el valor: el esquema ya admitía `name` nulo.
+- **Capas.** `SearchAgenda` calcula `today` y la zona con `zoned-clock`; `AgendaReadModel.searchCustomers` y `searchAppointments` usan `normalizedContains` y `phoneDigitsContain` de `database/text-search.ts` y los índices de la migración 005.
 
 ### Códigos de error del flujo
 
@@ -553,16 +565,16 @@ sequenceDiagram
 
 `DELETE /customers/:id` no borra la fila: reemplaza todo dato personal por valores neutros y aleatorios, en una sola transacción bajo el bloqueo del negocio. El `id` y todo el historial (citas, cierres, seguimientos, eventos de consentimiento) se conservan.
 
-| Dato                                                                          | Después de anonimizar                                                                           |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `name` y `alias`                                                              | Alias aleatorio único por negocio (`bear_1`); la interfaz muestra "Cliente eliminado (bear_1)". |
-| `phone`                                                                       | Marcador aleatorio `anon-` más 26 hexadecimales: no empieza con `+`, nunca es un E.164.         |
-| `address`, `notes`                                                            | Nulos.                                                                                          |
-| `address_snapshot`, `cancel_reason` de todas sus citas (también las borradas) | Nulos.                                                                                          |
-| `closure_reason` de sus citas                                                 | Nulo; en un cierre anticipado, `Dato eliminado` (el `CHECK` exige un motivo).                   |
-| `appointment_closures.reason`, `consent_events.notes`                         | Nulos (los triggers de solo inserción permiten vaciar esas columnas).                           |
-| `consent_status`, `anonymized_at`                                             | `revoked` e instante de la anonimización.                                                       |
-| `scheduled_messages` `pending`                                                | `cancelled` con `cancel_reason = 'customer_erased'`.                                            |
+| Dato                                                                          | Después de anonimizar                                                                                                                                     |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name` y `alias`                                                              | Alias aleatorio único por negocio (`bear_1`); las respuestas de citas devuelven `name: null` y `alias`; la interfaz muestra "Cliente eliminado (bear_1)". |
+| `phone`                                                                       | Marcador aleatorio `anon-` más 26 hexadecimales: no empieza con `+`, nunca es un E.164.                                                                   |
+| `address`, `notes`                                                            | Nulos.                                                                                                                                                    |
+| `address_snapshot`, `cancel_reason` de todas sus citas (también las borradas) | Nulos.                                                                                                                                                    |
+| `closure_reason` de sus citas                                                 | Nulo; en un cierre anticipado, `Dato eliminado` (el `CHECK` exige un motivo).                                                                             |
+| `appointment_closures.reason`, `consent_events.notes`                         | Nulos (los triggers de solo inserción permiten vaciar esas columnas).                                                                                     |
+| `consent_status`, `anonymized_at`                                             | `revoked` e instante de la anonimización.                                                                                                                 |
+| `scheduled_messages` `pending`                                                | `cancelled` con `cancel_reason = 'customer_erased'`.                                                                                                      |
 
 - Citas futuras: un cliente con citas `pending` o `confirmed` que empiezan desde ahora (`starts_at >= now`) no se puede anonimizar. `DELETE /customers/:id` responde 409 `customer_has_future_appointments` con `affected` (las citas, con la misma forma que en `schedule_conflict`) como miembro de primer nivel del problema, y no modifica nada: ni la ficha, ni las direcciones copiadas, ni los seguimientos pendientes. El dueño debe cancelar esas citas con `POST /appointments/:id/cancel`; el sistema nunca las cancela por su cuenta. Las citas canceladas, completadas, `no_show` o pasadas no bloquean. La comprobación ocurre en la misma transacción y bajo el bloqueo del negocio, así que una reserva concurrente no puede dejar una cita futura activa en un cliente anonimizado (si la eliminación gana, la reserva recibe 409 `customer_anonymized`).
 - Idempotente: sobre un cliente ya anonimizado no cambia nada, no genera valores aleatorios, no revisa citas y responde 204. Un cliente inexistente o de otro negocio responde 404.

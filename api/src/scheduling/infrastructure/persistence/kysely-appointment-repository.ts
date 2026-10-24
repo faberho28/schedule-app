@@ -331,7 +331,8 @@ function viewQuery(db: Kysely<DB>, businessId: string) {
       't.name as technician_name',
       't.alias as technician_alias',
       'a.customer_id',
-      'c.name as customer_name',
+      // La anonimización guarda el alias en `customers.name`; la vista lo oculta y deja solo el alias.
+      sql<string | null>`case when c.anonymized_at is null then c.name end`.as('customer_name'),
       'c.alias as customer_alias',
       'c.phone as customer_phone',
       'a.service_id',

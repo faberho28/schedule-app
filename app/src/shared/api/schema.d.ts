@@ -304,6 +304,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/search': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Buscar clientes y servicios
+     * @description Solo lectura. Devuelve dos grupos de hasta 10 resultados. `customers` coincide por nombre o dígitos del teléfono y nunca incluye clientes anonimizados. `services` coincide por nombre del cliente (no por teléfono), tipo de servicio o nombre del técnico, de cualquier fecha y estado, y se ordena por cercanía en días a hoy en la zona del negocio, luego los no cancelados primero, el inicio y el id. Un cliente o técnico anonimizado nunca coincide por su nombre original ni por su alias: se muestra con `name` nulo y `alias`.
+     */
+    get: operations['Search_search'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/services': {
     parameters: {
       query?: never;
@@ -533,7 +553,7 @@ export interface components {
       /** @description Verdadero si la cita pasó a otro técnico después de crearse. */
       technician_changed: boolean;
     };
-    /** @description Cliente de una cita. */
+    /** @description Cliente de una cita. Si fue anonimizado, `name` es nulo y `alias` identifica al cliente; la interfaz muestra "Cliente eliminado (alias)". */
     AppointmentCustomer: {
       alias: string | null;
       /** Format: uuid */
@@ -757,6 +777,14 @@ export interface components {
     /** @description Miembro extra de `customer_has_future_appointments`: las citas `pending` o `confirmed` desde ahora que impiden eliminar al cliente. */
     CustomerFutureAppointmentsProblemExtension: {
       affected: components['schemas']['Appointment'][];
+    };
+    /** @description Cliente encontrado por la búsqueda global. Nunca es un cliente anonimizado. */
+    CustomerHit: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @description Teléfono en formato E.164. */
+      phone: string;
     };
     /** @description Tarjeta "Técnicos activos X/Y". */
     DashboardActiveTechnicians: {
@@ -982,6 +1010,13 @@ export interface components {
       /** @description Verdadero si toda cita afectada tiene un reemplazo propuesto. */
       fully_resolvable: boolean;
       proposal: components['schemas']['ReassignmentProposalItem'][];
+    };
+    /** @description Resultado de la búsqueda global: hasta 10 clientes y hasta 10 servicios. Los servicios no incluyen teléfono, dirección ni precio. */
+    SearchResult: {
+      /** @description Por nombre o teléfono, por nombre y luego id. */
+      customers: components['schemas']['CustomerHit'][];
+      /** @description Servicios de cualquier fecha y estado (incluye cancelados), por cercanía en días a hoy, luego no cancelados primero, inicio e id. */
+      services: components['schemas']['AppointmentSummary'][];
     };
     /** @description Servicio del catálogo. Nunca se borra: se desactiva. */
     Service: {
@@ -2420,6 +2455,52 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'] & {
             /** @enum {string} */
             code?: 'not_found';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
+  Search_search: {
+    parameters: {
+      query: {
+        /** @description Texto a buscar, recortado, de 2 a 100 caracteres. No distingue acentos ni mayúsculas. */
+        q: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SearchResult'];
+        };
+      };
+      /** @description Códigos posibles: validation_error. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'validation_error';
           };
         };
       };

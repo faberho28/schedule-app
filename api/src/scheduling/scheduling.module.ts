@@ -15,6 +15,7 @@ import { PreviewScheduleChange } from './application/preview-schedule-change';
 import { QueryAppointments } from './application/query-appointments';
 import { ReassignAppointment } from './application/reassign-appointment';
 import { RegisterConsent } from './application/register-consent';
+import { SearchAgenda } from './application/search-agenda';
 import { AGENDA_READ_MODEL, CLOCK, COMMAND_EXECUTOR, READ_PORTS } from './application/tokens';
 import type { Clock } from './domain/model/clock';
 import type { AgendaReadModel } from './domain/ports/agenda-read-model';
@@ -23,6 +24,7 @@ import { AgendaController } from './infrastructure/http/agenda.controller';
 import { AppointmentsController } from './infrastructure/http/appointments.controller';
 import { DashboardController } from './infrastructure/http/dashboard.controller';
 import { ScheduleChangesController } from './infrastructure/http/schedule-changes.controller';
+import { SearchController } from './infrastructure/http/search.controller';
 import { SlotsController } from './infrastructure/http/slots.controller';
 import { BusinessLockExecutor } from './infrastructure/persistence/business-lock-executor';
 import { KyselyAgendaReadModel } from './infrastructure/persistence/kysely-agenda-read-model';
@@ -39,6 +41,7 @@ import { SystemClock } from './infrastructure/system-clock';
     AppointmentsController,
     AgendaController,
     DashboardController,
+    SearchController,
     ScheduleChangesController,
   ],
   providers: [
@@ -69,6 +72,12 @@ import { SystemClock } from './infrastructure/system-clock';
       provide: GetDashboardSummary,
       useFactory: (ports: SchedulingPorts, readModel: AgendaReadModel, clock: Clock) =>
         new GetDashboardSummary(ports, readModel, clock),
+      inject: [READ_PORTS, AGENDA_READ_MODEL, CLOCK],
+    },
+    {
+      provide: SearchAgenda,
+      useFactory: (ports: SchedulingPorts, readModel: AgendaReadModel, clock: Clock) =>
+        new SearchAgenda(ports, readModel, clock),
       inject: [READ_PORTS, AGENDA_READ_MODEL, CLOCK],
     },
     {
