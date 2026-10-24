@@ -6,7 +6,7 @@ Capacidad nueva: consulta de solo lectura de los técnicos libres en el horario 
 
 ### Requirement: Consulta de técnicos libres en el horario de un servicio
 
-La API MUST ofrecer una consulta de solo lectura (`GET /appointments/{id}/free-technicians`) que recibe el identificador de un servicio y devuelve los técnicos que pueden atenderlo en su inicio y duración exactos. Un técnico MUST considerarse libre solo si cumple todo lo siguiente: es activo (ni desactivado ni eliminado); su disponibilidad semanal cubre todo el intervalo del servicio; no tiene un día libre (completo o parcial) que se solape con el intervalo; y no tiene otro servicio activo (`pending` o `confirmed`) que se solape con el intervalo incluyendo el margen de traslado (buffer) del negocio. El bloque del propio servicio MUST ignorarse en el cálculo. La consulta MUST aplicar las mismas reglas que la reasignación manual y MUST NOT modificar datos.
+La API MUST ofrecer una consulta de solo lectura (`GET /appointments/{id}/free-technicians`) que recibe el identificador de un servicio y devuelve los técnicos que pueden atenderlo en su inicio y duración exactos. Un técnico MUST considerarse libre solo si cumple todo lo siguiente: es activo (ni desactivado ni eliminado); su disponibilidad semanal cubre todo el intervalo del servicio; no tiene un día libre (completo o parcial) que se solape con el intervalo; y no tiene otro servicio que ocupe su bloque (todo estado distinto de `cancelled`: `pending`, `confirmed`, `completed` y `no_show`, como en `appointment-management`) que se solape con el intervalo incluyendo el margen de traslado (buffer) del negocio. El bloque del propio servicio MUST ignorarse en el cálculo. La consulta MUST aplicar las mismas reglas que la reasignación manual y MUST NOT modificar datos.
 
 #### Scenario: Técnico libre
 
@@ -31,6 +31,12 @@ La API MUST ofrecer una consulta de solo lectura (`GET /appointments/{id}/free-t
 - GIVEN un buffer de 30 minutos, un servicio de 10:00 a 11:00 y un técnico con otro servicio de 11:15 a 12:00
 - WHEN se consulta
 - THEN ese técnico no aparece porque el margen lo solapa
+
+#### Scenario: Servicio cerrado sigue bloqueando
+
+- GIVEN un técnico con otro servicio `completed` que se solapa con el intervalo
+- WHEN se consulta
+- THEN ese técnico no aparece, porque un servicio cerrado conserva su bloque
 
 #### Scenario: Servicios cancelados no bloquean
 
