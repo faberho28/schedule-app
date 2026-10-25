@@ -11,7 +11,7 @@ function outcomeLines(appointment: Appointment, timeZone: string): string[] {
   const lines: string[] = [];
   if (appointment.status === 'completed') {
     const completedAt = appointment.completed_at ?? appointment.closed_at;
-    if (completedAt) lines.push(`Completada el ${formatDate(completedAt, timeZone)}`);
+    if (completedAt) lines.push(`Completado el ${formatDate(completedAt, timeZone)}`);
   }
   if (appointment.closed_early && appointment.closure_reason) {
     lines.push(`Cierre anticipado: ${appointment.closure_reason}`);
@@ -31,7 +31,7 @@ export function ServiceHistory({
   timeZone: string;
 }) {
   if (appointments.length === 0) {
-    return <p className="text-sm">Este cliente aún no tiene citas.</p>;
+    return <p className="text-sm">Este cliente aún no tiene servicios.</p>;
   }
   const newestFirst = [...appointments].sort((a, b) => b.starts_at.localeCompare(a.starts_at));
   return (

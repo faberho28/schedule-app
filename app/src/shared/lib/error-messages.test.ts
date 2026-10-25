@@ -17,7 +17,7 @@ describe('errorMessage', () => {
 
   it.each([
     ['customer_phone_taken', 'Ya existe un cliente con ese teléfono.'],
-    ['proposal_stale', 'La propuesta ya no está vigente. Revisa las citas afectadas de nuevo.'],
+    ['proposal_stale', 'La propuesta ya no está vigente. Revisa los servicios afectados de nuevo.'],
     ['early_closure_reason_required', 'Indica el motivo del cierre anticipado.'],
   ])('traduce %s', (code, expected) => {
     expect(errorMessage(new ApiError(problem(code, 409), 409))).toBe(expected);

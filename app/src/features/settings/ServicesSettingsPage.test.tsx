@@ -75,7 +75,9 @@ describe('ServicesSettingsPage: listado', () => {
 
     renderPage(<ServicesSettingsPage />);
 
-    expect(await screen.findByText('Aún no hay servicios. Crea el primero.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aún no hay tipos de servicio. Crea el primero.'),
+    ).toBeInTheDocument();
   });
 
   it('permite reintentar cuando falla la carga', async () => {
@@ -98,9 +100,9 @@ describe('ServicesSettingsPage: listado', () => {
 
 describe('ServicesSettingsPage: alta', () => {
   async function openCreateDialog(user: ReturnType<typeof userEvent.setup>) {
-    await screen.findByRole('button', { name: 'Nuevo servicio' });
-    await user.click(screen.getByRole('button', { name: 'Nuevo servicio' }));
-    return screen.getByRole('dialog', { name: 'Nuevo servicio' });
+    await screen.findByRole('button', { name: 'Nuevo tipo de servicio' });
+    await user.click(screen.getByRole('button', { name: 'Nuevo tipo de servicio' }));
+    return screen.getByRole('dialog', { name: 'Nuevo tipo de servicio' });
   }
 
   it('crea un servicio con seguimiento y lo muestra en el listado', async () => {
@@ -113,7 +115,7 @@ describe('ServicesSettingsPage: alta', () => {
     await user.type(within(dialog).getByLabelText('Duración (minutos)'), '90');
     await user.type(within(dialog).getByLabelText('Precio'), '120000');
     await user.type(within(dialog).getByLabelText(/Días hasta el seguimiento/), '180');
-    await user.click(within(dialog).getByRole('button', { name: 'Crear servicio' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Crear tipo de servicio' }));
 
     expect(await screen.findByRole('article', { name: 'Mantenimiento de aire' })).toBeVisible();
     expect(requests.posts).toEqual([
@@ -136,7 +138,7 @@ describe('ServicesSettingsPage: alta', () => {
     await user.type(within(dialog).getByLabelText('Nombre'), 'Revisión');
     await user.type(within(dialog).getByLabelText('Duración (minutos)'), '30');
     await user.type(within(dialog).getByLabelText('Precio'), '0');
-    await user.click(within(dialog).getByRole('button', { name: 'Crear servicio' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Crear tipo de servicio' }));
 
     await waitFor(() => {
       expect(requests.posts).toEqual([{ name: 'Revisión', duration_min: 30, price: 0 }]);
@@ -151,7 +153,7 @@ describe('ServicesSettingsPage: alta', () => {
 
     await user.type(within(dialog).getByLabelText('Duración (minutos)'), '0');
     await user.type(within(dialog).getByLabelText('Precio'), '-5');
-    await user.click(within(dialog).getByRole('button', { name: 'Crear servicio' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Crear tipo de servicio' }));
 
     expect(within(dialog).getByLabelText('Nombre')).toHaveAccessibleDescription(
       'El nombre es obligatorio.',
@@ -171,14 +173,14 @@ describe('ServicesSettingsPage: alta', () => {
     await user.type(within(dialog).getByLabelText('Nombre'), 'Mantenimiento de aire');
     await user.type(within(dialog).getByLabelText('Duración (minutos)'), '90');
     await user.type(within(dialog).getByLabelText('Precio'), '1000');
-    await user.click(within(dialog).getByRole('button', { name: 'Crear servicio' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Crear tipo de servicio' }));
 
     await waitFor(() => {
       expect(within(dialog).getByLabelText('Nombre')).toHaveAccessibleDescription(
-        'Ya existe un servicio con ese nombre.',
+        'Ya existe un tipo de servicio con ese nombre.',
       );
     });
-    expect(screen.getByRole('dialog', { name: 'Nuevo servicio' })).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'Nuevo tipo de servicio' })).toBeVisible();
   });
 
   it('muestra en el campo el error de validación que devuelve la API', async () => {
@@ -197,7 +199,7 @@ describe('ServicesSettingsPage: alta', () => {
     await user.type(within(dialog).getByLabelText('Nombre'), 'Revisión');
     await user.type(within(dialog).getByLabelText('Duración (minutos)'), '30');
     await user.type(within(dialog).getByLabelText('Precio'), '99');
-    await user.click(within(dialog).getByRole('button', { name: 'Crear servicio' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Crear tipo de servicio' }));
 
     await waitFor(() => {
       expect(within(dialog).getByLabelText('Precio')).toHaveAccessibleDescription(
@@ -210,7 +212,7 @@ describe('ServicesSettingsPage: alta', () => {
 describe('ServicesSettingsPage: edición', () => {
   async function openEditDialog(user: ReturnType<typeof userEvent.setup>, name: string) {
     await user.click(await screen.findByRole('button', { name: `Editar ${name}` }));
-    return screen.getByRole('dialog', { name: 'Editar servicio' });
+    return screen.getByRole('dialog', { name: 'Editar tipo de servicio' });
   }
 
   it('precarga los datos y envía solo el campo cambiado', async () => {
@@ -246,7 +248,7 @@ describe('ServicesSettingsPage: edición', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Hay 5 citas futuras que conservan la duración anterior',
+      'Hay 5 servicios futuros que conservan la duración anterior',
     );
     expect(requests.patches).toEqual([{ duration_min: 120 }]);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -278,7 +280,7 @@ describe('ServicesSettingsPage: edición', () => {
     await user.type(duration, '100');
     await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Hay 1 cita futura que conserva la duración anterior',
+      'Hay 1 servicio futuro que conserva la duración anterior',
     );
 
     server.use(

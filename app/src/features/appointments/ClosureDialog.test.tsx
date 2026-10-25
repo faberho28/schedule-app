@@ -45,13 +45,13 @@ describe('ClosureDialog: cierre normal', () => {
     const bodies = serve();
     const { onClosed } = renderDialog();
 
-    expect(screen.getByRole('dialog', { name: 'Cerrar cita' })).toHaveAccessibleDescription(
+    expect(screen.getByRole('dialog', { name: 'Cerrar servicio' })).toHaveAccessibleDescription(
       /Ana Pérez.*vie 6 nov 08:00/,
     );
-    await user.click(screen.getByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('radio', { name: 'Completado' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
-    expect(screen.getByText('Vas a cerrar la cita como Completada.')).toBeInTheDocument();
+    expect(screen.getByText('Vas a cerrar el servicio como Completado.')).toBeInTheDocument();
     expect(bodies).toEqual([]);
     expect(onClosed).not.toHaveBeenCalled();
   });
@@ -61,7 +61,7 @@ describe('ClosureDialog: cierre normal', () => {
     const bodies = serve();
     const { onClosed } = renderDialog();
 
-    await user.click(screen.getByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('radio', { name: 'Completado' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
@@ -78,7 +78,7 @@ describe('ClosureDialog: cierre normal', () => {
     await user.click(screen.getByRole('radio', { name: 'No asistió' }));
     await user.type(screen.getByLabelText('Nota (opcional)'), '  Nadie abrió la puerta ');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    expect(screen.getByText('Vas a cerrar la cita como No asistió.')).toBeInTheDocument();
+    expect(screen.getByText('Vas a cerrar el servicio como No asistió.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
     await waitFor(() => expect(onClosed).toHaveBeenCalledTimes(1));
@@ -92,7 +92,7 @@ describe('ClosureDialog: cierre normal', () => {
     const bodies = serve();
     const { onClosed } = renderDialog({ status: 'pending' });
 
-    await user.click(screen.getByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('radio', { name: 'Completado' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
@@ -106,7 +106,7 @@ describe('ClosureDialog: cierre normal', () => {
 
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
-    expect(screen.getByText('Elige el resultado de la cita.')).toBeInTheDocument();
+    expect(screen.getByText('Elige el resultado del servicio.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirmar cierre' })).not.toBeInTheDocument();
   });
 
@@ -137,14 +137,14 @@ describe('ClosureDialog: cierre normal', () => {
 
 describe('ClosureDialog: cierre anticipado', () => {
   async function chooseCompleted(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('radio', { name: 'Completado' }));
   }
 
   it('advierte que la cita aún no empieza y exige el motivo', async () => {
     const user = userEvent.setup();
     renderDialog({ now: BEFORE_START });
 
-    expect(screen.getByText(/La cita aún no empieza/)).toBeInTheDocument();
+    expect(screen.getByText(/El servicio aún no empieza/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Nota (opcional)')).not.toBeInTheDocument();
     await chooseCompleted(user);
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
@@ -186,7 +186,7 @@ describe('ClosureDialog: cierre anticipado', () => {
 
     await user.click(
       screen.getByRole('checkbox', {
-        name: 'Entiendo que la cita aún no empieza y quiero cerrarla antes de su hora.',
+        name: 'Entiendo que el servicio aún no empieza y quiero cerrarlo antes de su hora.',
       }),
     );
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre anticipado' }));
@@ -204,7 +204,7 @@ describe('ClosureDialog: cierre anticipado', () => {
 
 describe('ClosureDialog: errores de la API', () => {
   async function submitNormal(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole('radio', { name: 'Completada' }));
+    await user.click(screen.getByRole('radio', { name: 'Completado' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
   }
@@ -265,7 +265,9 @@ describe('ClosureDialog: errores de la API', () => {
 
     await submitNormal(user);
 
-    expect(await screen.findByText('La cita no admite ese cambio de estado.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('El servicio no admite ese cambio de estado.'),
+    ).toBeInTheDocument();
     expect(onClosed).not.toHaveBeenCalled();
   });
 

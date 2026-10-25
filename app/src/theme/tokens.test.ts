@@ -94,4 +94,89 @@ describe('tokens de color', () => {
       expect(contrast(fg!, bg!)).toBeGreaterThanOrEqual(4.5);
     });
   });
+
+  describe.each([[':root'], ['.dark']])('paleta de técnicos en %s', (selector) => {
+    const tokens = tokensOf(selector);
+    const slots = Array.from({ length: 10 }, (_, index) => index + 1);
+
+    it.each(slots)('tech-%i: texto 4,5:1 sobre su fondo', (slot) => {
+      const bg = tokens[`tech-${slot}`];
+      const fg = tokens[`tech-${slot}-foreground`];
+      expect(bg, `falta --tech-${slot}`).toBeDefined();
+      expect(fg, `falta --tech-${slot}-foreground`).toBeDefined();
+      expect(contrast(fg!, bg!)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it.each(slots)('tech-%i: acento 3:1 contra --card', (slot) => {
+      const accent = tokens[`tech-${slot}-accent`];
+      expect(accent, `falta --tech-${slot}-accent`).toBeDefined();
+      expect(contrast(accent!, tokens['card']!)).toBeGreaterThanOrEqual(3);
+    });
+
+    it('los 10 acentos y los 10 fondos son distintos entre sí', () => {
+      const accents = slots.map((slot) => tokens[`tech-${slot}-accent`]);
+      const backgrounds = slots.map((slot) => tokens[`tech-${slot}`]);
+      expect(new Set(accents).size).toBe(10);
+      expect(new Set(backgrounds).size).toBe(10);
+    });
+  });
+
+  describe.each([[':root'], ['.dark']])('barra lateral en %s', (selector) => {
+    const tokens = tokensOf(selector);
+    const pairs: [string, string][] = [
+      ['sidebar-foreground', 'sidebar'],
+      ['sidebar-muted-foreground', 'sidebar'],
+      ['sidebar-accent-foreground', 'sidebar-accent'],
+      ['sidebar-foreground', 'sidebar-hover'],
+      ['sidebar-muted-foreground', 'sidebar-hover'],
+    ];
+
+    it.each(pairs)('%s sobre %s', (foreground, background) => {
+      const fg = tokens[foreground];
+      const bg = tokens[background];
+      expect(fg, `falta --${foreground}`).toBeDefined();
+      expect(bg, `falta --${background}`).toBeDefined();
+      expect(contrast(fg!, bg!)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('define el borde de la barra lateral', () => {
+      expect(tokens['sidebar-border']).toBeDefined();
+    });
+
+    it('la barra lateral es oscura y sale de la escala slate existente', () => {
+      expect(luminance(tokens['sidebar']!)).toBeLessThan(0.05);
+      const slate = ['#0f172a', '#1e293b', '#020617', '#334155', '#94a3b8', '#f8fafc'];
+      expect(slate).toContain(tokens['sidebar']);
+      expect(slate).toContain(tokens['sidebar-hover']);
+    });
+  });
+
+  it('expone los tokens de técnicos y barra lateral en @theme inline', () => {
+    for (let slot = 1; slot <= 10; slot += 1) {
+      expect(css).toContain(`--color-tech-${slot}: var(--tech-${slot});`);
+      expect(css).toContain(`--color-tech-${slot}-foreground: var(--tech-${slot}-foreground);`);
+      expect(css).toContain(`--color-tech-${slot}-accent: var(--tech-${slot}-accent);`);
+    }
+    for (const name of [
+      'sidebar',
+      'sidebar-foreground',
+      'sidebar-muted-foreground',
+      'sidebar-accent',
+      'sidebar-accent-foreground',
+      'sidebar-hover',
+      'sidebar-border',
+    ]) {
+      expect(css).toContain(`--color-${name}: var(--${name});`);
+    }
+  });
+
+  it('mantiene la identidad: primario azul de la familia #2563EB en ambos temas', () => {
+    expect(tokensOf(':root')['primary']).toBe('#2563eb');
+    expect(tokensOf('.dark')['primary']).toBe('#60a5fa');
+    // La barra lateral usa el azul primario para el elemento activo.
+    expect(tokensOf(':root')['sidebar-accent']).toBe('#2563eb');
+    // La escala slate sigue presente en los neutros.
+    expect(tokensOf(':root')['foreground']).toBe('#0f172a');
+    expect(tokensOf('.dark')['card']).toBe('#1e293b');
+  });
 });

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import type { components } from '@/shared/api/schema';
 import { formatDuration, formatPrice } from '@/shared/lib/format';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { ServiceFormDialog } from './ServiceFormDialog';
 import { useServices, useUpdateService } from './services-api';
 import { durationWarningMessage } from './service-form';
@@ -19,17 +19,19 @@ export function ServicesSettingsPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <PageTitle>Servicios</PageTitle>
-        <Button
-          onClick={() => {
-            setNotice('');
-            setDialog(null);
-          }}
-        >
-          Nuevo servicio
-        </Button>
-      </div>
+      <PageHeader
+        title="Tipos de servicio"
+        actions={
+          <Button
+            onClick={() => {
+              setNotice('');
+              setDialog(null);
+            }}
+          >
+            Nuevo tipo de servicio
+          </Button>
+        }
+      />
 
       <p role="status" className="text-sm font-medium text-status-pending-foreground">
         {notice}
@@ -41,7 +43,7 @@ export function ServicesSettingsPage() {
       ) : null}
       {toggle.isError ? <ErrorNotice error={toggle.error} /> : null}
 
-      {services.data?.length === 0 ? <p>Aún no hay servicios. Crea el primero.</p> : null}
+      {services.data?.length === 0 ? <p>Aún no hay tipos de servicio. Crea el primero.</p> : null}
       {services.data && services.data.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {services.data.map((service) => (

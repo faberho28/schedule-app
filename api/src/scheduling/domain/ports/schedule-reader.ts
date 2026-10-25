@@ -32,6 +32,12 @@ export interface ScheduleReader {
   /** El técnico pertenece al negocio, sin importar si está inactivo o anonimizado. */
   technicianExists(businessId: string, technicianId: string): Promise<boolean>;
 
+  /** Nombre de cada técnico del negocio indicado; los ids que no existen no aparecen en el mapa. */
+  technicianNames(
+    businessId: string,
+    technicianIds: readonly string[],
+  ): Promise<ReadonlyMap<string, string>>;
+
   /**
    * Técnicos activos y no anonimizados, con su disponibilidad semanal y los días libres que se
    * solapan con la ventana.

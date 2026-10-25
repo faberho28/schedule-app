@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+  '/agenda/to-close': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Listar los servicios por cerrar
+     * @description Solo lectura. Servicios `confirmed` cuyo inicio ya pasó y siguen sin cerrar, de cualquier fecha, del más antiguo al más reciente (hasta 200 en `items`). `total` es la cantidad completa y coincide con `pending_to_close` del resumen. Los servicios `pending` no se incluyen.
+     */
+    get: operations['Agenda_toClose'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/agenda/visible-hours': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar las horas visibles de la grilla de la agenda
+     * @description Solo lectura. Para cada día local del rango (ambos extremos incluidos, hasta 62 días) devuelve el menor inicio y el mayor fin de trabajo, en minutos de pared desde la medianoche del negocio, entre los técnicos pedidos (hasta 10): su disponibilidad semanal menos los días libres. Un día en que ninguno trabaja devuelve `start_minute` y `end_minute` nulos. Los ids desconocidos, de otro negocio, inactivos o anonimizados se ignoran. El redondeo a horas completas y el rango por defecto los resuelve la interfaz.
+     */
+    get: operations['Agenda_visibleHours'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/appointments': {
     parameters: {
       query?: never;
@@ -99,6 +139,26 @@ export interface paths {
      * @description Toda corrección exige `reason`. Reabrir (`outcome: confirmed`) exige además `confirm_reopen`. Corregir de `completed` a `completed` exige `completed_at`.
      */
     post: operations['Appointments_correctClosure'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/appointments/{id}/free-technicians': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Listar los técnicos libres en el horario de una cita
+     * @description Solo lectura. Devuelve los técnicos activos que pueden atender la cita en su inicio y duración exactos, sin contar su propio bloque y sin el técnico actual. Aplica las mismas reglas que la reasignación manual; la lista es una foto del momento y `POST /appointments/{id}/reassign` sigue validando (`slot_taken`). Una cita cancelada o cerrada responde `invalid_transition`.
+     */
+    get: operations['Appointments_freeTechnicians'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -218,6 +278,46 @@ export interface paths {
      * @description Agrega un evento inmutable. Al conceder se programan los seguimientos pendientes; al retirar se cancelan.
      */
     post: operations['Customers_registerConsent'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/dashboard/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar el resumen del Panel de control
+     * @description Solo lectura, sin parámetros. Se calcula para "ahora" en la zona horaria del negocio. Devuelve las cuatro tarjetas y la lista "Servicios de hoy" en una sola respuesta. `today` y `efficiency.from` son días locales del negocio: la interfaz no usa el reloj del navegador. No incluye teléfono, dirección ni notas del cliente.
+     */
+    get: operations['Dashboard_summary'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/search': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Buscar clientes y servicios
+     * @description Solo lectura. Devuelve dos grupos de hasta 10 resultados. `customers` coincide por nombre o dígitos del teléfono y nunca incluye clientes anonimizados. `services` coincide por nombre del cliente (no por teléfono), tipo de servicio o nombre del técnico, de cualquier fecha y estado, y se ordena por cercanía en días a hoy en la zona del negocio, luego los no cancelados primero, el inicio y el id. Un cliente o técnico anonimizado nunca coincide por su nombre original ni por su alias: se muestra con `name` nulo y `alias`.
+     */
+    get: operations['Search_search'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -453,7 +553,7 @@ export interface components {
       /** @description Verdadero si la cita pasó a otro técnico después de crearse. */
       technician_changed: boolean;
     };
-    /** @description Cliente de una cita. */
+    /** @description Cliente de una cita. Si fue anonimizado, `name` es nulo y `alias` identifica al cliente; la interfaz muestra "Cliente eliminado (alias)". */
     AppointmentCustomer: {
       alias: string | null;
       /** Format: uuid */
@@ -461,6 +561,20 @@ export interface components {
       name: string | null;
       /** @description Teléfono en formato E.164. */
       phone: string;
+    };
+    /** @description Fila de la lista "Servicios de hoy": solo hora, estado, cliente, tipo de servicio y técnico. No incluye teléfono, dirección ni notas. */
+    AppointmentSummary: {
+      customer: components['schemas']['PartyRef'];
+      /** Format: date-time */
+      ends_at: string;
+      /** Format: uuid */
+      id: string;
+      service: components['schemas']['ServiceRef'];
+      /** Format: date-time */
+      starts_at: string;
+      /** @enum {string} */
+      status: 'pending' | 'confirmed' | 'completed' | 'no_show' | 'cancelled';
+      technician: components['schemas']['PartyRef'];
     };
     /** @description Franja semanal de disponibilidad. */
     AvailabilityWindow: {
@@ -664,6 +778,52 @@ export interface components {
     CustomerFutureAppointmentsProblemExtension: {
       affected: components['schemas']['Appointment'][];
     };
+    /** @description Cliente encontrado por la búsqueda global. Nunca es un cliente anonimizado. */
+    CustomerHit: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @description Teléfono en formato E.164. */
+      phone: string;
+    };
+    /** @description Tarjeta "Técnicos activos X/Y". */
+    DashboardActiveTechnicians: {
+      /** @description Y: técnicos activos (ni desactivados ni anonimizados). */
+      total: number;
+      /** @description X: técnicos activos cuya disponibilidad cubre hoy y que ningún día libre deja sin todo su turno. */
+      working: number;
+    };
+    /** @description Tarjeta "Eficiencia de servicios" sobre los últimos 30 días calendario. */
+    DashboardEfficiency: {
+      completed: number;
+      /** @description Servicios no cancelados de la ventana cuyo inicio ya pasó (incluye `no_show` y los sin cerrar). */
+      due: number;
+      /**
+       * Format: date
+       * @description Fecha de corte: primer día local de la ventana de 30 días que incluye hoy.
+       * @example 2026-09-25
+       */
+      from: string;
+      /** @description Fracción `completed / due`. Nula si `due` es 0 (la interfaz muestra "Sin datos"); el redondeo a porcentaje lo hace la interfaz. */
+      rate: number | null;
+    };
+    /** @description Resumen del Panel de control calculado para "ahora" en la zona horaria del negocio. */
+    DashboardSummary: {
+      active_technicians: components['schemas']['DashboardActiveTechnicians'];
+      efficiency: components['schemas']['DashboardEfficiency'];
+      /** @description Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha. Igual a `total` de `GET /agenda/to-close`. */
+      pending_to_close: number;
+      /** @description Servicios `pending` y `confirmed` de hoy, por hora de inicio y luego por técnico. */
+      remaining_today: components['schemas']['AppointmentSummary'][];
+      /** @description Servicios de hoy en cualquier estado excepto `cancelled`. */
+      services_today: number;
+      /**
+       * Format: date
+       * @description Día local del negocio; la interfaz no debe calcular "hoy" con el reloj del navegador.
+       * @example 2026-10-24
+       */
+      today: string;
+    };
     /** @description Aviso informativo: las citas futuras conservan la duración anterior. */
     DurationChangeWarning: {
       /** @enum {string} */
@@ -682,6 +842,12 @@ export interface components {
       /** @description Mensajes de validación en español. */
       messages: string[];
     };
+    /** @description Técnico libre en el horario exacto de una cita. */
+    FreeTechnician: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+    };
     MoveAppointmentDto: {
       /**
        * Format: date-time
@@ -692,6 +858,13 @@ export interface components {
     };
     /** @description Técnico o cliente de una cita. Si fue anonimizado, `name` es nulo y se muestra `alias`. */
     Party: {
+      alias: string | null;
+      /** Format: uuid */
+      id: string;
+      name: string | null;
+    };
+    /** @description Referencia mínima a un técnico o cliente. Si fue anonimizado, `name` es nulo y se muestra `alias`. */
+    PartyRef: {
       alias: string | null;
       /** Format: uuid */
       id: string;
@@ -838,6 +1011,13 @@ export interface components {
       fully_resolvable: boolean;
       proposal: components['schemas']['ReassignmentProposalItem'][];
     };
+    /** @description Resultado de la búsqueda global: hasta 10 clientes y hasta 10 servicios. Los servicios no incluyen teléfono, dirección ni precio. */
+    SearchResult: {
+      /** @description Por nombre o teléfono, por nombre y luego id. */
+      customers: components['schemas']['CustomerHit'][];
+      /** @description Servicios de cualquier fecha y estado (incluye cancelados), por cercanía en días a hoy, luego no cancelados primero, inicio e id. */
+      services: components['schemas']['AppointmentSummary'][];
+    };
     /** @description Servicio del catálogo. Nunca se borra: se desactiva. */
     Service: {
       active: boolean;
@@ -915,6 +1095,13 @@ export interface components {
       /** Format: date-time */
       starts_at: string;
     };
+    /** @description Servicios `confirmed` con inicio pasado y sin cerrar, de cualquier fecha: los 200 más antiguos primero y el total completo. */
+    ToCloseList: {
+      /** @description Hasta 200, el más antiguo primero. */
+      items: components['schemas']['Appointment'][];
+      /** @description Cantidad completa por cerrar; es el número de la tarjeta "Servicios pendientes". */
+      total: number;
+    };
     UpdateBusinessDto: {
       /**
        * @description Hora local de envío del seguimiento, HH:MM.
@@ -949,6 +1136,20 @@ export interface components {
       /** @description `null` borra el teléfono. */
       phone?: string | null;
     };
+    /** @description Horas visibles de la grilla por día, derivadas de la disponibilidad semanal menos los días libres de los técnicos pedidos. */
+    VisibleHours: {
+      days: components['schemas']['VisibleHoursDay'][];
+    };
+    /** @description Horas de trabajo de un día local: minutos de pared desde la medianoche (0 a 1440). Ambos son nulos si ningún técnico pedido trabaja ese día. */
+    VisibleHoursDay: {
+      /**
+       * Format: date
+       * @example 2026-11-02
+       */
+      date: string;
+      end_minute: number | null;
+      start_minute: number | null;
+    };
   };
   responses: never;
   parameters: never;
@@ -958,6 +1159,87 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  Agenda_toClose: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ToCloseList'];
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
+  Agenda_visibleHours: {
+    parameters: {
+      query: {
+        /** @description Primer día local. */
+        from: string;
+        /** @description Último día local, incluido. El rango admite hasta 62 días. */
+        to: string;
+        /** @description Técnicos a considerar; el parámetro se repite por cada uno (hasta 10). Los ids desconocidos o no reservables se ignoran. */
+        technicianIds?: string[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VisibleHours'];
+        };
+      };
+      /** @description Códigos posibles: validation_error. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'validation_error';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
   Appointments_list: {
     parameters: {
       query: {
@@ -1370,6 +1652,75 @@ export interface operations {
       };
     };
   };
+  Appointments_freeTechnicians: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FreeTechnician'][];
+        };
+      };
+      /** @description Códigos posibles: bad_request. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'bad_request';
+          };
+        };
+      };
+      /** @description Códigos posibles: not_found. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'not_found';
+          };
+        };
+      };
+      /** @description Códigos posibles: invalid_transition. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'invalid_transition';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
   Appointments_move: {
     parameters: {
       query?: never;
@@ -1647,7 +1998,7 @@ export interface operations {
       query?: {
         /** @description Incluye los clientes eliminados (anonimizados). */
         includeAnonymized?: boolean;
-        /** @description Busca por nombre o teléfono. */
+        /** @description Busca por nombre (sin distinguir acentos ni mayúsculas) o por dígitos del teléfono. */
         search?: string;
       };
       header?: never;
@@ -2061,6 +2412,95 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'] & {
             /** @enum {string} */
             code?: 'customer_anonymized';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
+  Dashboard_summary: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DashboardSummary'];
+        };
+      };
+      /** @description Códigos posibles: not_found. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'not_found';
+          };
+        };
+      };
+      /** @description Códigos posibles: internal_error. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'internal_error';
+          };
+        };
+      };
+    };
+  };
+  Search_search: {
+    parameters: {
+      query: {
+        /** @description Texto a buscar, recortado, de 2 a 100 caracteres. No distingue acentos ni mayúsculas. */
+        q: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SearchResult'];
+        };
+      };
+      /** @description Códigos posibles: validation_error. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'] & {
+            /** @enum {string} */
+            code?: 'validation_error';
           };
         };
       };

@@ -328,9 +328,9 @@ describe('TechnicianDetailPage: horario semanal', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar horario' }));
 
     const dialog = await screen.findByRole('dialog', {
-      name: 'Cambiar el horario semanal: citas afectadas',
+      name: 'Cambiar el horario semanal: servicios afectados',
     });
-    expect(dialog).toHaveTextContent('Este cambio afecta 1 cita de Carlos');
+    expect(dialog).toHaveTextContent('Este cambio afecta 1 servicio de Carlos');
     expect(dialog).toHaveTextContent('Pasa a Marta');
     expect(received.applies).toEqual([]);
   });
@@ -389,7 +389,7 @@ describe('TechnicianDetailPage: días libres', () => {
     await fillTimeOff(user, '2026-11-06', '2026-11-06');
 
     const dialog = await screen.findByRole('dialog', {
-      name: 'Registrar días libres: citas afectadas',
+      name: 'Registrar días libres: servicios afectados',
     });
     expect(dialog).toHaveTextContent('vie 6 nov 08:00');
     expect(dialog).toHaveTextContent('Pasa a Marta');
@@ -450,7 +450,7 @@ describe('TechnicianDetailPage: desactivar, reactivar y eliminar', () => {
     await user.click(await screen.findByRole('button', { name: 'Desactivar técnico' }));
 
     const dialog = await screen.findByRole('dialog', {
-      name: 'Desactivar técnico: citas afectadas',
+      name: 'Desactivar técnico: servicios afectados',
     });
     await user.click(within(dialog).getByRole('button', { name: 'Rechazar' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -504,7 +504,9 @@ describe('TechnicianDetailPage: desactivar, reactivar y eliminar', () => {
       }),
     );
 
-    const dialog = await screen.findByRole('dialog', { name: 'Eliminar técnico: citas afectadas' });
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Eliminar técnico: servicios afectados',
+    });
     expect(dialog).toHaveTextContent('Sin reemplazo disponible');
     expect(within(dialog).getByRole('button', { name: 'Aceptar' })).toBeDisabled();
     expect(received.erases).toEqual([]);

@@ -26,9 +26,9 @@ type Choice = 'to_no_show' | 'to_completed' | 'change_date' | 'reopen';
 
 const CHOICE_LABELS: Record<Choice, string> = {
   to_no_show: 'Cambiar a No asistió',
-  to_completed: 'Cambiar a Completada',
+  to_completed: 'Cambiar a Completado',
   change_date: 'Cambiar la fecha de completado',
-  reopen: 'Devolver a Confirmada',
+  reopen: 'Devolver a Confirmado',
 };
 
 /** Correcciones posibles según el estado actual: entre cerrados, la fecha y la reapertura. */
@@ -108,7 +108,7 @@ export function CorrectionDialog({
       }
     }
     if (choice === 'reopen' && !confirmReopen) {
-      found.confirm = 'Marca la casilla para confirmar que quieres reabrir la cita.';
+      found.confirm = 'Marca la casilla para confirmar que quieres reabrir el servicio.';
     }
     return found;
   }
@@ -145,7 +145,7 @@ export function CorrectionDialog({
         <DialogHeader>
           <DialogTitle>Corregir cierre</DialogTitle>
           <DialogDescription>
-            Cita de {customerLabel(appointment.customer)} del{' '}
+            Servicio de {customerLabel(appointment.customer)} del{' '}
             {formatDateTime(appointment.starts_at, timeZone)}. Estado actual:{' '}
             {STATUS_STYLES[appointment.status].label}. Se registrará quién, cuándo y por qué la
             corriges.
@@ -207,15 +207,15 @@ export function CorrectionDialog({
           {choice === 'reopen' ? (
             <>
               <Warning>
-                Al devolver la cita a Confirmada se anula el seguimiento programado y se borra la
-                fecha de completado. La cita conserva su horario.
+                Al devolver el servicio a Confirmado se anula el seguimiento programado y se borra
+                la fecha de completado. El servicio conserva su horario.
               </Warning>
               <ConfirmCheckbox
                 checked={confirmReopen}
                 error={errors.confirm}
                 onChange={(checked) => edit(() => setConfirmReopen(checked))}
               >
-                Entiendo que se anulará el seguimiento y quiero devolver la cita a Confirmada.
+                Entiendo que se anulará el seguimiento y quiero devolver el servicio a Confirmado.
               </ConfirmCheckbox>
             </>
           ) : null}
@@ -242,7 +242,7 @@ export function CorrectionDialog({
               variant={choice === 'reopen' ? 'destructive' : 'default'}
               disabled={correct.isPending}
             >
-              {choice === 'reopen' ? 'Devolver a Confirmada' : 'Guardar corrección'}
+              {choice === 'reopen' ? 'Devolver a Confirmado' : 'Guardar corrección'}
             </Button>
           </DialogFooter>
         </form>

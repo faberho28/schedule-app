@@ -18,25 +18,25 @@ export type AppointmentFlow =
   | { kind: 'detail' | 'move' | 'reassign' | 'cancel' | 'close' | 'correct'; id: string };
 
 const FOLLOWUP_NOTICE =
-  'Si el cliente autorizó seguimientos y el servicio tiene intervalo, se programa un mensaje de seguimiento; en esta versión no se envían mensajes.';
+  'Si el cliente autorizó seguimientos y el tipo de servicio tiene intervalo, se programa un mensaje de seguimiento; en esta versión no se envían mensajes.';
 
 /** Anuncio tras cerrar una cita. El seguimiento solo se menciona al completar. */
 function closedMessage(status: Appointment['status']): string {
   const label = STATUS_STYLES[status].label;
   return status === 'completed'
-    ? `Cita cerrada como ${label}. ${FOLLOWUP_NOTICE}`
-    : `Cita cerrada como ${label}.`;
+    ? `Servicio cerrado como ${label}. ${FOLLOWUP_NOTICE}`
+    : `Servicio cerrado como ${label}.`;
 }
 
 /** Anuncio tras corregir un cierre; al reabrir se avisa que el seguimiento se anuló. */
 function correctedMessage(status: Appointment['status']): string {
   if (status === 'confirmed') {
-    return 'Cita devuelta a Confirmada. Se anuló el seguimiento programado.';
+    return 'Servicio devuelto a Confirmado. Se anuló el seguimiento programado.';
   }
   const label = STATUS_STYLES[status].label;
   return status === 'completed'
-    ? `Cierre corregido: la cita quedó como ${label}. ${FOLLOWUP_NOTICE}`
-    : `Cierre corregido: la cita quedó como ${label}.`;
+    ? `Cierre corregido: el servicio quedó como ${label}. ${FOLLOWUP_NOTICE}`
+    : `Cierre corregido: el servicio quedó como ${label}.`;
 }
 
 type AppointmentFlowsProps = {
@@ -76,7 +76,7 @@ export function AppointmentFlows({
         initialDay={flow.day ?? defaultDay}
         initialTechnicianId={flow.technicianId}
         onClose={close}
-        onCreated={() => onDone('Cita creada.')}
+        onCreated={() => onDone('Servicio creado.')}
       />
     );
   }
@@ -104,7 +104,7 @@ export function AppointmentFlows({
           timeZone={timeZone}
           technicians={technicians}
           onClose={close}
-          onMoved={() => onDone('Cita movida.')}
+          onMoved={() => onDone('Servicio movido.')}
         />
       );
     case 'reassign':
@@ -115,7 +115,7 @@ export function AppointmentFlows({
           timeZone={timeZone}
           technicians={technicians}
           onClose={close}
-          onReassigned={() => onDone('Cita reasignada.')}
+          onReassigned={() => onDone('Servicio reasignado.')}
         />
       );
     case 'cancel':
@@ -125,7 +125,7 @@ export function AppointmentFlows({
           appointment={appointment}
           timeZone={timeZone}
           onClose={close}
-          onCancelled={() => onDone('Cita cancelada.')}
+          onCancelled={() => onDone('Servicio cancelado.')}
         />
       );
     case 'close':

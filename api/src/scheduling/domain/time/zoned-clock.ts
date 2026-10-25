@@ -62,6 +62,20 @@ export function dayRange(date: LocalDate, timeZone: string): Range {
   return { start: start.toMillis(), end: start.plus({ days: 1 }).toMillis() };
 }
 
+/**
+ * Minutos de pared desde la medianoche local de `date`, entre 0 y 1440. Un instante en o antes de
+ * la medianoche inicial vale 0 y uno en o después del inicio del día siguiente vale 1440, de modo
+ * que un tramo que cruza la medianoche se acota al día. En los días de 23 y 25 horas cuenta la hora
+ * de pared, no las horas transcurridas.
+ */
+export function minuteOfDay(instant: Instant, date: LocalDate, timeZone: string): number {
+  const day = dayRange(date, timeZone);
+  if (instant <= day.start) return 0;
+  if (instant >= day.end) return 1440;
+  const local = DateTime.fromMillis(instant, { zone: timeZone });
+  return local.hour * 60 + local.minute;
+}
+
 /** Suma días de calendario a una fecha local, sin pasar por instantes. */
 export function addDays(date: LocalDate, days: number): LocalDate {
   return DateTime.fromISO(parseLocalDate(date), { zone: 'utc' })

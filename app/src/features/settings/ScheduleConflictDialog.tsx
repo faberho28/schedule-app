@@ -54,8 +54,8 @@ export function ScheduleConflictDialog({
           <DialogHeader>
             <DialogTitle>Cambio aplicado</DialogTitle>
             <DialogDescription>
-              {count === 1 ? 'Se reasignó 1 cita.' : `Se reasignaron ${count} citas.`} El horario de
-              cada cita no cambió.
+              {count === 1 ? 'Se reasignó 1 servicio.' : `Se reasignaron ${count} servicios.`} El
+              horario de cada servicio no cambió.
             </DialogDescription>
           </DialogHeader>
           <ul className="flex flex-col gap-2">
@@ -87,11 +87,11 @@ export function ScheduleConflictDialog({
     <Dialog open onOpenChange={(open) => !open && flow.reject()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{changeLabel(change.type)}: citas afectadas</DialogTitle>
+          <DialogTitle>{changeLabel(change.type)}: servicios afectados</DialogTitle>
           <DialogDescription>
             {count === 0
-              ? 'Ya no hay citas afectadas. Puedes aplicar el cambio.'
-              : `Este cambio afecta ${count} ${pluralize(count, 'cita', 'citas')} de ${technicianName}. La propuesta cambia solo el técnico, nunca el horario.`}
+              ? 'Ya no hay servicios afectados. Puedes aplicar el cambio.'
+              : `Este cambio afecta ${count} ${pluralize(count, 'servicio', 'servicios')} de ${technicianName}. La propuesta cambia solo el técnico, nunca el horario.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -119,9 +119,10 @@ export function ScheduleConflictDialog({
 
         {blocked ? (
           <p className="text-sm font-medium">
-            Hay {unresolved.length} {pluralize(unresolved.length, 'cita', 'citas')} sin reemplazo
-            posible. Muévelas, reasígnalas o cancélalas a mano desde la agenda y vuelve a intentar
-            el cambio. Mientras tanto el cambio sigue bloqueado y no se aplica ninguna reasignación.
+            Hay {unresolved.length} {pluralize(unresolved.length, 'servicio', 'servicios')} sin
+            reemplazo posible. Muévelos, reasígnalos o cancélalos a mano desde la agenda y vuelve a
+            intentar el cambio. Mientras tanto el cambio sigue bloqueado y no se aplica ninguna
+            reasignación.
           </p>
         ) : null}
 

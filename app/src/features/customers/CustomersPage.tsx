@@ -6,7 +6,7 @@ import { customerRecordLabel } from '@/shared/lib/people';
 import { useDebouncedValue } from '@/shared/lib/use-debounced-value';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { FormField } from '@/shared/ui/FormField';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { CustomerCreateDialog } from './CustomerCreateDialog';
 import { useCustomers, type Customer } from './customers-api';
 import { CONSENT_STATUS_INFO } from './consent';
@@ -24,10 +24,10 @@ export function CustomersPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <PageTitle>Clientes</PageTitle>
-        <Button onClick={() => setCreating(true)}>Nuevo cliente</Button>
-      </div>
+      <PageHeader
+        title="Clientes"
+        actions={<Button onClick={() => setCreating(true)}>Nuevo cliente</Button>}
+      />
 
       <p role="status" className="text-sm font-medium text-status-completed-foreground">
         {notice}

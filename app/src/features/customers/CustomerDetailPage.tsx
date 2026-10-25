@@ -7,7 +7,7 @@ import { formatDate } from '@/shared/lib/dates';
 import { pluralize } from '@/shared/lib/format';
 import { customerRecordLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { CONSENT_STATUS_INFO } from './consent';
 import { ConsentAudit } from './ConsentAudit';
 import { ConsentDialog } from './ConsentDialog';
@@ -24,7 +24,7 @@ export function CustomerDetailPage() {
 
   return (
     <section className="flex max-w-xl flex-col gap-6">
-      <PageTitle>Ficha del cliente</PageTitle>
+      <PageHeader title="Ficha del cliente" />
       <Button asChild variant="outline" className="self-start">
         <Link to="/customers">Volver a clientes</Link>
       </Button>
@@ -68,7 +68,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
       {erased ? (
         <p className="text-sm text-muted-foreground">
           Este cliente fue eliminado: sus datos personales se reemplazaron por valores neutros y no
-          admite cambios, autorizaciones ni citas nuevas. Su historial se conserva.
+          admite cambios, autorizaciones ni servicios nuevos. Su historial se conserva.
         </p>
       ) : (
         <>
@@ -160,8 +160,8 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
           {upcoming.length > 0 ? (
             <p className="text-sm font-medium">
               Este cliente tiene {upcoming.length}{' '}
-              {pluralize(upcoming.length, 'cita futura activa', 'citas futuras activas')}.
-              Cancélalas antes de eliminar sus datos.
+              {pluralize(upcoming.length, 'servicio futuro activo', 'servicios futuros activos')}.
+              Cancélalos antes de eliminar sus datos.
             </p>
           ) : null}
           <Button

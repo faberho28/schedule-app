@@ -1,7 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { setDesktopViewport } from '@/test/viewport';
 import type { components } from '@/shared/api/schema';
 import {
   apiUrl,
@@ -17,6 +18,9 @@ import {
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
 import { AgendaPage } from './AgendaPage';
+
+// La agenda se ejecuta explícitamente con ancho de escritorio.
+beforeEach(() => setDesktopViewport());
 
 type Appointment = components['schemas']['Appointment'];
 
@@ -44,6 +48,9 @@ function serve(initial: Appointment[] = [appointment()]) {
       state.listings += 1;
       return HttpResponse.json(state.appointments);
     }),
+    http.get(apiUrl(`/appointments/${IDS.apt1}/free-technicians`), () =>
+      HttpResponse.json([{ id: IDS.marta, name: 'Marta' }]),
+    ),
     http.get(apiUrl('/services'), () => HttpResponse.json([service()])),
     http.get(apiUrl('/customers'), () => HttpResponse.json([customer()])),
     http.get(apiUrl('/slots'), () =>
@@ -123,7 +130,7 @@ describe('AgendaPage: ficha de la cita', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Ana Pérez' });
     expect(within(dialog).getByRole('button', { name: 'Mover' })).toBeEnabled();
     expect(within(dialog).getByRole('button', { name: 'Reasignar' })).toBeEnabled();
-    expect(within(dialog).getByRole('button', { name: 'Cancelar cita' })).toBeEnabled();
+    expect(within(dialog).getByRole('button', { name: 'Cancelar servicio' })).toBeEnabled();
   });
 
   it('deshabilita las acciones de una cita cerrada y explica por qué', async () => {
@@ -135,7 +142,7 @@ describe('AgendaPage: ficha de la cita', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Ana Pérez' });
     expect(within(dialog).getByRole('button', { name: 'Mover' })).toBeDisabled();
-    expect(dialog).toHaveTextContent('Primero hay que reabrirlas.');
+    expect(dialog).toHaveTextContent('Primero hay que reabrirlos.');
   });
 });
 
@@ -145,16 +152,23 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     const state = serve();
     renderAgenda();
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
-    await user.click(await screen.findByRole('button', { name: 'Cancelar cita' }));
+    await user.click(await screen.findByRole('button', { name: 'Cancelar servicio' }));
     const listingsBefore = state.listings;
 
     await user.type(await screen.findByLabelText('Motivo (opcional)'), 'Viaje');
-    await user.click(screen.getByRole('button', { name: 'Cancelar la cita' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
-    expect(await screen.findByText('Cita cancelada.')).toHaveAttribute('role', 'status');
-    expect(await screen.findByRole('button', { name: /Ana Pérez.*Cancelada/ })).toBeInTheDocument();
+    expect(await screen.findByText('Servicio cancelado.')).toHaveAttribute('role', 'status');
+    // Los cancelados quedan ocultos por defecto en la grilla.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Ana Pérez/ })).not.toBeInTheDocument(),
+    );
     expect(state.listings).toBeGreaterThan(listingsBefore);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('switch', { name: 'Mostrar cancelados' }));
+
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*Cancelado/ })).toBeInTheDocument();
   });
 
   it('mueve la cita a otro cupo y la agenda la muestra en su nuevo horario y técnico', async () => {
@@ -166,15 +180,13 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
 
     await user.click(await screen.findByRole('radio', { name: '10:00 con Marta' }));
     expect(screen.getByRole('status')).toHaveTextContent('Cambia el técnico');
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
-    expect(await screen.findByText('Cita movida.')).toBeInTheDocument();
-    const marta = screen.getByRole('group', { name: 'Marta, vie 6 nov' });
+    expect(await screen.findByText('Servicio movido.')).toBeInTheDocument();
     expect(
-      await within(marta).findByRole('button', { name: /10:00 a 11:30, Ana Pérez/ }),
+      await screen.findByRole('button', { name: /10:00 a 11:30, Ana Pérez.*técnico Marta/ }),
     ).toBeInTheDocument();
-    const carlos = screen.getByRole('group', { name: 'Carlos, vie 6 nov' });
-    expect(within(carlos).queryByRole('button', { name: /Ana Pérez/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /técnico Carlos/ })).not.toBeInTheDocument();
   });
 
   it('reasigna la cita a otro técnico conservando la hora', async () => {
@@ -184,39 +196,35 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
     await user.click(await screen.findByRole('button', { name: 'Reasignar' }));
 
-    await user.selectOptions(await screen.findByLabelText('Nuevo técnico'), 'Marta');
+    await user.click(await screen.findByRole('radio', { name: 'Marta' }));
     await user.click(screen.getByRole('button', { name: 'Reasignar' }));
 
-    expect(await screen.findByText('Cita reasignada.')).toBeInTheDocument();
-    const marta = screen.getByRole('group', { name: 'Marta, vie 6 nov' });
+    expect(await screen.findByText('Servicio reasignado.')).toBeInTheDocument();
     expect(
-      await within(marta).findByRole('button', {
-        name: /08:00 a 09:30, Ana Pérez.*técnico cambiado/,
+      await screen.findByRole('button', {
+        name: /08:00 a 09:30, Ana Pérez.*técnico Marta.*técnico cambiado/,
       }),
     ).toBeInTheDocument();
   });
 
-  it('crea una cita desde la celda de un técnico y la agenda la muestra', async () => {
+  it('crea un servicio desde el botón del día y la agenda lo muestra', async () => {
     const user = userEvent.setup();
     const state = serve([]);
     renderAgenda();
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Nueva cita con Marta el vie 6 nov' }),
-    );
+    await user.click(await screen.findByRole('button', { name: 'Nuevo servicio el vie 6 nov' }));
     await user.type(await screen.findByLabelText('Buscar cliente'), 'Ana');
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
-    const select = screen.getByLabelText('Servicio');
+    const select = screen.getByLabelText('Tipo de servicio');
     await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
     await user.selectOptions(select, 'Mantenimiento de aire');
     await user.click(await screen.findByRole('radio', { name: '10:00 con Marta' }));
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
-    expect(await screen.findByText('Cita creada.')).toBeInTheDocument();
+    expect(await screen.findByText('Servicio creado.')).toBeInTheDocument();
     expect(state.commands).toEqual(['create']);
-    const marta = screen.getByRole('group', { name: 'Marta, vie 6 nov' });
     expect(
-      await within(marta).findByRole('button', { name: /10:00 a 11:30, Ana Pérez/ }),
+      await screen.findByRole('button', { name: /10:00 a 11:30, Ana Pérez.*técnico Marta/ }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -226,10 +234,10 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     serve([]);
     renderAgenda('/agenda?view=day&date=2026-11-09');
 
-    await user.click(await screen.findByRole('button', { name: 'Nueva cita' }));
+    await user.click(await screen.findByRole('button', { name: 'Nuevo servicio' }));
 
-    const dialog = await screen.findByRole('dialog', { name: 'Nueva cita' });
-    const select = within(dialog).getByLabelText('Servicio');
+    const dialog = await screen.findByRole('dialog', { name: 'Nuevo servicio' });
+    const select = within(dialog).getByLabelText('Tipo de servicio');
     await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
     await userEvent.setup().selectOptions(select, 'Mantenimiento de aire');
     expect(await within(dialog).findByLabelText('Desde')).toHaveValue('2026-11-09');
@@ -246,11 +254,11 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.click(await screen.findByRole('button', { name: 'Mover' }));
 
     await user.click(await screen.findByRole('radio', { name: /10:00/ }));
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
     expect(await screen.findByText('Cupo ocupado')).toBeInTheDocument();
     expect(state.commands).toEqual([]);
-    expect(screen.getByRole('dialog', { name: 'Mover cita' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Mover servicio' })).toBeInTheDocument();
   });
 });
 
@@ -269,18 +277,18 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     const state = serve([appointment(PAST)]);
     const { queryClient } = renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
     queryClient.setQueryData(['customers', 'detail', IDS.customer], customer());
-    await open(user, 'Cerrar cita');
+    await open(user, 'Cerrar servicio');
     const listingsBefore = state.listings;
 
-    await user.click(await screen.findByRole('radio', { name: 'Completada' }));
+    await user.click(await screen.findByRole('radio', { name: 'Completado' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     expect(state.commands).toEqual([]);
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
-    const notice = await screen.findByText(/^Cita cerrada como Completada\./);
+    const notice = await screen.findByText(/^Servicio cerrado como Completado\./);
     expect(notice).toHaveAttribute('role', 'status');
     expect(notice).toHaveTextContent(/seguimiento.*no se envían mensajes/);
-    expect(await screen.findByRole('button', { name: /Ana Pérez.*Completada/ })).toBeVisible();
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*Completado/ })).toBeVisible();
     expect(state.listings).toBeGreaterThan(listingsBefore);
     expect(queryClient.getQueryState(['customers', 'detail', IDS.customer])?.isInvalidated).toBe(
       true,
@@ -292,13 +300,13 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     const user = userEvent.setup();
     serve([appointment(PAST)]);
     renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
-    await open(user, 'Cerrar cita');
+    await open(user, 'Cerrar servicio');
 
     await user.click(await screen.findByRole('radio', { name: 'No asistió' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
-    expect(await screen.findByText('Cita cerrada como No asistió.')).toHaveAttribute(
+    expect(await screen.findByText('Servicio cerrado como No asistió.')).toHaveAttribute(
       'role',
       'status',
     );
@@ -309,9 +317,9 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     const user = userEvent.setup();
     const state = serve([appointment(FUTURE)]);
     renderAgenda(`/agenda?view=day&date=${FUTURE_DAY}`);
-    await open(user, 'Cerrar cita');
+    await open(user, 'Cerrar servicio');
 
-    await user.click(await screen.findByRole('radio', { name: 'Completada' }));
+    await user.click(await screen.findByRole('radio', { name: 'Completado' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     expect(state.commands).toEqual([]);
     await user.type(screen.getByLabelText('Motivo del cierre anticipado'), 'Servicio adelantado');
@@ -319,8 +327,8 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre anticipado' }));
 
-    expect(await screen.findByText(/^Cita cerrada como Completada\./)).toBeInTheDocument();
-    const block = await screen.findByRole('button', { name: /Ana Pérez.*Completada/ });
+    expect(await screen.findByText(/^Servicio cerrado como Completado\./)).toBeInTheDocument();
+    const block = await screen.findByRole('button', { name: /Ana Pérez.*Completado/ });
     expect(block).toHaveTextContent('Cierre anticipado');
   });
 
@@ -335,7 +343,7 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar corrección' }));
 
     expect(
-      await screen.findByText('Cierre corregido: la cita quedó como No asistió.'),
+      await screen.findByText('Cierre corregido: el servicio quedó como No asistió.'),
     ).toHaveAttribute('role', 'status');
     expect(await screen.findByRole('button', { name: /Ana Pérez.*No asistió/ })).toBeVisible();
   });
@@ -346,15 +354,17 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
     await open(user, 'Corregir cierre');
 
-    await user.click(await screen.findByRole('radio', { name: 'Devolver a Confirmada' }));
+    await user.click(await screen.findByRole('radio', { name: 'Devolver a Confirmado' }));
     await user.type(screen.getByLabelText('Motivo de la corrección'), 'Error de registro');
     await user.click(screen.getByRole('checkbox'));
-    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmada' }));
+    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmado' }));
 
     expect(
-      await screen.findByText('Cita devuelta a Confirmada. Se anuló el seguimiento programado.'),
+      await screen.findByText(
+        'Servicio devuelto a Confirmado. Se anuló el seguimiento programado.',
+      ),
     ).toHaveAttribute('role', 'status');
-    expect(await screen.findByRole('button', { name: /Ana Pérez.*Confirmada/ })).toBeVisible();
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*Confirmado/ })).toBeVisible();
   });
 
   it('si la cita ya cambió de estado, muestra el error y refresca la agenda', async () => {
@@ -366,14 +376,16 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
       ),
     );
     renderAgenda(`/agenda?view=day&date=${PAST_DAY}`);
-    await open(user, 'Cerrar cita');
+    await open(user, 'Cerrar servicio');
     const listingsBefore = state.listings;
 
-    await user.click(await screen.findByRole('radio', { name: 'Completada' }));
+    await user.click(await screen.findByRole('radio', { name: 'Completado' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
-    expect(await screen.findByText('La cita no admite ese cambio de estado.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('El servicio no admite ese cambio de estado.'),
+    ).toBeInTheDocument();
     await waitFor(() => expect(state.listings).toBeGreaterThan(listingsBefore));
   });
 });

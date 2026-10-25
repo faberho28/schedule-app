@@ -144,4 +144,15 @@ export interface AppointmentRepository {
 
   /** Historial del cliente: todas sus citas, de la más reciente a la más antigua. */
   listByCustomer(businessId: string, customerId: string): Promise<AppointmentView[]>;
+
+  /**
+   * Citas de los estados indicados cuyo inicio es anterior a `instant`, de cualquier fecha. Devuelve
+   * las `limit` más antiguas primero y el `total` completo, que puede superar `limit`.
+   */
+  listStartedBefore(
+    businessId: string,
+    instant: Instant,
+    statuses: readonly AppointmentStatus[],
+    limit: number,
+  ): Promise<{ items: AppointmentView[]; total: number }>;
 }

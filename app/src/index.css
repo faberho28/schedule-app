@@ -36,6 +36,47 @@
   --status-no-show-foreground: #991b1b;
   --status-cancelled: #f1f5f9;
   --status-cancelled-foreground: #475569;
+
+  /* Paleta de técnicos: fondo 100, texto 900 y acento 600 de la escala de Tailwind. */
+  --tech-1: #dbeafe;
+  --tech-1-foreground: #1e3a8a;
+  --tech-1-accent: #2563eb;
+  --tech-2: #d1fae5;
+  --tech-2-foreground: #064e3b;
+  --tech-2-accent: #059669;
+  --tech-3: #fef3c7;
+  --tech-3-foreground: #78350f;
+  --tech-3-accent: #d97706;
+  --tech-4: #ffe4e6;
+  --tech-4-foreground: #881337;
+  --tech-4-accent: #e11d48;
+  --tech-5: #ede9fe;
+  --tech-5-foreground: #4c1d95;
+  --tech-5-accent: #7c3aed;
+  --tech-6: #cffafe;
+  --tech-6-foreground: #164e63;
+  --tech-6-accent: #0891b2;
+  --tech-7: #ffedd5;
+  --tech-7-foreground: #7c2d12;
+  --tech-7-accent: #ea580c;
+  --tech-8: #ecfccb;
+  --tech-8-foreground: #365314;
+  --tech-8-accent: #65a30d;
+  --tech-9: #fae8ff;
+  --tech-9-foreground: #701a75;
+  --tech-9-accent: #c026d3;
+  --tech-10: #f5f5f4;
+  --tech-10-foreground: #1c1917;
+  --tech-10-accent: #57534e;
+
+  /* Barra lateral oscura, construida con la escala slate. */
+  --sidebar: #0f172a;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-muted-foreground: #94a3b8;
+  --sidebar-accent: #2563eb;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-hover: #1e293b;
+  --sidebar-border: #334155;
 }
 
 .dark {
@@ -65,6 +106,46 @@
   --status-no-show-foreground: #fecaca;
   --status-cancelled: #1e293b;
   --status-cancelled-foreground: #cbd5e1;
+
+  /* Paleta de técnicos: fondo 950, texto 100 y acento 400 de la escala de Tailwind. */
+  --tech-1: #172554;
+  --tech-1-foreground: #dbeafe;
+  --tech-1-accent: #60a5fa;
+  --tech-2: #022c22;
+  --tech-2-foreground: #d1fae5;
+  --tech-2-accent: #34d399;
+  --tech-3: #451a03;
+  --tech-3-foreground: #fef3c7;
+  --tech-3-accent: #fbbf24;
+  --tech-4: #4c0519;
+  --tech-4-foreground: #ffe4e6;
+  --tech-4-accent: #fb7185;
+  --tech-5: #2e1065;
+  --tech-5-foreground: #ede9fe;
+  --tech-5-accent: #a78bfa;
+  --tech-6: #083344;
+  --tech-6-foreground: #cffafe;
+  --tech-6-accent: #22d3ee;
+  --tech-7: #431407;
+  --tech-7-foreground: #ffedd5;
+  --tech-7-accent: #fb923c;
+  --tech-8: #1a2e05;
+  --tech-8-foreground: #ecfccb;
+  --tech-8-accent: #a3e635;
+  --tech-9: #4a044e;
+  --tech-9-foreground: #fae8ff;
+  --tech-9-accent: #e879f9;
+  --tech-10: #0c0a09;
+  --tech-10-foreground: #f5f5f4;
+  --tech-10-accent: #a8a29e;
+
+  --sidebar: #020617;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-muted-foreground: #94a3b8;
+  --sidebar-accent: #2563eb;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-hover: #1e293b;
+  --sidebar-border: #334155;
 }
 
 @theme inline {
@@ -94,6 +175,45 @@
   --color-status-no-show-foreground: var(--status-no-show-foreground);
   --color-status-cancelled: var(--status-cancelled);
   --color-status-cancelled-foreground: var(--status-cancelled-foreground);
+
+  --color-tech-1: var(--tech-1);
+  --color-tech-1-foreground: var(--tech-1-foreground);
+  --color-tech-1-accent: var(--tech-1-accent);
+  --color-tech-2: var(--tech-2);
+  --color-tech-2-foreground: var(--tech-2-foreground);
+  --color-tech-2-accent: var(--tech-2-accent);
+  --color-tech-3: var(--tech-3);
+  --color-tech-3-foreground: var(--tech-3-foreground);
+  --color-tech-3-accent: var(--tech-3-accent);
+  --color-tech-4: var(--tech-4);
+  --color-tech-4-foreground: var(--tech-4-foreground);
+  --color-tech-4-accent: var(--tech-4-accent);
+  --color-tech-5: var(--tech-5);
+  --color-tech-5-foreground: var(--tech-5-foreground);
+  --color-tech-5-accent: var(--tech-5-accent);
+  --color-tech-6: var(--tech-6);
+  --color-tech-6-foreground: var(--tech-6-foreground);
+  --color-tech-6-accent: var(--tech-6-accent);
+  --color-tech-7: var(--tech-7);
+  --color-tech-7-foreground: var(--tech-7-foreground);
+  --color-tech-7-accent: var(--tech-7-accent);
+  --color-tech-8: var(--tech-8);
+  --color-tech-8-foreground: var(--tech-8-foreground);
+  --color-tech-8-accent: var(--tech-8-accent);
+  --color-tech-9: var(--tech-9);
+  --color-tech-9-foreground: var(--tech-9-foreground);
+  --color-tech-9-accent: var(--tech-9-accent);
+  --color-tech-10: var(--tech-10);
+  --color-tech-10-foreground: var(--tech-10-foreground);
+  --color-tech-10-accent: var(--tech-10-accent);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-border: var(--sidebar-border);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

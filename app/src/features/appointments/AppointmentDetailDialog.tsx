@@ -84,14 +84,14 @@ export function AppointmentDetailDialog({
         </dl>
 
         {appointment.technician_changed ? (
-          <p className="text-sm">El técnico cambió después de crear la cita.</p>
+          <p className="text-sm">El técnico cambió después de crear el servicio.</p>
         ) : null}
         {appointment.status === 'cancelled' && appointment.cancel_reason ? (
           <p className="text-sm">Motivo de la cancelación: {appointment.cancel_reason}</p>
         ) : null}
         {appointment.completed_at ? (
           <p className="text-sm">
-            Completada el {formatDateTime(appointment.completed_at, timeZone)}.
+            Completado el {formatDateTime(appointment.completed_at, timeZone)}.
           </p>
         ) : null}
         {appointment.closed_early ? (
@@ -115,7 +115,7 @@ export function AppointmentDetailDialog({
               onClick={() => onAction('close')}
             >
               <Check aria-hidden="true" />
-              Cerrar cita
+              Cerrar servicio
             </Button>
             <Button
               type="button"
@@ -158,7 +158,7 @@ export function AppointmentDetailDialog({
             {...actionProps}
             onClick={() => onAction('cancel')}
           >
-            Cancelar cita
+            Cancelar servicio
           </Button>
         </DialogFooter>
       </DialogContent>

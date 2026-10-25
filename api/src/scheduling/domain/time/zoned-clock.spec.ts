@@ -6,6 +6,7 @@ import {
   isoWeekday,
   localDateOf,
   localTimeOf,
+  minuteOfDay,
   parseLocalDate,
   parseLocalTime,
   toInstant,
@@ -101,6 +102,52 @@ describe('dayRange', () => {
     expect(dayRange('2026-03-09', 'America/New_York').end).toBe(
       dayRange('2026-03-10', 'America/New_York').start,
     );
+  });
+});
+
+describe('minuteOfDay (AU-R9)', () => {
+  it('devuelve los minutos de pared desde la medianoche local', () => {
+    expect(
+      minuteOfDay(
+        toInstant('2026-03-09', '08:00', 'America/Bogota'),
+        '2026-03-09',
+        'America/Bogota',
+      ),
+    ).toBe(480);
+    expect(
+      minuteOfDay(
+        toInstant('2026-03-09', '23:59', 'America/Bogota'),
+        '2026-03-09',
+        'America/Bogota',
+      ),
+    ).toBe(1439);
+  });
+
+  it('la medianoche del día vale 0 y la del día siguiente vale 1440', () => {
+    const range = dayRange('2026-03-09', 'America/Bogota');
+    expect(minuteOfDay(range.start, '2026-03-09', 'America/Bogota')).toBe(0);
+    expect(minuteOfDay(range.end, '2026-03-09', 'America/Bogota')).toBe(1440);
+  });
+
+  it('un instante fuera del día se acota a 0 o a 1440', () => {
+    const range = dayRange('2026-03-09', 'America/Bogota');
+    expect(minuteOfDay(range.start - 3_600_000, '2026-03-09', 'America/Bogota')).toBe(0);
+    expect(minuteOfDay(range.end + 3_600_000, '2026-03-09', 'America/Bogota')).toBe(1440);
+  });
+
+  it('día de 23 horas (2026-03-08 en New_York): usa la hora de pared y cierra en 1440', () => {
+    const zone = 'America/New_York';
+    expect(minuteOfDay(iso('2026-03-08T07:00:00Z'), '2026-03-08', zone)).toBe(180);
+    expect(minuteOfDay(toInstant('2026-03-08', '23:30', zone), '2026-03-08', zone)).toBe(1410);
+    expect(minuteOfDay(dayRange('2026-03-08', zone).end, '2026-03-08', zone)).toBe(1440);
+  });
+
+  it('día de 25 horas (2026-11-01 en New_York): la segunda 01:30 vale 90 y cierra en 1440', () => {
+    const zone = 'America/New_York';
+    expect(minuteOfDay(iso('2026-11-01T05:30:00Z'), '2026-11-01', zone)).toBe(90);
+    expect(minuteOfDay(iso('2026-11-01T06:30:00Z'), '2026-11-01', zone)).toBe(90);
+    expect(minuteOfDay(toInstant('2026-11-01', '23:59', zone), '2026-11-01', zone)).toBe(1439);
+    expect(minuteOfDay(dayRange('2026-11-01', zone).end, '2026-11-01', zone)).toBe(1440);
   });
 });
 

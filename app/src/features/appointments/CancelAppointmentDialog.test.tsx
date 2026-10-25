@@ -40,7 +40,7 @@ describe('CancelAppointmentDialog', () => {
     const requests = serve();
     const { onClose, onCancelled } = renderDialog();
 
-    expect(screen.getByRole('dialog', { name: 'Cancelar cita' })).toHaveAccessibleDescription(
+    expect(screen.getByRole('dialog', { name: 'Cancelar servicio' })).toHaveAccessibleDescription(
       /Ana Pérez.*vie 6 nov 08:00.*no se puede reabrir/,
     );
     await user.click(screen.getByRole('button', { name: 'No cancelar' }));
@@ -55,7 +55,7 @@ describe('CancelAppointmentDialog', () => {
     const requests = serve();
     const { onCancelled } = renderDialog();
 
-    await user.click(screen.getByRole('button', { name: 'Cancelar la cita' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
     await waitFor(() => expect(onCancelled).toHaveBeenCalledTimes(1));
     expect(requests.cancelled).toEqual([{}]);
@@ -67,7 +67,7 @@ describe('CancelAppointmentDialog', () => {
     const { onCancelled } = renderDialog();
 
     await user.type(screen.getByLabelText('Motivo (opcional)'), '  El cliente pidió cancelar ');
-    await user.click(screen.getByRole('button', { name: 'Cancelar la cita' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
     await waitFor(() => expect(onCancelled).toHaveBeenCalledTimes(1));
     expect(requests.cancelled).toEqual([{ reason: 'El cliente pidió cancelar' }]);
@@ -79,7 +79,7 @@ describe('CancelAppointmentDialog', () => {
     const { onCancelled } = renderDialog();
 
     await user.type(screen.getByLabelText('Motivo (opcional)'), '   ');
-    await user.click(screen.getByRole('button', { name: 'Cancelar la cita' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
     await waitFor(() => expect(onCancelled).toHaveBeenCalledTimes(1));
     expect(requests.cancelled).toEqual([{}]);
@@ -90,9 +90,11 @@ describe('CancelAppointmentDialog', () => {
     serve(() => problem('invalid_transition', 422));
     const { onCancelled } = renderDialog();
 
-    await user.click(screen.getByRole('button', { name: 'Cancelar la cita' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
-    expect(await screen.findByText('La cita no admite ese cambio de estado.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('El servicio no admite ese cambio de estado.'),
+    ).toBeInTheDocument();
     expect(onCancelled).not.toHaveBeenCalled();
   });
 
@@ -104,7 +106,7 @@ describe('CancelAppointmentDialog', () => {
     );
     const { onCancelled } = renderDialog();
 
-    await user.click(screen.getByRole('button', { name: 'Cancelar la cita' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
     expect(await screen.findByText(/No se pudo conectar con el servidor/)).toBeInTheDocument();
     failing = false;
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
@@ -118,7 +120,7 @@ describe('CancelAppointmentDialog', () => {
     serve(() => problem('not_found', 404));
     renderDialog();
 
-    await user.click(screen.getByRole('button', { name: 'Cancelar la cita' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
     expect(await screen.findByText('No se encontró el recurso solicitado.')).toBeInTheDocument();
   });

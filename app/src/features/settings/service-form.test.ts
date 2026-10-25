@@ -90,11 +90,13 @@ describe('serviceChanges', () => {
 describe('durationWarningMessage', () => {
   it('usa el plural con varias citas', () => {
     expect(durationWarningMessage(5)).toBe(
-      'Hay 5 citas futuras que conservan la duración anterior',
+      'Hay 5 servicios futuros que conservan la duración anterior',
     );
   });
 
   it('usa el singular con una cita', () => {
-    expect(durationWarningMessage(1)).toBe('Hay 1 cita futura que conserva la duración anterior');
+    expect(durationWarningMessage(1)).toBe(
+      'Hay 1 servicio futuro que conserva la duración anterior',
+    );
   });
 });

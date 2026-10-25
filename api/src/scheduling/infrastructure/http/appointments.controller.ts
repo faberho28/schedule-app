@@ -2,15 +2,15 @@ import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } fr
 import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiProblems, ApiUuidParam } from '../../../shared/http/api-problems';
 import { BusinessContext } from '../../../shared/http/business-context';
-import { ValidationFailedError } from '../../../shared/http/validation';
 import { CancelAppointment } from '../../application/cancel-appointment';
 import { CloseAppointment } from '../../application/close-appointment';
 import { CorrectClosure } from '../../application/correct-closure';
 import { CreateAppointment } from '../../application/create-appointment';
+import { ListFreeTechnicians } from '../../application/list-free-technicians';
 import { MoveAppointment } from '../../application/move-appointment';
 import { QueryAppointments } from '../../application/query-appointments';
 import { ReassignAppointment } from '../../application/reassign-appointment';
-import { addDays } from '../../domain/time/zoned-clock';
+import { assertAgendaRange } from './agenda-range';
 import { toAppointmentResponse, type AppointmentResponse } from './appointment-response';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CloseAppointmentDto } from './dto/close-appointment.dto';
@@ -19,7 +19,7 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { ListAppointmentsQueryDto, MAX_AGENDA_DAYS } from './dto/list-appointments.dto';
 import { MoveAppointmentDto } from './dto/move-appointment.dto';
 import { ReassignAppointmentDto } from './dto/reassign-appointment.dto';
-import { AppointmentSchema } from './dto/responses.schema';
+import { AppointmentSchema, FreeTechnicianSchema } from './dto/responses.schema';
 
 @ApiTags('Citas')
 @Controller('appointments')
@@ -33,6 +33,7 @@ export class AppointmentsController {
     private readonly moveAppointment: MoveAppointment,
     private readonly reassignAppointment: ReassignAppointment,
     private readonly queries: QueryAppointments,
+    private readonly freeTechniciansUseCase: ListFreeTechnicians,
   ) {}
 
   @Get()
@@ -43,16 +44,7 @@ export class AppointmentsController {
   @ApiOkResponse({ type: [AppointmentSchema] })
   @ApiProblems(['validation_error'])
   async list(@Query() query: ListAppointmentsQueryDto): Promise<AppointmentResponse[]> {
-    if (query.to < query.from) {
-      throw new ValidationFailedError([
-        { field: 'to', messages: ['to no puede ser anterior a from'] },
-      ]);
-    }
-    if (query.to > addDays(query.from, MAX_AGENDA_DAYS - 1)) {
-      throw new ValidationFailedError([
-        { field: 'to', messages: [`El rango admite hasta ${MAX_AGENDA_DAYS} días`] },
-      ]);
-    }
+    assertAgendaRange(query);
     const views = await this.queries.list(this.context.businessId, query);
     return views.map(toAppointmentResponse);
   }
@@ -64,6 +56,19 @@ export class AppointmentsController {
   @ApiProblems(['bad_request', 'not_found'])
   async get(@Param('id', ParseUUIDPipe) id: string): Promise<AppointmentResponse> {
     return toAppointmentResponse(await this.queries.get(this.context.businessId, id));
+  }
+
+  @Get(':id/free-technicians')
+  @ApiOperation({
+    summary: 'Listar los técnicos libres en el horario de una cita',
+    description:
+      'Solo lectura. Devuelve los técnicos activos que pueden atender la cita en su inicio y duración exactos, sin contar su propio bloque y sin el técnico actual. Aplica las mismas reglas que la reasignación manual; la lista es una foto del momento y `POST /appointments/{id}/reassign` sigue validando (`slot_taken`). Una cita cancelada o cerrada responde `invalid_transition`.',
+  })
+  @ApiUuidParam()
+  @ApiOkResponse({ type: [FreeTechnicianSchema] })
+  @ApiProblems(['bad_request', 'not_found', 'invalid_transition'])
+  async freeTechnicians(@Param('id', ParseUUIDPipe) id: string): Promise<FreeTechnicianSchema[]> {
+    return this.freeTechniciansUseCase.execute(this.context.businessId, id);
   }
 
   @Post(':id/cancel')

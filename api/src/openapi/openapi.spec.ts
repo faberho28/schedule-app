@@ -11,6 +11,13 @@ import type {
 } from '../modules/technicians/technicians.repository';
 import type { CustomerView } from '../modules/customers/customers.repository';
 import type { ServiceUpdateResult } from '../modules/services/services.service';
+import type { FreeTechnician } from '../scheduling/application/list-free-technicians';
+import type {
+  ToCloseResponse,
+  VisibleHoursResponse,
+} from '../scheduling/infrastructure/http/agenda.controller';
+import type { DashboardSummaryResponse } from '../scheduling/infrastructure/http/dashboard.controller';
+import type { SearchResponse } from '../scheduling/infrastructure/http/search.controller';
 import type { AppointmentResponse } from '../scheduling/infrastructure/http/appointment-response';
 import type { SlotListingResponse } from '../scheduling/infrastructure/http/slots.controller';
 import type {
@@ -36,9 +43,14 @@ import type {
 } from '../modules/technicians/dto/technician.schema';
 import type {
   AppointmentSchema,
+  DashboardSummarySchema,
+  FreeTechnicianSchema,
   ScheduleChangeApplySchema,
   SchedulePreviewSchema,
+  SearchResultSchema,
   SlotListingSchema,
+  ToCloseListSchema,
+  VisibleHoursSchema,
 } from '../scheduling/infrastructure/http/dto/responses.schema';
 
 type Operation = {
@@ -53,7 +65,7 @@ type PathItem = Record<string, Operation>;
 
 const METHODS = ['get', 'post', 'patch', 'put', 'delete'] as const;
 
-/** Operaciones esperadas: 31 rutas de las fases 3 a 10, ni una más ni una menos. */
+/** Operaciones esperadas: 31 rutas del sprint 1 y las del sprint 2 que ya existen. */
 const EXPECTED_OPERATIONS = [
   'GET /business',
   'PATCH /business',
@@ -81,6 +93,11 @@ const EXPECTED_OPERATIONS = [
   'GET /appointments',
   'POST /appointments',
   'GET /appointments/{id}',
+  'GET /appointments/{id}/free-technicians',
+  'GET /agenda/visible-hours',
+  'GET /agenda/to-close',
+  'GET /dashboard/summary',
+  'GET /search',
   'POST /appointments/{id}/cancel',
   'POST /appointments/{id}/close',
   'POST /appointments/{id}/correct-closure',
@@ -233,6 +250,12 @@ describe('solicitudes y respuestas', () => {
     const range = (operation('GET /appointments').parameters ?? []).map((p) => p.name).sort();
     expect(range).toEqual(['from', 'to']);
 
+    const visibleHours = operation('GET /agenda/visible-hours').parameters ?? [];
+    expect(visibleHours.map((p) => p.name).sort()).toEqual(['from', 'technicianIds', 'to']);
+    expect(visibleHours.every((p) => p.in === 'query')).toBe(true);
+    expect(visibleHours.find((p) => p.name === 'technicianIds')?.required).not.toBe(true);
+    expect(visibleHours.find((p) => p.name === 'from')?.required).toBe(true);
+
     const customers = (operation('GET /customers').parameters ?? []).map((p) => p.name).sort();
     expect(customers).toEqual(['includeAnonymized', 'search']);
 
@@ -246,6 +269,55 @@ describe('solicitudes y respuestas', () => {
     expect(listing.properties.has_availability.type).toBe('boolean');
     expect(listing.properties.slots.type).toBe('array');
 
+    const visibleHoursDays = schemas()['VisibleHours'].properties.days;
+    expect(visibleHoursDays.type).toBe('array');
+    expect(Object.keys(schemas()['VisibleHoursDay'].properties).sort()).toEqual([
+      'date',
+      'end_minute',
+      'start_minute',
+    ]);
+
+    const toClose = schemas()['ToCloseList'];
+    expect(toClose.required).toEqual(expect.arrayContaining(['items', 'total']));
+    expect(toClose.properties.items.type).toBe('array');
+    expect(toClose.properties.total.type).toBe('integer');
+
+    const dashboard = schemas()['DashboardSummary'];
+    expect(Object.keys(dashboard.properties).sort()).toEqual([
+      'active_technicians',
+      'efficiency',
+      'pending_to_close',
+      'remaining_today',
+      'services_today',
+      'today',
+    ]);
+    expect(dashboard.properties.remaining_today.type).toBe('array');
+    expect(schemas()['DashboardEfficiency'].properties.rate.nullable).toBe(true);
+    expect(Object.keys(schemas()['AppointmentSummary'].properties).sort()).toEqual([
+      'customer',
+      'ends_at',
+      'id',
+      'service',
+      'starts_at',
+      'status',
+      'technician',
+    ]);
+    expect(Object.keys(schemas()['PartyRef'].properties).sort()).toEqual(['alias', 'id', 'name']);
+    const search = schemas()['SearchResult'];
+    expect(Object.keys(search.properties).sort()).toEqual(['customers', 'services']);
+    expect(search.properties.customers.type).toBe('array');
+    expect(search.properties.services.type).toBe('array');
+    expect(Object.keys(schemas()['CustomerHit'].properties).sort()).toEqual([
+      'id',
+      'name',
+      'phone',
+    ]);
+    const searchParams = operation('GET /search').parameters ?? [];
+    expect(searchParams.map((p) => p.name)).toEqual(['q']);
+    expect(searchParams[0]?.required).toBe(true);
+    expect(operation('GET /dashboard/summary').parameters ?? []).toEqual([]);
+    expect(operation('GET /agenda/to-close').parameters ?? []).toEqual([]);
+
     const arrays = [
       'GET /services',
       'GET /technicians',
@@ -254,6 +326,7 @@ describe('solicitudes y respuestas', () => {
       'GET /customers',
       'GET /customers/{id}/consents',
       'GET /appointments',
+      'GET /appointments/{id}/free-technicians',
     ];
     for (const key of arrays) {
       const response = operation(key).responses['200']?.content?.['application/json']?.schema;
@@ -402,7 +475,13 @@ describe('errores problem+json', () => {
     ['DELETE /customers/{id}', 409, ['customer_has_future_appointments']],
     ['POST /technicians/{id}/schedule-changes/preview', 400, ['bad_request', 'validation_error']],
     ['GET /appointments/{id}', 400, ['bad_request']],
+    ['GET /appointments/{id}/free-technicians', 400, ['bad_request']],
+    ['GET /appointments/{id}/free-technicians', 404, ['not_found']],
+    ['GET /appointments/{id}/free-technicians', 422, ['invalid_transition']],
     ['GET /slots', 400, ['validation_error']],
+    ['GET /agenda/visible-hours', 400, ['validation_error']],
+    ['GET /dashboard/summary', 404, ['not_found']],
+    ['GET /search', 400, ['validation_error']],
   ])('%s responde %i con %j', (key, status, codes) => {
     expect(problemCodes(key, status)).toEqual(codes);
   });
@@ -508,6 +587,11 @@ describe('tipos de respuesta alineados con los controladores', () => {
     assertSame<Json<CustomerView>, CustomerSchema>();
     assertSame<AppointmentResponse, AppointmentSchema>();
     assertSame<SlotListingResponse, SlotListingSchema>();
+    assertSame<FreeTechnician[], FreeTechnicianSchema[]>();
+    assertSame<VisibleHoursResponse, VisibleHoursSchema>();
+    assertSame<ToCloseResponse, ToCloseListSchema>();
+    assertSame<DashboardSummaryResponse, DashboardSummarySchema>();
+    assertSame<SearchResponse, SearchResultSchema>();
     assertSame<ReturnType<typeof toPreviewResponse>, SchedulePreviewSchema>();
     assertSame<ReturnType<typeof toApplyResponse>, ScheduleChangeApplySchema>();
     assertSame<CustomerDetailSchema, CustomerSchema & { appointments: AppointmentSchema[] }>();

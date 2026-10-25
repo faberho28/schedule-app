@@ -6,19 +6,28 @@ import { CancelAppointment } from './application/cancel-appointment';
 import { CloseAppointment } from './application/close-appointment';
 import { CorrectClosure } from './application/correct-closure';
 import { CreateAppointment } from './application/create-appointment';
+import { GetDashboardSummary } from './application/get-dashboard-summary';
+import { GetVisibleHours } from './application/get-visible-hours';
+import { ListFreeTechnicians } from './application/list-free-technicians';
 import { ListSlots } from './application/list-slots';
 import { MoveAppointment } from './application/move-appointment';
 import { PreviewScheduleChange } from './application/preview-schedule-change';
 import { QueryAppointments } from './application/query-appointments';
 import { ReassignAppointment } from './application/reassign-appointment';
 import { RegisterConsent } from './application/register-consent';
-import { CLOCK, COMMAND_EXECUTOR, READ_PORTS } from './application/tokens';
+import { SearchAgenda } from './application/search-agenda';
+import { AGENDA_READ_MODEL, CLOCK, COMMAND_EXECUTOR, READ_PORTS } from './application/tokens';
 import type { Clock } from './domain/model/clock';
+import type { AgendaReadModel } from './domain/ports/agenda-read-model';
 import type { CommandExecutor, SchedulingPorts } from './domain/ports/command-executor';
+import { AgendaController } from './infrastructure/http/agenda.controller';
 import { AppointmentsController } from './infrastructure/http/appointments.controller';
+import { DashboardController } from './infrastructure/http/dashboard.controller';
 import { ScheduleChangesController } from './infrastructure/http/schedule-changes.controller';
+import { SearchController } from './infrastructure/http/search.controller';
 import { SlotsController } from './infrastructure/http/slots.controller';
 import { BusinessLockExecutor } from './infrastructure/persistence/business-lock-executor';
+import { KyselyAgendaReadModel } from './infrastructure/persistence/kysely-agenda-read-model';
 import { createKyselyPorts } from './infrastructure/persistence/kysely-scheduling-ports';
 import { SystemClock } from './infrastructure/system-clock';
 
@@ -27,7 +36,14 @@ import { SystemClock } from './infrastructure/system-clock';
  * Nest; este módulo lo conecta con los adaptadores de Kysely, el reloj y los controladores.
  */
 @Module({
-  controllers: [SlotsController, AppointmentsController, ScheduleChangesController],
+  controllers: [
+    SlotsController,
+    AppointmentsController,
+    AgendaController,
+    DashboardController,
+    SearchController,
+    ScheduleChangesController,
+  ],
   providers: [
     { provide: CLOCK, useClass: SystemClock },
     { provide: COMMAND_EXECUTOR, useExisting: BusinessLockExecutor },
@@ -44,7 +60,34 @@ import { SystemClock } from './infrastructure/system-clock';
     },
     {
       provide: QueryAppointments,
-      useFactory: (ports: SchedulingPorts) => new QueryAppointments(ports),
+      useFactory: (ports: SchedulingPorts, clock: Clock) => new QueryAppointments(ports, clock),
+      inject: [READ_PORTS, CLOCK],
+    },
+    {
+      provide: AGENDA_READ_MODEL,
+      useFactory: (db: Database): AgendaReadModel => new KyselyAgendaReadModel(db),
+      inject: [DATABASE],
+    },
+    {
+      provide: GetDashboardSummary,
+      useFactory: (ports: SchedulingPorts, readModel: AgendaReadModel, clock: Clock) =>
+        new GetDashboardSummary(ports, readModel, clock),
+      inject: [READ_PORTS, AGENDA_READ_MODEL, CLOCK],
+    },
+    {
+      provide: SearchAgenda,
+      useFactory: (ports: SchedulingPorts, readModel: AgendaReadModel, clock: Clock) =>
+        new SearchAgenda(ports, readModel, clock),
+      inject: [READ_PORTS, AGENDA_READ_MODEL, CLOCK],
+    },
+    {
+      provide: ListFreeTechnicians,
+      useFactory: (ports: SchedulingPorts) => new ListFreeTechnicians(ports),
+      inject: [READ_PORTS],
+    },
+    {
+      provide: GetVisibleHours,
+      useFactory: (ports: SchedulingPorts) => new GetVisibleHours(ports),
       inject: [READ_PORTS],
     },
     {

@@ -27,14 +27,14 @@ describe('AppointmentDetailDialog', () => {
     expect(dialog).toHaveTextContent('vie 6 nov 08:00 – 09:30');
     expect(dialog).toHaveTextContent('Carlos');
     expect(dialog).toHaveTextContent('Calle 10 # 5-20');
-    expect(dialog).toHaveTextContent('Confirmada');
-    expect(dialog).toHaveTextContent('El técnico cambió después de crear la cita.');
+    expect(dialog).toHaveTextContent('Confirmado');
+    expect(dialog).toHaveTextContent('El técnico cambió después de crear el servicio.');
   });
 
   it.each([
     ['Mover', 'move'],
     ['Reasignar', 'reassign'],
-    ['Cancelar cita', 'cancel'],
+    ['Cancelar servicio', 'cancel'],
   ] as const)('en una cita confirmada, "%s" abre su diálogo', async (name, action) => {
     const user = userEvent.setup();
     const { onAction } = renderDetail();
@@ -57,11 +57,11 @@ describe('AppointmentDetailDialog', () => {
       const user = userEvent.setup();
       const { onAction } = renderDetail({ status });
 
-      for (const name of ['Mover', 'Reasignar', 'Cancelar cita']) {
+      for (const name of ['Mover', 'Reasignar', 'Cancelar servicio']) {
         const button = screen.getByRole('button', { name });
         expect(button).toBeDisabled();
         expect(button).toHaveAccessibleDescription(
-          'Las citas cerradas (completadas o con inasistencia) no se pueden mover, reasignar ni cancelar. Primero hay que reabrirlas.',
+          'Los servicios cerrados (completados o con inasistencia) no se pueden mover, reasignar ni cancelar. Primero hay que reabrirlos.',
         );
         await user.click(button);
       }
@@ -73,8 +73,8 @@ describe('AppointmentDetailDialog', () => {
     renderDetail({ status: 'cancelled', cancel_reason: 'Viaje del cliente' });
 
     expect(screen.getByRole('button', { name: 'Mover' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Cancelar cita' })).toHaveAccessibleDescription(
-      'Una cita cancelada no se puede reabrir. Para volver a agendar, crea una cita nueva.',
+    expect(screen.getByRole('button', { name: 'Cancelar servicio' })).toHaveAccessibleDescription(
+      'Un servicio cancelado no se puede reabrir. Para volver a agendar, crea un servicio nuevo.',
     );
     expect(screen.getByRole('dialog')).toHaveTextContent(
       'Motivo de la cancelación: Viaje del cliente',
@@ -87,13 +87,13 @@ describe('AppointmentDetailDialog', () => {
       const user = userEvent.setup();
       const { onAction } = renderDetail({ status });
 
-      await user.click(screen.getByRole('button', { name: 'Cerrar cita' }));
+      await user.click(screen.getByRole('button', { name: 'Cerrar servicio' }));
       expect(onAction).toHaveBeenCalledExactlyOnceWith('close');
 
       const correct = screen.getByRole('button', { name: 'Corregir cierre' });
       expect(correct).toBeDisabled();
       expect(correct).toHaveAccessibleDescription(
-        'Solo las citas cerradas (completadas o con inasistencia) tienen un cierre que corregir.',
+        'Solo los servicios cerrados (completados o con inasistencia) tienen un cierre que corregir.',
       );
     },
   );
@@ -107,10 +107,10 @@ describe('AppointmentDetailDialog', () => {
       await user.click(screen.getByRole('button', { name: 'Corregir cierre' }));
       expect(onAction).toHaveBeenCalledExactlyOnceWith('correct');
 
-      const close = screen.getByRole('button', { name: 'Cerrar cita' });
+      const close = screen.getByRole('button', { name: 'Cerrar servicio' });
       expect(close).toBeDisabled();
       expect(close).toHaveAccessibleDescription(
-        'La cita ya está cerrada. Usa "Corregir cierre" para cambiar su resultado.',
+        'El servicio ya está cerrado. Usa "Corregir cierre" para cambiar su resultado.',
       );
     },
   );
@@ -118,11 +118,11 @@ describe('AppointmentDetailDialog', () => {
   it('en una cita cancelada no ofrece cerrar ni reabrir e indica crear una cita nueva', () => {
     renderDetail({ status: 'cancelled' });
 
-    for (const name of ['Cerrar cita', 'Corregir cierre']) {
+    for (const name of ['Cerrar servicio', 'Corregir cierre']) {
       const button = screen.getByRole('button', { name });
       expect(button).toBeDisabled();
       expect(button).toHaveAccessibleDescription(
-        'Una cita cancelada no se puede reabrir. Para volver a agendar, crea una cita nueva.',
+        'Un servicio cancelado no se puede reabrir. Para volver a agendar, crea un servicio nuevo.',
       );
     }
   });
@@ -136,14 +136,14 @@ describe('AppointmentDetailDialog', () => {
     });
 
     const dialog = screen.getByRole('dialog', { name: 'Ana Pérez' });
-    expect(dialog).toHaveTextContent('Completada el jue 5 nov 10:30');
+    expect(dialog).toHaveTextContent('Completado el jue 5 nov 10:30');
     expect(dialog).toHaveTextContent('Cierre anticipado: Servicio adelantado por el cliente');
   });
 
   it('no muestra datos de cierre en una cita abierta', () => {
     renderDetail();
 
-    expect(screen.getByRole('dialog')).not.toHaveTextContent('Completada el');
+    expect(screen.getByRole('dialog')).not.toHaveTextContent('Completado el');
     expect(screen.getByRole('dialog')).not.toHaveTextContent('Cierre anticipado');
   });
 
