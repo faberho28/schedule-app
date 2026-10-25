@@ -5,6 +5,7 @@ import {
   formatDateTime,
   formatDayLabel,
   formatLocalDate,
+  formatRangeLabel,
   formatTime,
   localDateOf,
   weekOf,
@@ -81,6 +82,24 @@ describe('formatLocalDate', () => {
   it('muestra día, mes abreviado y año de una fecha local', () => {
     expect(formatLocalDate('2026-10-25')).toBe('25 oct 2026');
     expect(formatLocalDate('2026-12-01')).toBe('1 dic 2026');
+  });
+});
+
+describe('formatRangeLabel', () => {
+  it('un solo día lleva el día de la semana con mayúscula inicial y el año', () => {
+    expect(formatRangeLabel('2026-11-06', '2026-11-06')).toBe('Vie 6 nov 2026');
+  });
+
+  it('dentro de un mes junta los días y muestra el mes y el año una sola vez', () => {
+    expect(formatRangeLabel('2026-10-19', '2026-10-25')).toBe('19 – 25 oct 2026');
+  });
+
+  it('entre dos meses del mismo año muestra los dos meses', () => {
+    expect(formatRangeLabel('2026-10-28', '2026-11-03')).toBe('28 oct – 3 nov 2026');
+  });
+
+  it('entre dos años muestra el año de cada extremo', () => {
+    expect(formatRangeLabel('2026-12-29', '2027-01-04')).toBe('29 dic 2026 – 4 ene 2027');
   });
 });
 

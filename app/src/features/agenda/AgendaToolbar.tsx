@@ -19,6 +19,8 @@ type AgendaToolbarProps = {
   date: LocalDate;
   /** Falso en "Por cerrar", que ignora la fecha. */
   showDateControls: boolean;
+  /** Título del rango visible, junto a la navegación (por ejemplo `19 – 25 oct 2026`). */
+  rangeLabel?: string;
   onViewChange(view: AgendaView): void;
   onShift(step: 1 | -1): void;
   onToday(): void;
@@ -44,6 +46,7 @@ export function AgendaToolbar({
   view,
   date,
   showDateControls,
+  rangeLabel,
   onViewChange,
   onShift,
   onToday,
@@ -88,6 +91,12 @@ export function AgendaToolbar({
               <ChevronRight aria-hidden="true" />
             </Button>
           </div>
+        ) : null}
+
+        {showDateControls && rangeLabel ? (
+          <p aria-live="polite" className="text-xl font-semibold whitespace-nowrap">
+            {rangeLabel}
+          </p>
         ) : null}
 
         {isDesktop ? (

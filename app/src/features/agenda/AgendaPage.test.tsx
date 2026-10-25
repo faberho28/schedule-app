@@ -866,7 +866,7 @@ describe('AgendaPage: navegación', () => {
 
     renderAgenda('/agenda?view=month&date=nope');
 
-    expect(await screen.findByText('lun 19 oct – dom 25 oct')).toBeInTheDocument();
+    expect(await screen.findByText('19 – 25 oct 2026')).toBeInTheDocument();
   });
 
   it('permite elegir una fecha con el selector', async () => {
@@ -888,7 +888,7 @@ describe('AgendaPage: navegación', () => {
     serve();
     renderAgenda('/agenda?view=week&date=2026-11-06');
 
-    expect(await screen.findByText('lun 2 nov – dom 8 nov')).toBeInTheDocument();
+    expect(await screen.findByText('2 – 8 nov 2026')).toBeInTheDocument();
   });
 });
 

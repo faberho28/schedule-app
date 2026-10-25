@@ -7,7 +7,7 @@ import { useIsDesktop } from '@/shared/lib/use-media-query';
 import { useBusiness } from '@/features/settings/business-api';
 import { useTechnicians } from '@/features/settings/technicians-api';
 import type { components } from '@/shared/api/schema';
-import { formatDayLabel, localDateOf, type LocalDate } from '@/shared/lib/dates';
+import { formatRangeLabel, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -213,6 +213,7 @@ function AgendaScreen({
         view={view}
         date={date}
         showDateControls={!toCloseMode}
+        rangeLabel={formatRangeLabel(from, to)}
         onViewChange={(next) => go({ view: next })}
         onShift={(step) => go({ date: shiftDate(view, date, step) })}
         onToday={() => go({ date: today() })}
@@ -234,14 +235,6 @@ function AgendaScreen({
       <p role="status" className="min-h-5 text-sm font-medium">
         {notice}
       </p>
-
-      {toCloseMode ? null : (
-        <p aria-live="polite" className="text-sm font-medium text-foreground">
-          {view === 'day'
-            ? formatDayLabel(from)
-            : `${formatDayLabel(from)} – ${formatDayLabel(to)}`}
-        </p>
-      )}
 
       {linkedNotFound ? <p role="alert">No se encontró el servicio</p> : null}
       {linked.isError && !linkedNotFound ? (

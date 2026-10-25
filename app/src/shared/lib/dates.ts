@@ -124,6 +124,36 @@ export function formatLocalDate(date: LocalDate): string {
   return `${day} ${month} ${year}`.replaceAll('.', '');
 }
 
+function dateParts(date: LocalDate): { day: string; month: string; year: string } {
+  const { day, month, year } = parts(new Date(toUtcMs(date)), {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return { day: day!, month: month!.replaceAll('.', ''), year: year! };
+}
+
+/**
+ * Título de un rango de fechas locales: `Vie 6 nov 2026` para un día, `19 – 25 oct 2026` dentro de un
+ * mes, `28 oct – 3 nov 2026` entre meses y `29 dic 2026 – 4 ene 2027` entre años.
+ */
+export function formatRangeLabel(from: LocalDate, to: LocalDate): string {
+  if (from === to) {
+    const label = `${formatDayLabel(from)} ${dateParts(from).year}`;
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+  const start = dateParts(from);
+  const end = dateParts(to);
+  if (start.year !== end.year) {
+    return `${start.day} ${start.month} ${start.year} – ${end.day} ${end.month} ${end.year}`;
+  }
+  if (start.month !== end.month) {
+    return `${start.day} ${start.month} – ${end.day} ${end.month} ${end.year}`;
+  }
+  return `${start.day} – ${end.day} ${end.month} ${end.year}`;
+}
+
 /** Etiqueta corta de un día local, por ejemplo `jue 22 oct`. */
 export function formatDayLabel(date: LocalDate): string {
   const { weekday, day, month } = parts(new Date(toUtcMs(date)), {

@@ -280,7 +280,7 @@ function DaySection({
     <section
       aria-labelledby={id}
       className={cn(
-        'min-w-0 flex-1 border-r last:border-r-0',
+        'group min-w-0 flex-1 border-r last:border-r-0',
         view === 'week' && 'min-w-36',
         isWeekend(day) && 'bg-muted/50',
         isToday && 'bg-today',
@@ -295,7 +295,14 @@ function DaySection({
           >
             {weekday}
           </span>
-          <span aria-hidden="true" className="mt-1 text-[22px] font-semibold tabular-nums">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'mt-1 text-[22px] font-semibold tabular-nums',
+              isToday &&
+                'grid size-8 place-items-center rounded-full bg-primary text-base text-primary-foreground',
+            )}
+          >
             {number}
           </span>
         </h2>
@@ -304,7 +311,7 @@ function DaySection({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-11"
+            className="size-11 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none"
             aria-label={`Nuevo servicio el ${dayLabel}`}
             onClick={() => onEmptySlotSelect(day)}
           >

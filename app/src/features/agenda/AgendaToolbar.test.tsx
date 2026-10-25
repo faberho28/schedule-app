@@ -53,6 +53,22 @@ describe('AgendaToolbar', () => {
     expect(branded).toEqual([screen.getByRole('button', { name: 'Nuevo servicio' })]);
   });
 
+  it('muestra el rango como título junto a la navegación, en una región que se anuncia', () => {
+    renderToolbar({ rangeLabel: '19 – 25 oct 2026' });
+
+    const title = screen.getByText('19 – 25 oct 2026');
+    expect(title).toHaveClass('text-xl', 'font-semibold');
+    expect(title).toHaveAttribute('aria-live', 'polite');
+    const navigation = screen.getByRole('group', { name: 'Navegación de la agenda' });
+    expect(navigation.nextElementSibling).toBe(title);
+  });
+
+  it('sin rango no dibuja el título', () => {
+    renderToolbar();
+
+    expect(screen.queryByText(/–/)).not.toBeInTheDocument();
+  });
+
   it('la fecha se elige con un botón y un calendario, no con el campo nativo', () => {
     const { container } = renderToolbar();
 

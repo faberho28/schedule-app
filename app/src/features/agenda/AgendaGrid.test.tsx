@@ -290,6 +290,38 @@ describe('AgendaGrid: fondos de columna', () => {
   });
 });
 
+describe('AgendaGrid: encabezado del día', () => {
+  it('el número del día actual va dentro de un círculo de color primario', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-04T15:00:00Z'));
+    try {
+      renderGrid({ view: 'week', days: WEEK });
+
+      const today = within(screen.getByRole('region', { name: 'mié 4 nov' }));
+      expect(today.getByText('4')).toHaveClass(
+        'size-8',
+        'rounded-full',
+        'bg-primary',
+        'text-primary-foreground',
+      );
+      const other = within(screen.getByRole('region', { name: 'jue 5 nov' }));
+      expect(other.getByText('5')).not.toHaveClass('bg-primary');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('el botón "+" de cada día solo se ve al pasar el cursor o al enfocarlo', () => {
+    renderGrid({ view: 'week', days: WEEK, onEmptySlotSelect: vi.fn() });
+
+    const section = screen.getByRole('region', { name: 'vie 6 nov' });
+    expect(section).toHaveClass('group');
+    expect(
+      within(section).getByRole('button', { name: 'Nuevo servicio el vie 6 nov' }),
+    ).toHaveClass('opacity-0', 'group-hover:opacity-100', 'focus-visible:opacity-100');
+  });
+});
+
 describe('AgendaGrid: tarjetas', () => {
   it('describe cada servicio con hora, cliente, tipo de servicio, técnico y estado', () => {
     renderGrid({ appointments: [appointment()] });
