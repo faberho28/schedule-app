@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Notice } from '@/shared/ui/Notice';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { components } from '@/shared/api/schema';
@@ -20,7 +20,6 @@ export function TechnicianDataForm({ technician }: { technician: Technician }) {
   const update = useUpdateTechnician(technician.id);
   const [draft, setDraft] = useState<TechnicianFormValues | null>(null);
   const [clientError, setClientError] = useState<string | undefined>();
-  const [saved, setSaved] = useState(false);
 
   const values = draft ?? { name: technician.name ?? '', phone: technician.phone ?? '' };
   const apiFields = fieldErrorsOf(update.error);
@@ -29,7 +28,6 @@ export function TechnicianDataForm({ technician }: { technician: Technician }) {
   function edit(change: Partial<TechnicianFormValues>) {
     setDraft({ ...values, ...change });
     setClientError(undefined);
-    setSaved(false);
     update.reset();
   }
 
@@ -40,13 +38,13 @@ export function TechnicianDataForm({ technician }: { technician: Technician }) {
     if (errors.name) return;
     const body = technicianChanges(technician, values);
     if (Object.keys(body).length === 0) {
-      setSaved(true);
+      toast.success('Datos guardados');
       return;
     }
     update.mutate(body, {
       onSuccess: () => {
         setDraft(null);
-        setSaved(true);
+        toast.success('Datos guardados');
       },
     });
   }
@@ -80,7 +78,6 @@ export function TechnicianDataForm({ technician }: { technician: Technician }) {
       <Button type="submit" disabled={update.isPending} className="self-start">
         Guardar datos
       </Button>
-      <Notice tone="success">{saved ? 'Datos guardados' : null}</Notice>
     </form>
   );
 }

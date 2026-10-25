@@ -290,6 +290,28 @@ La aplicación MUST llamarse "Schedule App" y usar la paleta del brief de diseñ
 - WHEN se miden sus controles
 - THEN miden 40 px de alto y están alineados al centro
 
+### Requirement: Avisos de resultado como toasts
+
+El resultado de una acción del dueño (por ejemplo "Servicio cancelado.", "Cliente creado.", "Datos guardados" o "Cambios guardados") MUST mostrarse como un aviso temporal (toast) y MUST NOT ocupar un lugar fijo en la página. Los toasts MUST usar los tonos de los eventos (éxito, advertencia, error, información), llevar ícono y texto, poder cerrarse con un botón "Cerrar aviso" y anunciarse a la tecnología de asistencia. Un aviso condicional MUST NOT dibujar ninguna caja cuando no tiene contenido. Los errores de un formulario o de una acción (con "Reintentar") y la información propia de un diálogo MUST seguir en línea, junto a lo que explican.
+
+#### Scenario: Abrir una pantalla sin haber actuado
+
+- GIVEN el dueño que abre Clientes, Configuración, Tipos de servicio o la Agenda
+- WHEN la pantalla termina de cargar
+- THEN no hay ningún aviso ni caja de aviso vacía
+
+#### Scenario: Resultado de una acción
+
+- GIVEN el dueño que guarda los cambios de la configuración
+- WHEN la API responde que se guardaron
+- THEN aparece un toast "Cambios guardados" con tono de éxito, sin mover el contenido de la página
+
+#### Scenario: Aviso que importa más
+
+- GIVEN el dueño que cambia la duración de un tipo de servicio con servicios futuros
+- WHEN se guarda
+- THEN aparece un toast de advertencia con la cantidad de servicios que conservan la duración anterior y permanece más tiempo en pantalla
+
 ### Requirement: Barra de herramientas de la agenda
 
 La barra de la agenda MUST ofrecer: alternar Día/Semana (en escritorio), navegación de fechas (anterior y siguiente), el botón "Hoy", el título del rango visible (por ejemplo `19 – 25 oct 2026`) junto a la navegación, un selector de fecha con calendario (botón con la fecha formateada y el ícono de calendario, sin campo de fecha nativo), el campo "Buscar servicio o cliente" (ver `global-search`) y el botón "Nuevo servicio". El color de marca MUST reservarse en la barra para "Nuevo servicio"; la vista activa del alternador se marca con fondo `background` y sombra. Los cuatro indicadores del Panel MUST NOT mostrarse en la agenda.

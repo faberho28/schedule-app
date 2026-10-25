@@ -325,14 +325,15 @@ describe('AgendaPage: barra de herramientas de escritorio', () => {
     expect(navigation.closest('section')!.firstElementChild).toContainElement(navigation);
   });
 
-  it('el aviso vacío no ocupa lugar entre la barra y la grilla', async () => {
+  it('entre la barra y la grilla no queda ninguna región de aviso: los avisos son toasts', async () => {
     serve();
 
     renderAgenda();
     await screen.findByRole('region', { name: 'Agenda del día' });
 
-    const notice = document.querySelector('p[role="status"]:empty');
-    expect(notice).toHaveClass('sr-only');
+    // El único `status` de la página es la región oculta de la búsqueda; los avisos no dejan huella.
+    expect(document.querySelector('p[role="status"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-sonner-toast]')).not.toBeInTheDocument();
   });
 
   it('no muestra los indicadores del Panel ni una vista Mes', async () => {

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Notice } from '@/shared/ui/Notice';
 import { Link } from 'react-router';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { customerRecordLabel } from '@/shared/lib/people';
@@ -19,7 +19,6 @@ export function CustomersPage() {
   const [term, setTerm] = useState('');
   const [showErased, setShowErased] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [notice, setNotice] = useState('');
   const search = useDebouncedValue(term.trim(), SEARCH_DELAY_MS);
   const customers = useCustomers(search, showErased);
   const searching = search !== '' || term.trim() !== '';
@@ -30,8 +29,6 @@ export function CustomersPage() {
         title="Clientes"
         actions={<Button onClick={() => setCreating(true)}>Nuevo cliente</Button>}
       />
-
-      <Notice tone="success">{notice}</Notice>
 
       <FormField label="Buscar cliente">
         {(control) => (
@@ -77,7 +74,7 @@ export function CustomersPage() {
           onClose={() => setCreating(false)}
           onCreated={() => {
             setCreating(false);
-            setNotice('Cliente creado.');
+            toast.success('Cliente creado.');
           }}
         />
       ) : null}

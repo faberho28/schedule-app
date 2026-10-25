@@ -2,6 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { createMemoryRouter, RouterProvider } from 'react-router';
+import { toast } from 'sonner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { server } from '@/test/server';
 import { setDesktopViewport, setMobileViewport } from '@/test/viewport';
@@ -55,6 +56,23 @@ describe('AppLayout', () => {
     expect(screen.queryByRole('button', { name: 'Más' })).not.toBeInTheDocument();
     expect(screen.getByRole('main')).toBeInTheDocument();
   });
+
+  it.each([
+    ['escritorio', setDesktopViewport],
+    ['móvil', setMobileViewport],
+  ])(
+    'en %s monta los avisos temporales (toasts) para cualquier pantalla',
+    async (_name, viewport) => {
+      viewport();
+      renderLayout('/agenda');
+
+      act(() => {
+        toast.success('Cambios guardados');
+      });
+
+      expect(await screen.findByText('Cambios guardados')).toBeInTheDocument();
+    },
+  );
 
   it('en móvil ofrece la barra inferior con Más y sin Perfil', () => {
     renderLayout('/agenda');

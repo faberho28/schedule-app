@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { Notice } from '@/shared/ui/Notice';
 import { Navigate, useParams } from 'react-router';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
@@ -20,7 +20,6 @@ export function TechnicianDetailPage() {
   const technician = useTechnician(id);
   const business = useBusiness();
   const technicians = useTechnicians(false);
-  const [notice, setNotice] = useState('');
   const [confirmingErase, setConfirmingErase] = useState(false);
   const [erased, setErased] = useState(false);
   // Se remonta el editor y el formulario de días libres cuando un cambio se aplica.
@@ -29,7 +28,7 @@ export function TechnicianDetailPage() {
 
   const flow = useScheduleChange(id, {
     onApplied: (result) => {
-      setNotice(pendingMessage.current);
+      toast.success(pendingMessage.current);
       setAppliedCount((count) => count + 1);
       if (result.technician.anonymized_at !== null) setErased(true);
     },
@@ -41,7 +40,6 @@ export function TechnicianDetailPage() {
   }
 
   function run(change: ScheduleChange, message: string) {
-    setNotice('');
     pendingMessage.current = message;
     void flow.start(change);
   }
@@ -91,7 +89,6 @@ export function TechnicianDetailPage() {
           </section>
 
           {flow.error ? <ErrorNotice error={flow.error} /> : null}
-          <Notice tone="success">{notice}</Notice>
 
           <AvailabilityEditor
             key={`availability-${appliedCount}`}

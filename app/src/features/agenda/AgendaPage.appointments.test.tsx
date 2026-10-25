@@ -17,6 +17,7 @@ import {
 } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
+import { findToast } from '@/test/toast';
 import { AgendaPage } from './AgendaPage';
 
 // La agenda se ejecuta explícitamente con ancho de escritorio.
@@ -158,7 +159,7 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.type(await screen.findByLabelText('Motivo (opcional)'), 'Viaje');
     await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
-    expect(await screen.findByText('Servicio cancelado.')).toHaveAttribute('role', 'status');
+    expect(await findToast('Servicio cancelado.')).toHaveClass('bg-event-green-bg');
     // Los cancelados quedan ocultos por defecto en la grilla.
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: /Ana Pérez/ })).not.toBeInTheDocument(),
@@ -288,8 +289,7 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     expect(state.commands).toEqual([]);
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
-    const notice = await screen.findByText(/^Servicio cerrado como Completado\./);
-    expect(notice).toHaveAttribute('role', 'status');
+    const notice = await findToast('Servicio cerrado como Completado.');
     expect(notice).toHaveTextContent(/seguimiento.*no se envían mensajes/);
     expect(await screen.findByRole('button', { name: /Ana Pérez.*Completado/ })).toBeVisible();
     expect(state.listings).toBeGreaterThan(listingsBefore);
@@ -309,10 +309,7 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
-    expect(await screen.findByText('Servicio cerrado como No asistió.')).toHaveAttribute(
-      'role',
-      'status',
-    );
+    await findToast('Servicio cerrado como No asistió.');
     expect(await screen.findByRole('button', { name: /Ana Pérez.*No asistió/ })).toBeVisible();
   });
 
@@ -345,9 +342,7 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     await user.type(screen.getByLabelText('Motivo de la corrección'), 'No llegó');
     await user.click(screen.getByRole('button', { name: 'Guardar corrección' }));
 
-    expect(
-      await screen.findByText('Cierre corregido: el servicio quedó como No asistió.'),
-    ).toHaveAttribute('role', 'status');
+    await findToast('Cierre corregido: el servicio quedó como No asistió.');
     expect(await screen.findByRole('button', { name: /Ana Pérez.*No asistió/ })).toBeVisible();
   });
 
@@ -362,11 +357,7 @@ describe('AgendaPage: cierre y corrección del servicio (UI-R6)', () => {
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Devolver a Confirmado' }));
 
-    expect(
-      await screen.findByText(
-        'Servicio devuelto a Confirmado. Se anuló el seguimiento programado.',
-      ),
-    ).toHaveAttribute('role', 'status');
+    await findToast('Servicio devuelto a Confirmado. Se anuló el seguimiento programado.');
     expect(await screen.findByRole('button', { name: /Ana Pérez.*Confirmado/ })).toBeVisible();
   });
 

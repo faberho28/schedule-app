@@ -6,6 +6,7 @@ import type { components } from '@/shared/api/schema';
 import { apiUrl, business, problem } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
+import { currentToasts, findToast } from '@/test/toast';
 import { BusinessSettingsPage } from './BusinessSettingsPage';
 
 type Business = components['schemas']['Business'];
@@ -39,6 +40,16 @@ describe('BusinessSettingsPage', () => {
     expect(screen.queryByRole('combobox', { name: /zona horaria/i })).not.toBeInTheDocument();
   });
 
+  it('al abrir la pantalla no hay avisos ni cajas vacías hasta guardar', async () => {
+    serveBusiness(business());
+
+    renderPage(<BusinessSettingsPage />);
+    await screen.findByLabelText('Buffer de traslado (minutos)');
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(currentToasts()).toHaveLength(0);
+  });
+
   it('guarda la nueva hora de envío y muestra el valor guardado', async () => {
     const user = userEvent.setup();
     const { patches } = serveBusiness(business());
@@ -49,7 +60,7 @@ describe('BusinessSettingsPage', () => {
     await user.type(sendTime, '10:30');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Cambios guardados');
+    expect(await findToast('Cambios guardados')).toHaveClass('bg-event-green-bg');
     expect(patches).toEqual([{ travel_buffer_min: 0, followup_send_time: '10:30' }]);
     await waitFor(() => {
       expect(screen.getByLabelText('Hora de envío del seguimiento')).toHaveValue('10:30');
@@ -66,7 +77,7 @@ describe('BusinessSettingsPage', () => {
     await user.type(buffer, '20');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Cambios guardados');
+    await findToast('Cambios guardados');
     expect(patches).toEqual([{ travel_buffer_min: 20, followup_send_time: '09:00' }]);
   });
 

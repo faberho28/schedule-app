@@ -14,13 +14,12 @@ import { useUpdateCustomer, type Customer } from './customers-api';
 
 type CustomerEditFormProps = {
   customer: Customer;
-  /** La ficha anuncia el guardado en su región de estado. */
+  /** La ficha anuncia el guardado con un aviso temporal. */
   onSaved(): void;
-  onEdit(): void;
 };
 
 /** Datos editables del cliente. El consentimiento y la supresión van por sus propios flujos. */
-export function CustomerEditForm({ customer, onSaved, onEdit }: CustomerEditFormProps) {
+export function CustomerEditForm({ customer, onSaved }: CustomerEditFormProps) {
   const update = useUpdateCustomer(customer.id);
   const [draft, setDraft] = useState<CustomerDataValues | null>(null);
   const [clientErrors, setClientErrors] = useState<CustomerFormErrors>({});
@@ -31,7 +30,6 @@ export function CustomerEditForm({ customer, onSaved, onEdit }: CustomerEditForm
   function edit(change: Partial<CustomerDataValues>) {
     setDraft({ ...values, ...change });
     setClientErrors({});
-    onEdit();
     update.reset();
   }
 

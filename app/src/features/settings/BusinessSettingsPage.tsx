@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Notice } from '@/shared/ui/Notice';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { components } from '@/shared/api/schema';
@@ -32,7 +32,6 @@ function BusinessForm({ business }: { business: Business }) {
   // El borrador solo existe mientras hay cambios sin guardar; después se muestra el valor guardado.
   const [draft, setDraft] = useState<{ buffer: string; sendTime: string } | null>(null);
   const [clientErrors, setClientErrors] = useState<BusinessFormErrors>({});
-  const [saved, setSaved] = useState(false);
 
   const values = draft ?? {
     buffer: String(business.travel_buffer_min),
@@ -45,7 +44,6 @@ function BusinessForm({ business }: { business: Business }) {
 
   function edit(change: Partial<typeof values>) {
     setDraft({ ...values, ...change });
-    setSaved(false);
     setClientErrors({});
     update.reset();
   }
@@ -60,7 +58,7 @@ function BusinessForm({ business }: { business: Business }) {
       {
         onSuccess: () => {
           setDraft(null);
-          setSaved(true);
+          toast.success('Cambios guardados');
         },
       },
     );
@@ -117,7 +115,6 @@ function BusinessForm({ business }: { business: Business }) {
       <Button type="submit" disabled={update.isPending}>
         Guardar cambios
       </Button>
-      <Notice tone="success">{saved ? 'Cambios guardados' : null}</Notice>
     </form>
   );
 }

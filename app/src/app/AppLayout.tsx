@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Outlet } from 'react-router';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { Toaster } from '@/components/ui/sonner';
 import { useConnectivity } from '@/shared/lib/connectivity';
 import { useIsDesktop, useIsWide } from '@/shared/lib/use-media-query';
 import { OfflineScreen } from '@/shared/ui/OfflineScreen';
@@ -38,6 +39,7 @@ export function AppLayout() {
             <Outlet />
           </div>
         </SidebarInset>
+        <Toaster />
       </SidebarProvider>
     );
   }
@@ -52,6 +54,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <BottomNav />
+      <Toaster />
     </div>
   );
 }

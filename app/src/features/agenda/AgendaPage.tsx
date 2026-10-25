@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { toast } from 'sonner';
 import { AppointmentFlows, type AppointmentFlow } from '@/features/appointments/AppointmentFlows';
 import { useAppointment } from '@/features/appointments/appointments-api';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,6 @@ import { useTechnicians } from '@/features/settings/technicians-api';
 import type { components } from '@/shared/api/schema';
 import { formatRangeLabel, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
-import { cn } from '@/shared/lib/utils';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import {
@@ -102,7 +102,6 @@ function AgendaScreen({
   const source = toCloseMode ? toClose : appointments;
   const listItems = toCloseMode ? toClose.data?.items : appointments.data;
   const [flow, setFlow] = useState<AppointmentFlow | null>(null);
-  const [notice, setNotice] = useState('');
 
   // Grilla de escritorio: se muestran los servicios de los técnicos elegidos, sin los cancelados
   // salvo que el interruptor los pida. Las horas visibles salen de una sola solicitud agregada.
@@ -212,10 +211,7 @@ function AgendaScreen({
         appointment: null,
       }),
     );
-  const open = (next: AppointmentFlow | null) => {
-    setNotice('');
-    setFlow(next);
-  };
+  const open = (next: AppointmentFlow | null) => setFlow(next);
   const canCreate = technicians.data?.some((technician) => technician.active) ?? false;
   const selectAllTechnicians = () => selection.selectAll(options.map((option) => option.id));
 
@@ -255,11 +251,6 @@ function AgendaScreen({
           ) : null
         }
       />
-
-      {/* Región de anuncio siempre presente; sin aviso no ocupa lugar entre la barra y la grilla. */}
-      <p role="status" className={cn('text-sm font-medium', notice === '' && 'sr-only')}>
-        {notice}
-      </p>
 
       {linkedNotFound ? <p role="alert">No se encontró el servicio</p> : null}
       {linked.isError && !linkedNotFound ? (
@@ -319,7 +310,7 @@ function AgendaScreen({
         onFlowChange={changeFlow}
         onDone={(message) => {
           changeFlow(null);
-          setNotice(message);
+          toast.success(message);
         }}
       />
     </>

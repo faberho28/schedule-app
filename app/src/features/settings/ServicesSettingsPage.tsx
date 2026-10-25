@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Notice } from '@/shared/ui/Notice';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { components } from '@/shared/api/schema';
 import { formatDuration, formatPrice } from '@/shared/lib/format';
@@ -12,30 +12,21 @@ import { durationWarningMessage } from './service-form';
 
 type Service = components['schemas']['Service'];
 
+/** El aviso de duración es largo e importa: se queda más que un aviso común. */
+const WARNING_MS = 8000;
+
 export function ServicesSettingsPage() {
   const services = useServices();
   const toggle = useUpdateService();
   // `undefined` = diálogo cerrado; `null` = alta; un servicio = edición.
   const [dialog, setDialog] = useState<Service | null | undefined>(undefined);
-  const [notice, setNotice] = useState('');
 
   return (
     <section className="flex flex-col gap-4">
       <PageHeader
         title="Tipos de servicio"
-        actions={
-          <Button
-            onClick={() => {
-              setNotice('');
-              setDialog(null);
-            }}
-          >
-            Nuevo tipo de servicio
-          </Button>
-        }
+        actions={<Button onClick={() => setDialog(null)}>Nuevo tipo de servicio</Button>}
       />
-
-      <Notice tone="warning">{notice}</Notice>
 
       {services.isPending ? <p>Cargando…</p> : null}
       {services.isError ? (
@@ -51,14 +42,10 @@ export function ServicesSettingsPage() {
               <ServiceCard
                 service={service}
                 busy={toggle.isPending}
-                onEdit={() => {
-                  setNotice('');
-                  setDialog(service);
-                }}
-                onToggle={() => {
-                  setNotice('');
-                  toggle.mutate({ id: service.id, body: { active: !service.active } });
-                }}
+                onEdit={() => setDialog(service)}
+                onToggle={() =>
+                  toggle.mutate({ id: service.id, body: { active: !service.active } })
+                }
               />
             </li>
           ))}
@@ -70,7 +57,9 @@ export function ServicesSettingsPage() {
           service={dialog ?? undefined}
           onClose={() => setDialog(undefined)}
           onSaved={(result) => {
-            setNotice(result?.warning ? durationWarningMessage(result.warning.count) : '');
+            if (result?.warning) {
+              toast.warning(durationWarningMessage(result.warning.count), { duration: WARNING_MS });
+            }
             setDialog(undefined);
           }}
         />

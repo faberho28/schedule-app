@@ -6,6 +6,7 @@ import type { components } from '@/shared/api/schema';
 import { apiUrl, customer, IDS, problem } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
+import { findToast } from '@/test/toast';
 import { CustomersPage } from './CustomersPage';
 
 type Customer = components['schemas']['Customer'];
@@ -225,7 +226,7 @@ describe('CustomersPage', () => {
       await user.click(within(dialog).getByRole('button', { name: 'Crear cliente' }));
 
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-      expect(await screen.findByRole('status')).toHaveTextContent('Cliente creado.');
+      expect(await findToast('Cliente creado.')).toHaveClass('bg-event-green-bg');
       expect(await screen.findByText('Marta Ruiz')).toBeInTheDocument();
     });
 
@@ -288,7 +289,7 @@ describe('CustomersPage', () => {
       );
       await user.click(within(dialog).getByRole('button', { name: 'Reintentar' }));
 
-      expect(await screen.findByRole('status')).toHaveTextContent('Cliente creado.');
+      await findToast('Cliente creado.');
     });
   });
 });

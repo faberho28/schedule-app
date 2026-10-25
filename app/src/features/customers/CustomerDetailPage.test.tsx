@@ -6,6 +6,7 @@ import type { components } from '@/shared/api/schema';
 import { apiUrl, appointment, business, customer, IDS, problem } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
+import { findToast } from '@/test/toast';
 import { CustomerDetailPage } from './CustomerDetailPage';
 
 type Schemas = components['schemas'];
@@ -442,7 +443,7 @@ describe('CustomerDetailPage: registrar autorización', () => {
         notes: 'Firmó en el local',
       },
     ]);
-    expect(await screen.findByRole('status')).toHaveTextContent('Autorización registrada.');
+    await findToast('Autorización registrada.');
     const consent = screen.getByRole('region', { name: 'Consentimiento' });
     expect(await within(consent).findByText('Otorgado')).toBeInTheDocument();
     const audit = await screen.findByRole('list', { name: 'Historial de autorizaciones' });
@@ -456,9 +457,7 @@ describe('CustomerDetailPage: registrar autorización', () => {
     await user.selectOptions(within(dialog).getByLabelText('Medio'), 'WhatsApp');
     await user.click(within(dialog).getByRole('button', { name: 'Registrar autorización' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Autorización registrada. Se programaron 2 seguimientos.',
-    );
+    await findToast('Autorización registrada. Se programaron 2 seguimientos.');
   });
 
   it('un cliente eliminado entre tanto muestra el error y pasa a solo lectura', async () => {
@@ -511,7 +510,7 @@ describe('CustomerDetailPage: registrar autorización', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo conectar');
     await user.click(within(dialog).getByRole('button', { name: 'Reintentar' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Autorización registrada.');
+    await findToast('Autorización registrada.');
     expect(received.consents).toHaveLength(1);
   });
 });
@@ -563,7 +562,7 @@ describe('CustomerDetailPage: revocar consentimiento', () => {
     expect(received.consents).toEqual([
       { kind: 'revoked', medium: 'phone_call', occurred_at: '2026-10-20T05:00:00.000Z' },
     ]);
-    expect(await screen.findByRole('status')).toHaveTextContent('Consentimiento revocado.');
+    await findToast('Consentimiento revocado.');
     const consent = screen.getByRole('region', { name: 'Consentimiento' });
     expect(await within(consent).findByText('Revocado')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Registrar autorización' })).toBeInTheDocument();
@@ -618,7 +617,7 @@ describe('CustomerDetailPage: eliminar datos personales', () => {
       await screen.findByRole('heading', { name: 'Cliente eliminado (bear_1)' }),
     ).toBeInTheDocument();
     expect(received.erases).toBe(1);
-    expect(screen.getByRole('status')).toHaveTextContent('Datos personales eliminados.');
+    await findToast('Datos personales eliminados.');
     expect(screen.getByText(/Este cliente fue eliminado/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Nombre')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar datos' })).not.toBeInTheDocument();

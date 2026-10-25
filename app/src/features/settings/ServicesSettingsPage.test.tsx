@@ -6,6 +6,7 @@ import type { components } from '@/shared/api/schema';
 import { apiUrl, problem, service } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
+import { currentToasts, findToast } from '@/test/toast';
 import { ServicesSettingsPage } from './ServicesSettingsPage';
 
 type Service = components['schemas']['Service'];
@@ -247,9 +248,8 @@ describe('ServicesSettingsPage: edición', () => {
     await user.type(duration, '120');
     await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Hay 5 servicios futuros que conservan la duración anterior',
-    );
+    const warning = await findToast('Hay 5 servicios futuros que conservan la duración anterior');
+    expect(warning).toHaveClass('bg-event-amber-bg');
     expect(requests.patches).toEqual([{ duration_min: 120 }]);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(within(screen.getByRole('article')).getByText(/2 h/)).toBeInTheDocument();
@@ -270,7 +270,7 @@ describe('ServicesSettingsPage: edición', () => {
     expect(screen.queryByText(/conservan la duración anterior/)).not.toBeInTheDocument();
   });
 
-  it('quita el aviso anterior al guardar otro cambio sin advertencia', async () => {
+  it('guardar otro cambio sin advertencia no suma un segundo aviso', async () => {
     const user = userEvent.setup();
     serveServices([AIRE], { code: 'future_appointments_keep_previous_duration', count: 1 });
     renderPage(<ServicesSettingsPage />);
@@ -279,9 +279,7 @@ describe('ServicesSettingsPage: edición', () => {
     await user.clear(duration);
     await user.type(duration, '100');
     await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Hay 1 servicio futuro que conserva la duración anterior',
-    );
+    await findToast('Hay 1 servicio futuro que conserva la duración anterior');
 
     server.use(
       http.patch(apiUrl('/services/:id'), () => HttpResponse.json({ ...AIRE, warning: null })),
@@ -293,9 +291,17 @@ describe('ServicesSettingsPage: edición', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(
-      screen.queryByText(/conservan la duración anterior|conserva la duración anterior/),
-    ).toBeNull();
+    expect(currentToasts()).toHaveLength(1);
+  });
+
+  it('al abrir la pantalla no hay avisos ni cajas vacías', async () => {
+    serveServices([AIRE]);
+    renderPage(<ServicesSettingsPage />);
+
+    await screen.findByRole('article', { name: 'Mantenimiento de aire' });
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(currentToasts()).toHaveLength(0);
   });
 });
 

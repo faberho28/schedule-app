@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, configure } from '@testing-library/react';
+import { toast } from 'sonner';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from './server';
 import { installViewport, resetViewport } from './viewport';
@@ -26,6 +27,8 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 
 afterEach(() => {
   cleanup();
+  // El almacén de avisos de Sonner es global: sin esto un aviso pasaría a la prueba siguiente.
+  toast.dismiss();
   resetViewport();
   // La selección de técnicos de la agenda vive en `localStorage`: no debe pasar de una prueba a otra.
   localStorage.clear();

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Notice } from '@/shared/ui/Notice';
 import { Link, useParams } from 'react-router';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useBusiness } from '@/features/settings/business-api';
 import { ApiError } from '@/shared/api/errors';
@@ -49,7 +49,6 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
   const business = useBusiness();
   const consents = useConsentEvents(customer.id);
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [notice, setNotice] = useState('');
   const erased = customer.anonymized_at !== null;
   const timeZone = business.data?.timezone;
   const status = CONSENT_STATUS_INFO[customer.consent_status];
@@ -57,13 +56,12 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
 
   function finish(message: string) {
     setDialog(null);
-    setNotice(message);
+    toast.success(message);
   }
 
   return (
     <>
       <h2 className="text-base font-semibold">{customerRecordLabel(customer)}</h2>
-      <Notice tone="success">{notice}</Notice>
 
       {erased ? (
         <p className="text-sm text-muted-foreground">
@@ -75,8 +73,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
           <CustomerEditForm
             key={customer.id}
             customer={customer}
-            onEdit={() => setNotice('')}
-            onSaved={() => setNotice('Datos guardados')}
+            onSaved={() => toast.success('Datos guardados')}
           />
 
           <section className="flex flex-col gap-3" aria-labelledby="consent-title">
@@ -91,25 +88,11 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
             </p>
             <p className="text-sm text-muted-foreground">{status.explanation}</p>
             {customer.consent_status === 'granted' ? (
-              <Button
-                variant="outline"
-                className="self-start"
-                onClick={() => {
-                  setNotice('');
-                  setDialog('revoke');
-                }}
-              >
+              <Button variant="outline" className="self-start" onClick={() => setDialog('revoke')}>
                 Revocar consentimiento
               </Button>
             ) : (
-              <Button
-                variant="outline"
-                className="self-start"
-                onClick={() => {
-                  setNotice('');
-                  setDialog('grant');
-                }}
-              >
+              <Button variant="outline" className="self-start" onClick={() => setDialog('grant')}>
                 Registrar autorización
               </Button>
             )}
@@ -162,14 +145,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
               Cancélalos antes de eliminar sus datos.
             </p>
           ) : null}
-          <Button
-            variant="destructive"
-            className="self-start"
-            onClick={() => {
-              setNotice('');
-              setDialog('erase');
-            }}
-          >
+          <Button variant="destructive" className="self-start" onClick={() => setDialog('erase')}>
             Eliminar datos personales
           </Button>
         </section>
