@@ -170,7 +170,7 @@ export function CorrectionDialog({
               </ChoiceRadio>
             ))}
             {errors.choice ? (
-              <p id={choiceErrorId} className="text-sm font-medium text-destructive">
+              <p id={choiceErrorId} className="text-xs font-medium text-event-red-text">
                 {errors.choice}
               </p>
             ) : null}

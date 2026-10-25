@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Notice } from '@/shared/ui/Notice';
 
 type ChoiceRadioProps = {
   name: string;
@@ -38,19 +39,12 @@ export function ConfirmCheckbox({ checked, onChange, error, children }: ConfirmC
         />
         {children}
       </label>
-      {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+      {error ? <p className="text-xs font-medium text-event-red-text">{error}</p> : null}
     </div>
   );
 }
 
 /** Advertencia que se anuncia al aparecer; se usa para los pasos de confirmación reforzada. */
 export function Warning({ children }: { children: ReactNode }) {
-  return (
-    <div
-      role="alert"
-      className="rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive"
-    >
-      {children}
-    </div>
-  );
+  return <Notice tone="error">{children}</Notice>;
 }
