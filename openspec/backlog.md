@@ -27,3 +27,16 @@ Ideas acordadas con el dueño del producto que no pertenecen a un sprint en curs
 - Los reportes (ingresos, recurrencia, no asistencia) están en la fase 3 del PRD. Este registro es su base de datos.
 
 **Fase sugerida:** sprint propio, antes de los reportes.
+
+## Actualizar TypeScript de la 6 a la 7
+
+**Origen:** pregunta del usuario durante la actualización de dependencias de producción (2026-10-25).
+
+**Situación:** `app` y `api` usan `typescript ^6.0.3` (y `app` lo fuerza con `overrides`). La versión `latest` en npm es la 7.0.2. La 6 no se eligió a propósito: era la última al crear el proyecto. TypeScript no tiene versión LTS.
+
+**Qué verificar al hacerlo**
+- Compatibilidad con `typescript-eslint`, `kysely-codegen`, Vitest y el build de Vite.
+- Que lint, typecheck, build y toda la suite sigan pasando en `app` y `api`.
+- Actualizar el `overrides` de `app`.
+
+**Fase sugerida:** tarea de mantenimiento propia, con su rama, separada de los cambios de seguridad.
