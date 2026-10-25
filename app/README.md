@@ -79,8 +79,8 @@ Rutas: `/` (Panel de control), `/agenda?view=day|week&date=YYYY-MM-DD`, `/custom
 
 `useIsDesktop()` (`src/shared/lib/use-media-query.ts`) consulta `matchMedia('(min-width: 1024px)')` con `useSyncExternalStore`. `AppLayout` elige según ese valor:
 
-- Desde 1024 px, `Sidebar`: barra lateral oscura con Panel de control, Agenda, Clientes, Técnicos, Tipos de servicio, Configuración y Perfil al pie. Entre 1024 y 1279 px se contrae a íconos (la etiqueta queda `sr-only`); desde 1280 px (`xl:`) muestra las etiquetas.
-- Por debajo de 1024 px, `BottomNav`: Panel, Agenda, Clientes, Técnicos y "Más" (Tipos de servicio y Configuración). Perfil no está en la barra inferior: se abre desde el ícono del encabezado del Panel (`features/dashboard/ProfileLink.tsx`).
+- Desde 1024 px, `Sidebar` (el `Sidebar` de shadcn, variante `inset`, sin cajón móvil) dentro de un `SidebarProvider` cuyo `open` sale de la media query de 1280 px: entre 1024 y 1279 px queda contraída a íconos (etiqueta `sr-only` y tooltip) y desde 1280 px expandida (220 px). Arriba, el logo (`Wordmark`: ícono de calendario y "Schedule App" en el color de marca) y el grupo principal (Panel de control, Agenda, Clientes, Técnicos, Tipos de servicio); al pie, el grupo "Cuenta" con Configuración y Perfil. El contenido va en `SidebarInset`, un contenedor `rounded-2xl` con borde sobre `app-bg`.
+- Por debajo de 1024 px, una barra superior con el logo y `BottomNav` (blanca, íconos de 18 px, ítem activo con el fondo suave del acento): Panel, Agenda, Clientes, Técnicos y "Más" (Tipos de servicio y Configuración). Perfil no está en la barra inferior: se abre desde el ícono del encabezado del Panel (`features/dashboard/ProfileLink.tsx`).
 - `PageHeader` (`shared/ui`) reemplaza a `PageTitle` en las pantallas. En móvil y fuera de `/` muestra "Volver": `navigate(-1)` si hubo navegación dentro de la aplicación y, si no, `/`.
 
 Las entradas de navegación están en `src/app/nav-items.ts`. Las medidas reales (objetivo táctil de 44 px, contracción de la barra lateral) no se miden en jsdom; las pruebas comprueban clases y atributos ARIA y el resto se revisa a mano.

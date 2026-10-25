@@ -5,7 +5,7 @@ import { cn } from '@/shared/lib/utils';
 import { BOTTOM_NAV_ITEMS, MORE_MENU_ITEMS, type NavItem } from './nav-items';
 
 const ITEM_CLASS =
-  'flex min-h-14 w-full flex-col items-center justify-center gap-1 text-xs font-medium';
+  'flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg text-xs font-medium transition-colors duration-150 motion-reduce:transition-none';
 
 function BottomNavLink({ to, label, icon: Icon, end }: NavItem) {
   // El Panel se muestra como "Panel", pero su nombre accesible es el completo.
@@ -16,10 +16,13 @@ function BottomNavLink({ to, label, icon: Icon, end }: NavItem) {
       end={end}
       aria-label={isDashboard ? label : undefined}
       className={({ isActive }) =>
-        cn(ITEM_CLASS, isActive ? 'text-primary' : 'text-muted-foreground')
+        cn(
+          ITEM_CLASS,
+          isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted',
+        )
       }
     >
-      <Icon aria-hidden="true" className="size-5" />
+      <Icon aria-hidden="true" className="size-[18px]" />
       {isDashboard ? 'Panel' : label}
     </NavLink>
   );
@@ -44,7 +47,7 @@ export function BottomNav() {
     <nav
       aria-label="Navegación principal"
       onKeyDown={onKeyDown}
-      className="fixed inset-x-0 bottom-0 z-10 border-t bg-card pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-10 border-t bg-card px-2 pb-[env(safe-area-inset-bottom)]"
     >
       {moreOpen ? (
         <div
@@ -61,12 +64,14 @@ export function BottomNav() {
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) =>
                     cn(
-                      'flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium',
-                      isActive ? 'text-primary' : 'text-foreground',
+                      'flex min-h-11 items-center gap-3 rounded-sm px-3 text-sm font-medium transition-colors duration-150',
+                      isActive
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-foreground hover:bg-muted',
                     )
                   }
                 >
-                  <Icon aria-hidden="true" className="size-5" />
+                  <Icon aria-hidden="true" className="size-[18px]" />
                   {label}
                 </NavLink>
               </li>
@@ -88,9 +93,14 @@ export function BottomNav() {
             aria-controls={moreOpen ? menuId : undefined}
             aria-current={moreActive ? 'page' : undefined}
             onClick={() => setMoreOpen((open) => !open)}
-            className={cn(ITEM_CLASS, moreActive ? 'text-primary' : 'text-muted-foreground')}
+            className={cn(
+              ITEM_CLASS,
+              moreActive
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-muted',
+            )}
           >
-            <Ellipsis aria-hidden="true" className="size-5" />
+            <Ellipsis aria-hidden="true" className="size-[18px]" />
             Más
           </button>
         </li>

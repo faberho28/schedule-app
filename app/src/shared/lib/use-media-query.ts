@@ -3,6 +3,9 @@ import { useSyncExternalStore } from 'react';
 /** Ancho a partir del cual la aplicación usa la barra lateral (D18). */
 export const DESKTOP_QUERY = '(min-width: 1024px)';
 
+/** Ancho a partir del cual la barra lateral muestra etiquetas en lugar de solo íconos. */
+export const WIDE_QUERY = '(min-width: 1280px)';
+
 function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     (onChange) => {
@@ -18,4 +21,9 @@ function useMediaQuery(query: string): boolean {
 /** Verdadero desde 1024 px: barra lateral. Por debajo: barra inferior. */
 export function useIsDesktop(): boolean {
   return useMediaQuery(DESKTOP_QUERY);
+}
+
+/** Verdadero desde 1280 px: la barra lateral va expandida. Entre 1024 y 1279 px, solo íconos. */
+export function useIsWide(): boolean {
+  return useMediaQuery(WIDE_QUERY);
 }

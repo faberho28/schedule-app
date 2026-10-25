@@ -1,33 +1,57 @@
+import type { CSSProperties } from 'react';
 import { Outlet } from 'react-router';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useConnectivity } from '@/shared/lib/connectivity';
-import { useIsDesktop } from '@/shared/lib/use-media-query';
-import { cn } from '@/shared/lib/utils';
+import { useIsDesktop, useIsWide } from '@/shared/lib/use-media-query';
 import { OfflineScreen } from '@/shared/ui/OfflineScreen';
 import { BottomNav } from './BottomNav';
 import { Sidebar } from './Sidebar';
+import { Wordmark } from './Wordmark';
+
+const SIDEBAR_STYLE = {
+  '--sidebar-width': '13.75rem',
+  '--sidebar-width-icon': '3.5rem',
+} as CSSProperties;
 
 /**
- * Estructura de la aplicación: barra lateral desde 1024 px y barra inferior por debajo (D18).
+ * Estructura de la aplicación (D18). Desde 1024 px: barra lateral de shadcn (contraída a íconos
+ * hasta 1279 px, expandida desde 1280 px) y el contenido en un contenedor redondeado sobre el
+ * fondo general. Por debajo de 1024 px: barra superior con el nombre y barra inferior.
  */
 export function AppLayout() {
   const { online, checking, retry } = useConnectivity();
   const isDesktop = useIsDesktop();
+  const isWide = useIsWide();
 
   if (!online) return <OfflineScreen onRetry={() => void retry()} retrying={checking} />;
 
-  return (
-    <div className="flex min-h-dvh flex-col">
-      {isDesktop ? <Sidebar /> : null}
-      <div className={cn('flex min-h-dvh flex-1 flex-col', isDesktop && 'pl-16 xl:pl-60')}>
-        <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-card px-4">
-          <span className="text-lg font-semibold text-primary">Schedule App</span>
-        </header>
+  if (isDesktop) {
+    return (
+      <SidebarProvider
+        open={isWide}
+        style={SIDEBAR_STYLE}
+        className="has-data-[variant=inset]:bg-app-bg"
+      >
+        <Sidebar />
+        <SidebarInset className="min-w-0 md:peer-data-[variant=inset]:rounded-2xl md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:shadow-xs">
+          <div className="flex-1 px-8 py-8">
+            <Outlet />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
 
-        <main className={cn('flex-1 px-4 py-4', !isDesktop && 'pb-24')}>
-          <Outlet />
-        </main>
-      </div>
-      {isDesktop ? null : <BottomNav />}
+  return (
+    <div className="flex min-h-dvh flex-col bg-background">
+      <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-card px-4">
+        <Wordmark />
+      </header>
+
+      <main className="flex-1 px-4 py-6 pb-24">
+        <Outlet />
+      </main>
+      <BottomNav />
     </div>
   );
 }

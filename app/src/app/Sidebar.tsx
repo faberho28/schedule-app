@@ -1,58 +1,85 @@
-import { NavLink } from 'react-router';
-import { cn } from '@/shared/lib/utils';
-import { SIDEBAR_FOOTER_ITEMS, SIDEBAR_ITEMS, type NavItem } from './nav-items';
+import { matchPath, NavLink, useLocation } from 'react-router';
+import {
+  Sidebar as SidebarRoot,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar';
+import { SIDEBAR_ACCOUNT_ITEMS, SIDEBAR_ITEMS, type NavItem } from './nav-items';
+import { Wordmark } from './Wordmark';
 
 function SidebarLink({ to, label, icon: Icon, end }: NavItem) {
+  const { pathname } = useLocation();
+  // Misma regla que NavLink: el Panel solo coincide en `/`; el resto, también en sus subrutas.
+  const isActive = matchPath({ path: to, end: end ?? false }, pathname) !== null;
+
   return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        cn(
-          'flex min-h-11 items-center justify-center gap-3 rounded-md px-3 text-sm font-medium xl:justify-start',
-          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-foreground',
-          isActive
-            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-            : 'text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground',
-        )
-      }
-    >
-      <Icon aria-hidden="true" className="size-5 shrink-0" />
-      <span className="sr-only xl:not-sr-only">{label}</span>
-    </NavLink>
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        tooltip={label}
+        className={[
+          'min-h-11 rounded-sm text-sm transition-colors duration-150',
+          'hover:bg-muted data-[active=true]:hover:bg-sidebar-accent',
+          'group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:justify-center',
+          '[&>svg]:size-[18px]',
+        ].join(' ')}
+      >
+        <NavLink to={to} end={end}>
+          <Icon aria-hidden="true" />
+          <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }
 
 /**
- * Barra lateral oscura desde 1024 px. Entre 1024 y 1279 px se contrae a íconos (la etiqueta
- * queda como `sr-only`); desde 1280 px (`xl:`) muestra las etiquetas.
+ * Barra lateral desde 1024 px (`Sidebar` de shadcn, variante `inset`). La contracción a íconos
+ * (1024 a 1279 px) la decide `AppLayout` con el `open` del proveedor; las etiquetas pasan a
+ * `sr-only` y cada ícono conserva su tooltip. Grupo principal arriba y, al pie, el grupo
+ * "Cuenta" con Configuración y Perfil.
  */
 export function Sidebar() {
   return (
-    <nav
-      aria-label="Navegación principal"
-      className="fixed inset-y-0 left-0 z-20 flex w-16 flex-col border-r border-sidebar-border bg-sidebar p-2 text-sidebar-foreground xl:w-60"
-    >
-      <p className="flex h-12 items-center justify-center text-lg font-semibold xl:justify-start xl:px-3">
-        <span className="xl:hidden" aria-hidden="true">
-          S
-        </span>
-        <span className="sr-only xl:not-sr-only">Schedule App</span>
-      </p>
-      <ul className="flex flex-col gap-1">
-        {SIDEBAR_ITEMS.map((item) => (
-          <li key={item.to}>
-            <SidebarLink {...item} />
-          </li>
-        ))}
-      </ul>
-      <ul data-testid="sidebar-footer" className="mt-auto flex flex-col gap-1">
-        {SIDEBAR_FOOTER_ITEMS.map((item) => (
-          <li key={item.to}>
-            <SidebarLink {...item} />
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <SidebarRoot variant="inset" collapsible="icon">
+      <SidebarHeader className="px-3 pt-4 pb-2 group-data-[collapsible=icon]:items-center">
+        <Wordmark textClassName="group-data-[collapsible=icon]:sr-only" />
+      </SidebarHeader>
+      <nav aria-label="Navegación principal" className="flex min-h-0 flex-1 flex-col">
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {SIDEBAR_ITEMS.map((item) => (
+                  <SidebarLink key={item.to} {...item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter data-testid="sidebar-footer">
+          <SidebarGroup className="p-0">
+            <SidebarGroupLabel className="text-[13px] text-muted-foreground">
+              Cuenta
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {SIDEBAR_ACCOUNT_ITEMS.map((item) => (
+                  <SidebarLink key={item.to} {...item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarFooter>
+      </nav>
+    </SidebarRoot>
   );
 }
