@@ -118,7 +118,7 @@ describe('AgendaPage: abrir un servicio por enlace', () => {
     serve([]);
     open('?view=week&date=2026-11-06');
 
-    await screen.findByText(/No hay servicios en este rango|Aún no hay técnicos/);
+    await screen.findByText('No hay servicios para estos filtros');
     expect(screen.queryByRole('button', { name: 'Semana' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Día anterior' })).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppointmentFlows, type AppointmentFlow } from '@/features/appointments/AppointmentFlows';
@@ -14,14 +14,19 @@ import { formatDayLabel, localDateOf, type LocalDate } from '@/shared/lib/dates'
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
+import { cn } from '@/shared/lib/utils';
+import { AgendaFilters, type FilterOption, type FilterPatch } from './AgendaFilters';
 import { AgendaGrid, type AgendaAppointment, type AgendaTechnician } from './AgendaGrid';
+import { AgendaList } from './AgendaList';
 import { visibleHoursFor } from './agenda-layout';
-import { useAppointments } from './agenda-api';
+import { filterAppointments } from './agenda-list';
+import { useAppointments, useToClose } from './agenda-api';
 import {
   daysOf,
   parseAgendaParams,
   serializeAgendaParams,
   shiftDate,
+  type AgendaParams,
   type AgendaView,
 } from './agenda-params';
 
@@ -64,8 +69,17 @@ function AgendaScreen({
   const from = days[0]!;
   const to = days[days.length - 1]!;
 
+  // Por debajo del ancho de escritorio la agenda es siempre una lista; en escritorio se llega a ella
+  // con `display=list` (por ejemplo desde "+N más" de la grilla).
+  const listMode = !isDesktop || params.display === 'list';
+  const toCloseMode = listMode && params.toClose;
+
   const technicians = useTechnicians(true);
   const appointments = useAppointments(from, to);
+  const toClose = useToClose({ enabled: toCloseMode });
+  // "Por cerrar" ignora la fecha: su fuente es `GET /agenda/to-close` y no el rango del día.
+  const source = toCloseMode ? toClose : appointments;
+  const listItems = toCloseMode ? toClose.data?.items : appointments.data;
   const [flow, setFlow] = useState<AppointmentFlow | null>(null);
   const [notice, setNotice] = useState('');
 
@@ -87,6 +101,7 @@ function AgendaScreen({
   const linkedNotFound = linked.error instanceof ApiError && linked.error.code === 'not_found';
   const knownAppointments = [
     ...(appointments.data ?? []),
+    ...(toCloseMode ? (toClose.data?.items ?? []) : []),
     ...(linked.data && !loadedLinked ? [linked.data] : []),
   ];
 
@@ -101,15 +116,32 @@ function AgendaScreen({
     }
   };
   // Navegar a otro día o vista suelta el enlace al servicio.
+  // En móvil se reemplaza la entrada del historial: "Volver" regresa a la pantalla anterior y no
+  // recorre los días ya vistos.
+  const explicitCancelled = searchParams.get('cancelled') === '1';
   const go = (next: { view?: AgendaView; date?: LocalDate }) =>
     setSearchParams(
       serializeAgendaParams({
         ...params,
+        cancelled: explicitCancelled,
         view: next.view ?? view,
         date: next.date ?? date,
         appointment: null,
       }),
+      { replace: !isDesktop },
     );
+  // Un cambio de filtro reemplaza la entrada; `status=cancelled` por sí solo no fija el interruptor.
+  const changeFilters = (patch: FilterPatch) =>
+    setSearchParams(
+      serializeAgendaParams({
+        ...params,
+        cancelled: explicitCancelled,
+        ...patch,
+        appointment: null,
+      }),
+      { replace: true },
+    );
+  const touch = isDesktop ? undefined : 'min-h-11';
   const open = (next: AppointmentFlow | null) => {
     setNotice('');
     setFlow(next);
@@ -130,43 +162,63 @@ function AgendaScreen({
           </div>
         ) : null}
 
-        <div role="group" aria-label="Navegación de la agenda" className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label={view === 'day' ? 'Día anterior' : 'Semana anterior'}
-            onClick={() => go({ date: shiftDate(view, date, -1) })}
-          >
-            <ChevronLeft aria-hidden="true" />
-          </Button>
-          <Button type="button" variant="outline" onClick={() => go({ date: today() })}>
-            Hoy
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label={view === 'day' ? 'Día siguiente' : 'Semana siguiente'}
-            onClick={() => go({ date: shiftDate(view, date, 1) })}
-          >
-            <ChevronRight aria-hidden="true" />
-          </Button>
-        </div>
+        {toCloseMode ? null : (
+          <>
+            <div
+              role="group"
+              aria-label="Navegación de la agenda"
+              className="flex items-center gap-1"
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className={cn(touch, !isDesktop && 'min-w-11')}
+                aria-label={view === 'day' ? 'Día anterior' : 'Semana anterior'}
+                onClick={() => go({ date: shiftDate(view, date, -1) })}
+              >
+                <ChevronLeft aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className={touch}
+                onClick={() => go({ date: today() })}
+              >
+                Hoy
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className={cn(touch, !isDesktop && 'min-w-11')}
+                aria-label={view === 'day' ? 'Día siguiente' : 'Semana siguiente'}
+                onClick={() => go({ date: shiftDate(view, date, 1) })}
+              >
+                <ChevronRight aria-hidden="true" />
+              </Button>
+            </div>
 
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          Fecha
-          <Input
-            type="date"
-            value={date}
-            onChange={(event) => {
-              if (event.target.value) go({ date: event.target.value });
-            }}
-          />
-        </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              Fecha
+              <Input
+                type="date"
+                className={touch}
+                value={date}
+                onChange={(event) => {
+                  if (event.target.value) go({ date: event.target.value });
+                }}
+              />
+            </label>
+          </>
+        )}
 
         {canCreate ? (
-          <Button type="button" className="ml-auto" onClick={() => open({ kind: 'create' })}>
+          <Button
+            type="button"
+            className={cn('ml-auto', touch)}
+            onClick={() => open({ kind: 'create' })}
+          >
             <Plus aria-hidden="true" />
             Nuevo servicio
           </Button>
@@ -177,26 +229,43 @@ function AgendaScreen({
         {notice}
       </p>
 
-      <p aria-live="polite" className="text-sm font-medium text-muted-foreground">
-        {view === 'day' ? formatDayLabel(from) : `${formatDayLabel(from)} – ${formatDayLabel(to)}`}
-      </p>
+      {toCloseMode ? null : (
+        <p aria-live="polite" className="text-sm font-medium text-muted-foreground">
+          {view === 'day'
+            ? formatDayLabel(from)
+            : `${formatDayLabel(from)} – ${formatDayLabel(to)}`}
+        </p>
+      )}
 
       {linkedNotFound ? <p role="alert">No se encontró el servicio</p> : null}
       {linked.isError && !linkedNotFound ? (
         <ErrorNotice error={linked.error} onRetry={() => void linked.refetch()} />
       ) : null}
 
-      {technicians.isPending || appointments.isPending ? <p>Cargando agenda…</p> : null}
-      {technicians.isError || appointments.isError ? (
+      {technicians.isPending || source.isPending ? <p>Cargando agenda…</p> : null}
+      {technicians.isError || source.isError ? (
         <ErrorNotice
-          error={technicians.error ?? appointments.error}
+          error={technicians.error ?? source.error}
           onRetry={() => {
             if (technicians.isError) void technicians.refetch();
-            if (appointments.isError) void appointments.refetch();
+            if (source.isError) void source.refetch();
           }}
         />
       ) : null}
-      {technicians.data && appointments.data ? (
+      {listMode && technicians.data && listItems ? (
+        <ListContent
+          params={params}
+          explicitCancelled={explicitCancelled}
+          isDesktop={isDesktop}
+          timeZone={timeZone}
+          technicians={technicians.data}
+          items={listItems}
+          total={toCloseMode ? (toClose.data?.total ?? 0) : null}
+          onChangeFilters={changeFilters}
+          onSelect={onAppointmentSelect ?? ((id) => open({ kind: 'detail', id }))}
+        />
+      ) : null}
+      {!listMode && technicians.data && appointments.data ? (
         <AgendaContent
           view={view}
           days={days}
@@ -247,6 +316,101 @@ function ViewButton({
     >
       {children}
     </Button>
+  );
+}
+
+type ListContentProps = {
+  params: AgendaParams;
+  explicitCancelled: boolean;
+  isDesktop: boolean;
+  timeZone: string;
+  technicians: Technician[];
+  items: Appointment[];
+  /** Total de servicios por cerrar, o `null` fuera de "Por cerrar". */
+  total: number | null;
+  onChangeFilters(patch: FilterPatch): void;
+  onSelect(id: string): void;
+};
+
+/** Lista cronológica con sus chips, el indicador de franja y el aviso del tope de "Por cerrar". */
+function ListContent({
+  params,
+  explicitCancelled,
+  isDesktop,
+  timeZone,
+  technicians,
+  items,
+  total,
+  onChangeFilters,
+  onSelect,
+}: ListContentProps) {
+  const visible = filterAppointments(items, params, timeZone);
+  const present = new Set(items.map((item) => item.technician.id));
+  const technicianOptions: FilterOption[] = technicians
+    .filter(
+      (technician) =>
+        (technician.active && technician.anonymized_at === null) || present.has(technician.id),
+    )
+    .map((technician) => ({ id: technician.id, name: technicianLabel(technician) }));
+  const serviceTypes = new Map<string, string>();
+  for (const item of items) serviceTypes.set(item.service.id, item.service.name);
+  const serviceTypeOptions: FilterOption[] = [...serviceTypes].map(([id, name]) => ({ id, name }));
+
+  const range =
+    params.from !== null && params.to !== null
+      ? `${params.from}-${params.to}`
+      : params.from !== null
+        ? `Desde ${params.from}`
+        : params.to !== null
+          ? `Hasta ${params.to}`
+          : null;
+  const backToGrid = serializeAgendaParams({
+    ...params,
+    cancelled: explicitCancelled,
+    display: 'grid',
+    from: null,
+    to: null,
+    appointment: null,
+  });
+  const shown = items.length;
+
+  return (
+    <>
+      <AgendaFilters
+        params={params}
+        technicians={technicianOptions}
+        serviceTypes={serviceTypeOptions}
+        onChange={onChangeFilters}
+      />
+      {range !== null || (isDesktop && params.display === 'list') ? (
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          {range !== null ? (
+            <p className="font-medium">
+              Franja <span>{range}</span>
+            </p>
+          ) : null}
+          {isDesktop && params.display === 'list' ? (
+            <Link
+              to={{ search: backToGrid.toString() }}
+              className="inline-flex min-h-11 items-center font-medium underline underline-offset-4"
+            >
+              Volver a la grilla
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+      {total !== null && total > shown ? (
+        <p role="status" className="text-sm font-medium">
+          Mostrando {shown} de {total}
+        </p>
+      ) : null}
+      <AgendaList
+        appointments={visible}
+        timeZone={timeZone}
+        onSelect={onSelect}
+        groupByDay={total !== null || params.view === 'week'}
+      />
+    </>
   );
 }
 
