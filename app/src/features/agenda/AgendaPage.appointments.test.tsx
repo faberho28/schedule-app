@@ -214,7 +214,7 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
   it('crea un servicio desde el botón del día y la agenda lo muestra', async () => {
     const user = userEvent.setup();
     const state = serve([]);
-    renderAgenda();
+    renderAgenda('/agenda?view=week&date=2026-11-06');
 
     await user.click(await screen.findByRole('button', { name: 'Nuevo servicio el vie 6 nov' }));
     await user.type(await screen.findByLabelText('Buscar cliente'), 'Ana');

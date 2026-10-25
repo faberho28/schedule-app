@@ -42,7 +42,7 @@ Todo el texto visible MUST estar en español neutro con tuteo (sin voseo), inclu
 
 ### Requirement: Agenda día y semana por técnico
 
-En escritorio (desde 1024 px) la agenda MUST ser una única grilla de tiempo al estilo de Google Calendar, con vista de día y de semana, implementada con CSS Grid propio sin librería de calendario. Los servicios que coinciden en el tiempo MUST mostrarse lado a lado. Los técnicos visibles son los del selector (hasta 10) y se distinguen por color y por nombre o iniciales. La agenda MUST NOT ofrecer vista Mes ni arrastrar y soltar. En escritorio la agenda MUST abrir por defecto en la vista de semana; la vista de día solo se muestra cuando la URL la pide de forma explícita (`view=day`), y por debajo de 1024 px la vista es siempre de día.
+En escritorio (desde 1024 px) la agenda MUST ser una grilla de tiempo al estilo de Google Calendar con un eje de horas común, con vista de día y de semana, implementada con CSS Grid propio sin librería de calendario. La vista de día MUST tener una columna por técnico visible, con un encabezado de avatar con iniciales en el color del técnico y su nombre; la de semana, una columna por día, donde los servicios que coinciden en el tiempo MUST mostrarse lado a lado. Los técnicos visibles son los del selector (hasta 10) y se distinguen por color y por nombre o iniciales. La agenda MUST NOT ofrecer vista Mes. En escritorio la agenda MUST abrir por defecto en la vista de semana; la vista de día solo se muestra cuando la URL la pide de forma explícita (`view=day`), y por debajo de 1024 px la vista es siempre de día.
 
 #### Scenario: Vista por defecto en escritorio
 
@@ -54,19 +54,25 @@ En escritorio (desde 1024 px) la agenda MUST ser una única grilla de tiempo al 
 
 - GIVEN dos técnicos seleccionados con servicios el día elegido
 - WHEN el dueño abre la vista de día
-- THEN ve una sola grilla de tiempo con los servicios de ambos técnicos, cada uno con su color y sus iniciales
+- THEN ve dos columnas, una por técnico, con su avatar y su nombre en el encabezado y los servicios de cada uno en su columna
 
-#### Scenario: Servicios simultáneos
+#### Scenario: Servicios simultáneos en el día
 
 - GIVEN dos servicios de técnicos distintos de 10:00 a 11:00
-- WHEN se muestra la grilla
-- THEN aparecen lado a lado sin taparse
+- WHEN se muestra la vista de día
+- THEN cada servicio ocupa todo el ancho de la columna de su técnico
 
-#### Scenario: Diez solapes
+#### Scenario: Diez técnicos a la misma hora
 
 - GIVEN 10 servicios simultáneos de 10 técnicos
-- WHEN se muestra la grilla
-- THEN en la vista de día se ven 5 servicios con ancho propio y aparece "+5 más"
+- WHEN se muestra la vista de día
+- THEN se ven los 10, uno por columna, y la grilla se desplaza en horizontal si no caben
+
+#### Scenario: Servicios simultáneos en la semana
+
+- GIVEN tres servicios de técnicos distintos de 10:00 a 11:00 el mismo día
+- WHEN se muestra la vista de semana
+- THEN se ve 1 servicio con su ancho y aparece "+2 más"
 
 #### Scenario: Vista de semana
 
@@ -74,11 +80,11 @@ En escritorio (desde 1024 px) la agenda MUST ser una única grilla de tiempo al 
 - WHEN el dueño cambia a la vista de semana
 - THEN ve los siete días con los servicios de los técnicos seleccionados, con el mismo modelo de color y de solapes
 
-#### Scenario: Sin Mes ni arrastre
+#### Scenario: Sin Mes
 
-- GIVEN la barra de herramientas y un servicio en la grilla
-- WHEN el dueño busca la vista Mes o intenta arrastrar el servicio
-- THEN no hay vista Mes y no ocurre ningún cambio; mover requiere el diálogo de cupos
+- GIVEN la barra de herramientas
+- WHEN el dueño busca la vista Mes
+- THEN no existe
 
 ### Requirement: Diálogos de cita basados en cupos
 

@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import { useId, useMemo, type CSSProperties } from 'react';
 import { EventBlock } from '@/components/EventBlock';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { formatDayLabel, formatTime, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { cn } from '@/shared/lib/utils';
@@ -62,7 +63,9 @@ export type AgendaGridProps = {
 const DEFAULT_ROW_MINUTES = 15;
 const MINUTES_PER_HOUR = 60;
 const PX_PER_MINUTE = 1.25;
-const MAX_COLUMNS = { day: 6, week: 2 } as const;
+// En el día cada técnico tiene su columna: solo se reparten el ancho los servicios solapados de uno
+// mismo (por ejemplo uno cancelado y otro que ocupó su lugar).
+const MAX_COLUMNS = { day: 3, week: 2 } as const;
 // Sin borde inferior: la línea que separa el encabezado de la grilla es la primera línea de hora.
 const DAY_HEADER = 'flex h-14 items-center justify-between gap-1 px-2 text-sm';
 
@@ -82,10 +85,10 @@ function dayParts(day: LocalDate): { weekday: string; number: number } {
 }
 
 /**
- * Agenda de escritorio con CSS Grid propio: un eje de tiempo común y una columna por día (una en la
- * vista de día y siete en la de semana). Los servicios de todos los técnicos elegidos se reparten
- * el ancho cuando coinciden en el tiempo; si no caben, un botón "+N más" ocupa la última columna.
- * No hay arrastrar y soltar: mover un servicio requiere el diálogo de cupos.
+ * Agenda de escritorio con CSS Grid propio y un eje de tiempo común. La vista de día tiene una
+ * columna por técnico elegido; la de semana, una por día, donde los servicios de todos los técnicos
+ * se reparten el ancho cuando coinciden en el tiempo y, si no caben, un botón "+N más" ocupa la
+ * última columna.
  */
 export function AgendaGrid({
   view,
@@ -102,6 +105,15 @@ export function AgendaGrid({
 }: AgendaGridProps) {
   const baseId = useId();
   const totalRows = Math.ceil((visibleHours.endMinute - visibleHours.startMinute) / rowMinutes);
+  // Día: una columna por técnico. Semana: una por día.
+  const columns: { key: string; day: LocalDate; technician: GridTechnician | null }[] =
+    view === 'day'
+      ? technicians.map((technician) => ({
+          key: technician.id,
+          day: days[0]!,
+          technician,
+        }))
+      : days.map((day) => ({ key: day, day, technician: null }));
 
   return (
     <div
@@ -112,11 +124,12 @@ export function AgendaGrid({
     >
       <div className="flex">
         <TimeAxis visibleHours={visibleHours} totalRows={totalRows} rowMinutes={rowMinutes} />
-        {days.map((day) => (
+        {columns.map(({ key, day, technician }) => (
           <DaySection
-            key={day}
-            id={`${baseId}-${day}`}
+            key={key}
+            id={`${baseId}-${key}`}
             day={day}
+            columnTechnician={technician}
             view={view}
             timeZone={timeZone}
             technicians={technicians}
@@ -203,6 +216,8 @@ type DaySectionProps = Pick<
 > & {
   id: string;
   day: LocalDate;
+  /** Técnico de la columna en la vista de día; `null` en la de semana, donde la columna es un día. */
+  columnTechnician: GridTechnician | null;
   rowMinutes: number;
   totalRows: number;
   maxColumns: number;
@@ -211,6 +226,7 @@ type DaySectionProps = Pick<
 function DaySection({
   id,
   day,
+  columnTechnician,
   view,
   timeZone,
   technicians,
@@ -226,9 +242,14 @@ function DaySection({
   const dayLabel = formatDayLabel(day);
   const { weekday, number } = dayParts(day);
   const isToday = day === localDateOf(new Date().toISOString(), timeZone);
+  const columnTechnicianId = columnTechnician?.id ?? null;
   const { blocks, overflow } = useMemo<DayEntries>(() => {
     const byId = new Map(technicians.map((technician) => [technician.id, technician]));
     const timed = appointments
+      .filter(
+        (appointment) =>
+          columnTechnicianId === null || appointment.technicianId === columnTechnicianId,
+      )
       .map((appointment) => ({
         appointment,
         technician: byId.get(appointment.technicianId),
@@ -274,39 +295,65 @@ function DaySection({
       ),
       overflow: layout.overflow,
     };
-  }, [day, timeZone, technicians, appointments, visibleHours, rowMinutes, maxColumns]);
+  }, [
+    day,
+    timeZone,
+    technicians,
+    appointments,
+    columnTechnicianId,
+    visibleHours,
+    rowMinutes,
+    maxColumns,
+  ]);
 
   return (
     <section
       aria-labelledby={id}
       className={cn(
         'group min-w-0 flex-1 border-r last:border-r-0',
-        view === 'week' && 'min-w-36',
+        view === 'week' ? 'min-w-36' : 'min-w-44',
         isWeekend(day) && 'bg-muted/50',
         isToday && 'bg-today',
       )}
     >
       <div className={DAY_HEADER}>
-        <h2 id={id} className="flex flex-col items-start gap-0.5 leading-none">
-          <span className="sr-only">{dayLabel}</span>
-          <span
-            aria-hidden="true"
-            className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
-          >
-            {weekday}
-          </span>
-          {/* Hoy solo cambia el fondo del círculo: el alto y la alineación son los de cualquier día. */}
-          <span
-            aria-hidden="true"
-            className={cn(
-              'flex size-8 items-center justify-center rounded-full text-lg font-semibold tabular-nums',
-              isToday && 'bg-primary text-primary-foreground',
-            )}
-          >
-            {number}
-          </span>
-        </h2>
-        {onEmptySlotSelect ? (
+        {columnTechnician ? (
+          <h2 id={id} className="flex min-w-0 items-center gap-2">
+            <Avatar aria-hidden="true" className="size-6">
+              <AvatarFallback
+                className="text-[10px] font-semibold"
+                style={{
+                  backgroundColor: `var(--tech-${columnTechnician.colorIndex}-bg)`,
+                  color: `var(--tech-${columnTechnician.colorIndex}-text)`,
+                }}
+              >
+                {columnTechnician.initials}
+              </AvatarFallback>
+            </Avatar>
+            <span className="truncate text-sm font-medium">{columnTechnician.name}</span>
+          </h2>
+        ) : (
+          <h2 id={id} className="flex flex-col items-start gap-0.5 leading-none">
+            <span className="sr-only">{dayLabel}</span>
+            <span
+              aria-hidden="true"
+              className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+            >
+              {weekday}
+            </span>
+            {/* Hoy solo cambia el fondo del círculo: el alto y la alineación son los de cualquier día. */}
+            <span
+              aria-hidden="true"
+              className={cn(
+                'flex size-8 items-center justify-center rounded-full text-lg font-semibold tabular-nums',
+                isToday && 'bg-primary text-primary-foreground',
+              )}
+            >
+              {number}
+            </span>
+          </h2>
+        )}
+        {onEmptySlotSelect && !columnTechnician ? (
           <Button
             type="button"
             variant="ghost"

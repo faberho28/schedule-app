@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe('AgendaPage: carga', () => {
-  it('pide los servicios del día en fechas locales y los muestra en una sola grilla', async () => {
+  it('pide los servicios del día en fechas locales y los muestra en una columna por técnico', async () => {
     const requests = serve({
       appointments: [
         appointment(),
@@ -88,7 +88,10 @@ describe('AgendaPage: carga', () => {
     expect(
       within(grid).getByRole('button', { name: /Luis Gómez.*técnico Marta/ }),
     ).toBeInTheDocument();
-    expect(within(grid).getAllByRole('list')).toHaveLength(1);
+    expect(within(grid).getAllByRole('list')).toHaveLength(2);
+    expect(
+      within(screen.getByRole('region', { name: 'Carlos' })).getAllByRole('button'),
+    ).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1, name: 'Vie 6 nov 2026' })).toBeInTheDocument();
     expect(requests.appointments).toEqual(['?from=2026-11-06&to=2026-11-06']);
   });
@@ -129,7 +132,8 @@ describe('AgendaPage: carga', () => {
     renderAgenda();
 
     expect(await screen.findByText('No hay servicios en este rango.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'vie 6 nov' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Agenda del día' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Carlos' })).toBeInTheDocument();
   });
 
   it('no muestra el aviso de rango vacío cuando hay servicios', async () => {
@@ -654,35 +658,36 @@ describe('AgendaPage: servicios que coinciden y "+N más"', () => {
     return { technicians, appointments };
   };
 
-  it('dos servicios de 10:00 a 11:00 de técnicos distintos se ven lado a lado', async () => {
+  it('en el día, dos servicios de 10:00 a 11:00 de técnicos distintos van cada uno en su columna', async () => {
     serve(crowd(2));
 
     renderAgenda();
 
     const [first, second] = await screen.findAllByRole('listitem');
-    expect(first).toHaveStyle({ width: '50%', marginLeft: '0%' });
-    expect(second).toHaveStyle({ width: '50%', marginLeft: '50%' });
+    expect(first).toHaveStyle({ width: '100%', marginLeft: '0%' });
+    expect(second).toHaveStyle({ width: '100%', marginLeft: '0%' });
+    expect(screen.getAllByRole('list')).toHaveLength(2);
   });
 
-  it('con 10 servicios simultáneos muestra 5 y "+5 más"', async () => {
+  it('en el día, 10 servicios simultáneos de 10 técnicos se ven todos y no hay botón', async () => {
     serve(crowd(10));
 
     renderAgenda();
 
-    expect(await screen.findByRole('button', { name: /Ver 5 servicios más/ })).toHaveTextContent(
-      '+5 más',
-    );
-    expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(5);
+    await screen.findAllByRole('button', { name: /Cliente \d+/ });
+    expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(10);
+    expect(screen.queryByRole('button', { name: /servicios más/ })).not.toBeInTheDocument();
   });
 
-  it('con exactamente 6 simultáneos se ven todos y no hay botón', async () => {
-    serve(crowd(6));
+  it('en la semana, 10 servicios simultáneos muestran 1 y "+9 más"', async () => {
+    serve(crowd(10));
 
-    renderAgenda();
+    renderAgenda('/agenda?view=week&date=2026-11-06');
 
-    await screen.findAllByRole('button', { name: /Cliente \d+/ });
-    expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(6);
-    expect(screen.queryByRole('button', { name: /servicios más/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Ver 9 servicios más/ })).toHaveTextContent(
+      '+9 más',
+    );
+    expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(1);
   });
 
   it('en la semana 3 simultáneos muestran 1 y "+2 más"', async () => {
@@ -698,7 +703,8 @@ describe('AgendaPage: servicios que coinciden y "+N más"', () => {
 
   it('activar "+N más" abre la lista de ese día y franja con solo sus servicios y vuelve a la grilla', async () => {
     const user = userEvent.setup();
-    // 8 técnicos a las 10:00, pero el dueño eligió solo 7: el octavo no debe aparecer en la lista.
+    // 8 técnicos a las 10:00 en la semana (2 columnas), pero el dueño eligió solo 7: el octavo no
+    // debe aparecer en la lista.
     const { technicians, appointments } = crowd(8);
     remember(...technicians.slice(0, 7).map((t) => t.id));
     const later = appointment({
@@ -710,10 +716,10 @@ describe('AgendaPage: servicios que coinciden y "+N más"', () => {
       occupied_until: '2026-11-06T20:00:00.000Z',
     });
     serve({ technicians, appointments: [...appointments, later] });
-    const { router } = renderAgenda();
+    const { router } = renderAgenda('/agenda?view=week&date=2026-11-06');
 
     await user.click(
-      await screen.findByRole('button', { name: 'Ver 2 servicios más entre 10:00 y 11:00' }),
+      await screen.findByRole('button', { name: 'Ver 6 servicios más entre 10:00 y 11:00' }),
     );
 
     const params = new URLSearchParams(router.state.location.search);
@@ -870,7 +876,8 @@ describe('AgendaPage: navegación', () => {
 
     await user.click(screen.getByRole('button', { name: 'Día' }));
 
-    await waitFor(() => expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1));
+    // Una columna por técnico: Carlos y Marta.
+    await waitFor(() => expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(2));
     expect(router.state.location.search).toBe('?view=day&date=2026-11-06');
   });
 
@@ -881,13 +888,13 @@ describe('AgendaPage: navegación', () => {
     await screen.findByRole('region', { name: 'Agenda del día' });
 
     await user.click(screen.getByRole('button', { name: 'Día siguiente' }));
-    await screen.findByRole('heading', { level: 2, name: 'sáb 7 nov' });
+    await screen.findByRole('heading', { level: 1, name: 'Sáb 7 nov 2026' });
     expect(router.state.location.search).toBe('?view=day&date=2026-11-07');
     expect(requests.appointments.at(-1)).toBe('?from=2026-11-07&to=2026-11-07');
 
     await user.click(screen.getByRole('button', { name: 'Día anterior' }));
     await user.click(screen.getByRole('button', { name: 'Día anterior' }));
-    await screen.findByRole('heading', { level: 2, name: 'jue 5 nov' });
+    await screen.findByRole('heading', { level: 1, name: 'Jue 5 nov 2026' });
     expect(router.state.location.search).toBe('?view=day&date=2026-11-05');
   });
 
@@ -922,7 +929,7 @@ describe('AgendaPage: navegación', () => {
 
     await user.click(screen.getByRole('button', { name: 'Hoy' }));
 
-    await screen.findByRole('heading', { level: 2, name: 'jue 22 oct' });
+    await screen.findByRole('heading', { level: 1, name: 'Jue 22 oct 2026' });
     expect(router.state.location.search).toBe('?view=day&date=2026-10-22');
   });
 
@@ -979,7 +986,7 @@ describe('AgendaPage: navegación', () => {
     const calendar = await screen.findByRole('dialog');
     await user.click(within(calendar).getByRole('button', { name: /20 de noviembre/i }));
 
-    await screen.findByRole('heading', { level: 2, name: 'vie 20 nov' });
+    await screen.findByRole('heading', { level: 1, name: 'Vie 20 nov 2026' });
     expect(router.state.location.search).toBe('?view=day&date=2026-11-20');
     expect(requests.appointments.at(-1)).toBe('?from=2026-11-20&to=2026-11-20');
   });
@@ -998,7 +1005,7 @@ describe('AgendaPage: acciones', () => {
     serve({ appointments: [appointment()] });
     const onAppointmentSelect = vi.fn();
     const onEmptySlotSelect = vi.fn();
-    renderAgenda(ENTRY, { onAppointmentSelect, onEmptySlotSelect });
+    renderAgenda('/agenda?view=week&date=2026-11-06', { onAppointmentSelect, onEmptySlotSelect });
 
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
     await user.click(screen.getByRole('button', { name: 'Nuevo servicio el vie 6 nov' }));
@@ -1012,7 +1019,7 @@ describe('AgendaPage: acciones', () => {
     const onAppointmentSelect = vi.fn();
     renderAgenda(ENTRY, { onAppointmentSelect });
     const card = await screen.findByRole('button', { name: /Ana Pérez/ });
-    const list = screen.getByRole('list');
+    const list = within(screen.getByRole('region', { name: 'Carlos' })).getByRole('list');
 
     fireEvent.dragStart(card);
     fireEvent.dragOver(list);

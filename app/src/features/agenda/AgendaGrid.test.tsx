@@ -83,7 +83,7 @@ function simultaneous(count: number) {
 }
 
 describe('AgendaGrid: vista de día', () => {
-  it('muestra a todos los técnicos en una sola grilla con su día como encabezado', () => {
+  it('muestra una columna por técnico, con su nombre como encabezado', () => {
     renderGrid({
       appointments: [
         appointment(),
@@ -98,38 +98,72 @@ describe('AgendaGrid: vista de día', () => {
       ],
     });
 
-    expect(screen.getByRole('heading', { level: 2, name: 'vie 6 nov' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'CACarlos',
+      'MAMarta',
+    ]);
     const lists = screen.getAllByRole('list');
-    expect(lists).toHaveLength(1);
+    expect(lists).toHaveLength(2);
     expect(within(lists[0]!).getByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
-    expect(within(lists[0]!).getByRole('button', { name: /Luis Gómez/ })).toBeInTheDocument();
+    expect(within(lists[0]!).queryByRole('button', { name: /Luis Gómez/ })).not.toBeInTheDocument();
+    expect(within(lists[1]!).getByRole('button', { name: /Luis Gómez/ })).toBeInTheDocument();
     expect(screen.queryByRole('group')).not.toBeInTheDocument();
   });
 
-  it('dos servicios de 10:00 a 11:00 quedan lado a lado sin taparse', () => {
+  it('el encabezado de columna lleva un avatar con las iniciales en el color del técnico', () => {
+    renderGrid();
+
+    const carlos = screen.getByRole('region', { name: 'Carlos' });
+    const avatar = within(carlos).getByText('CA');
+    expect(avatar.closest('[data-slot="avatar"]')).toHaveClass('size-6');
+    const style = avatar.getAttribute('style') ?? '';
+    expect(style).toContain('var(--tech-1-bg)');
+    expect(style).toContain('var(--tech-1-text)');
+    expect(within(carlos).getByText('Carlos')).toHaveClass('text-sm', 'font-medium');
+  });
+
+  it('dos servicios simultáneos de técnicos distintos no se reparten el ancho: cada uno tiene su columna', () => {
     const { technicians, appointments } = simultaneous(2);
     renderGrid({ technicians, appointments });
 
     const [first, second] = screen.getAllByRole('listitem');
-    expect(first).toHaveStyle({ width: '50%', marginLeft: '0%' });
-    expect(second).toHaveStyle({ width: '50%', marginLeft: '50%' });
+    expect(first).toHaveStyle({ width: '100%', marginLeft: '0%' });
+    expect(second).toHaveStyle({ width: '100%', marginLeft: '0%' });
     expect(first).toHaveStyle({ gridRow: '13 / span 4' });
     expect(second).toHaveStyle({ gridRow: '13 / span 4' });
+    expect(screen.getAllByRole('list')).toHaveLength(2);
   });
 
-  it('un servicio sin compañeros ocupa todo el ancho', () => {
+  it('un servicio sin compañeros ocupa todo el ancho de la columna', () => {
     renderGrid({ appointments: [appointment()] });
 
     expect(screen.getByRole('listitem')).toHaveStyle({ width: '100%', marginLeft: '0%' });
   });
 
-  it('la columna del día no crece con su contenido y los solapes dejan 2 px entre sí', () => {
+  it('los servicios del mismo técnico que se solapan se reparten su columna', () => {
+    renderGrid({
+      appointments: [
+        appointment({ status: 'cancelled' }),
+        appointment({ id: 'apt-2', customerName: 'Luis Gómez' }),
+      ],
+    });
+
+    const [first, second] = within(screen.getByRole('region', { name: 'Carlos' })).getAllByRole(
+      'listitem',
+    );
+    expect(first).toHaveStyle({ width: '50%' });
+    expect(second).toHaveStyle({ width: '50%' });
+  });
+
+  it('la columna no crece con su contenido y los bloques dejan 2 px entre sí', () => {
     const { technicians, appointments } = simultaneous(2);
     renderGrid({ technicians, appointments });
 
     // Sin `minmax(0, 1fr)` la pista implícita se ensancha con el contenido y los porcentajes de los
     // bloques se calculan sobre una columna más ancha que el día.
-    expect(screen.getByRole('list')).toHaveClass('grid-cols-[minmax(0,1fr)]');
+    for (const list of screen.getAllByRole('list')) {
+      expect(list).toHaveClass('grid-cols-[minmax(0,1fr)]');
+    }
     for (const item of screen.getAllByRole('listitem')) {
       expect(item).toHaveClass('min-w-0', 'p-px');
     }
@@ -142,12 +176,20 @@ describe('AgendaGrid: vista de día', () => {
     expect(screen.getByText('09:00', { ignore: 'button *' })).toHaveClass('-translate-y-1/2');
   });
 
-  it('el encabezado del día no suma un segundo borde sobre la línea de la grilla', () => {
+  it('el encabezado de columna no suma un segundo borde sobre la línea de la grilla', () => {
     renderGrid();
 
-    const header = screen.getByRole('heading', { level: 2 }).parentElement!;
+    const header = screen.getAllByRole('heading', { level: 2 })[0]!.parentElement!;
     expect(header).not.toHaveClass('border-b');
-    expect(screen.getByRole('list')).not.toHaveClass('border-t');
+    expect(header).toHaveClass('h-14');
+    expect(screen.getAllByRole('list')[0]).not.toHaveClass('border-t');
+  });
+
+  it('con muchos técnicos las columnas tienen un ancho mínimo y la grilla se desplaza', () => {
+    const { technicians } = simultaneous(8);
+    renderGrid({ technicians });
+
+    expect(screen.getByRole('region', { name: 'Técnico 1' })).toHaveClass('min-w-44');
   });
 
   it('rotula el eje con las horas de la ventana visible y lo oculta a la tecnología de asistencia', () => {
@@ -574,9 +616,13 @@ describe('AgendaGrid: color por técnico', () => {
 });
 
 describe('AgendaGrid: desborde "+N más"', () => {
-  it('12 servicios simultáneos en el día muestran 5 y "+7 más"', () => {
+  // Con una columna por técnico, el desborde solo se da en la semana (varios técnicos en un mismo
+  // día) o, en el día, si se solapan muchos servicios de un mismo técnico.
+  const WEEK_6 = { view: 'week', days: WEEK, maxColumns: 6 } as const;
+
+  it('12 servicios simultáneos en un día de 6 columnas muestran 5 y "+7 más"', () => {
     const { technicians, appointments } = simultaneous(12);
-    renderGrid({ technicians, appointments });
+    renderGrid({ ...WEEK_6, technicians, appointments });
 
     expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(5);
     expect(
@@ -584,9 +630,9 @@ describe('AgendaGrid: desborde "+N más"', () => {
     ).toHaveTextContent('+7 más');
   });
 
-  it('10 servicios simultáneos en el día muestran 5 con ancho propio y "+5 más"', () => {
+  it('10 servicios simultáneos en 6 columnas muestran 5 con ancho propio y "+5 más"', () => {
     const { technicians, appointments } = simultaneous(10);
-    renderGrid({ technicians, appointments });
+    renderGrid({ ...WEEK_6, technicians, appointments });
 
     const cards = screen.getAllByRole('button', { name: /Cliente \d+/ });
     expect(cards).toHaveLength(5);
@@ -598,7 +644,7 @@ describe('AgendaGrid: desborde "+N más"', () => {
 
   it('el botón ocupa la última de las 6 columnas', () => {
     const { technicians, appointments } = simultaneous(8);
-    renderGrid({ technicians, appointments });
+    renderGrid({ ...WEEK_6, technicians, appointments });
 
     const more = screen.getByRole('button', { name: /Ver 3 servicios más/ });
     expect(more.closest('li')).toHaveStyle({
@@ -609,11 +655,19 @@ describe('AgendaGrid: desborde "+N más"', () => {
 
   it('exactamente 6 servicios simultáneos se ven todos y no hay botón', () => {
     const { technicians, appointments } = simultaneous(6);
-    renderGrid({ technicians, appointments });
+    renderGrid({ ...WEEK_6, technicians, appointments });
 
     expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(6);
     expect(screen.queryByRole('button', { name: /servicios más/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/más$/)).not.toBeInTheDocument();
+  });
+
+  it('en el día, los servicios simultáneos de técnicos distintos nunca desbordan', () => {
+    const { technicians, appointments } = simultaneous(12);
+    renderGrid({ technicians, appointments });
+
+    expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(12);
+    expect(screen.queryByRole('button', { name: /servicios más/ })).not.toBeInTheDocument();
   });
 
   it('en la semana 3 servicios simultáneos muestran 1 y "+2 más"', () => {
@@ -636,7 +690,7 @@ describe('AgendaGrid: desborde "+N más"', () => {
 
   it('al activar el botón avisa el día y la franja en minutos', async () => {
     const { technicians, appointments } = simultaneous(7);
-    const props = renderGrid({ technicians, appointments });
+    const props = renderGrid({ ...WEEK_6, technicians, appointments });
 
     await userEvent.click(screen.getByRole('button', { name: /Ver 2 servicios más/ }));
 
@@ -654,7 +708,7 @@ describe('AgendaGrid: desborde "+N más"', () => {
 
   it('acepta otro máximo de columnas', () => {
     const { technicians, appointments } = simultaneous(4);
-    renderGrid({ technicians, appointments, maxColumns: 3 });
+    renderGrid({ view: 'week', days: WEEK, technicians, appointments, maxColumns: 3 });
 
     expect(screen.getAllByRole('button', { name: /Cliente \d+/ })).toHaveLength(2);
     expect(screen.getByRole('button', { name: /Ver 2 servicios más/ })).toBeInTheDocument();
@@ -716,15 +770,6 @@ describe('AgendaGrid: selección', () => {
     expect(props.onAppointmentSelect).toHaveBeenCalledExactlyOnceWith('apt-1');
   });
 
-  it('ofrece un servicio nuevo por día cuando hay manejador', async () => {
-    const onEmptySlotSelect = vi.fn();
-    renderGrid({ onEmptySlotSelect });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo servicio el vie 6 nov' }));
-
-    expect(onEmptySlotSelect).toHaveBeenCalledExactlyOnceWith('2026-11-06');
-  });
-
   it('en la semana el servicio nuevo lleva el día de la columna', async () => {
     const onEmptySlotSelect = vi.fn();
     renderGrid({ view: 'week', days: WEEK, onEmptySlotSelect });
@@ -747,7 +792,7 @@ describe('AgendaGrid: lo que no existe', () => {
     const onEmptySlotSelect = vi.fn();
     const props = renderGrid({ appointments: [appointment()], onEmptySlotSelect });
     const button = screen.getByRole('button', { name: /Ana Pérez/ });
-    const list = screen.getByRole('list');
+    const list = within(screen.getByRole('region', { name: 'Carlos' })).getByRole('list');
 
     expect(button).not.toHaveAttribute('draggable', 'true');
     fireEvent.dragStart(button);
@@ -766,9 +811,7 @@ describe('AgendaGrid: lo que no existe', () => {
     expect(props.onAppointmentSelect).not.toHaveBeenCalled();
     expect(props.onOverflowSelect).not.toHaveBeenCalled();
     expect(onEmptySlotSelect).not.toHaveBeenCalled();
-    expect(within(screen.getByRole('list')).getByRole('button', { name: /Ana Pérez/ })).toBe(
-      button,
-    );
+    expect(within(list).getByRole('button', { name: /Ana Pérez/ })).toBe(button);
   });
 
   it('no hay vista Mes, franja de almuerzo ni sombreado de horas no laborables', () => {

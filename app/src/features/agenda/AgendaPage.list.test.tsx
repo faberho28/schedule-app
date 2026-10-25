@@ -416,7 +416,7 @@ describe('AgendaPage: lista filtrada por franja', () => {
     await user.click(link);
 
     expect(await screen.findByRole('region', { name: 'Agenda del día' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'sáb 24 oct' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Sáb 24 oct 2026' })).toBeInTheDocument();
     const params = new URLSearchParams(router.state.location.search);
     expect([params.has('display'), params.has('from'), params.has('to')]).toEqual([
       false,
