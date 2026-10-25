@@ -25,4 +25,13 @@ describe('Notice', () => {
     const notice = screen.getByRole('status');
     expect(notice).toHaveClass(bg);
   });
+
+  it.each([[null], [undefined], [false], ['']])(
+    'sin contenido (%s) no dibuja nada: ni caja, ni ícono, ni región de anuncio',
+    (empty) => {
+      const { container } = render(<Notice tone="success">{empty}</Notice>);
+
+      expect(container).toBeEmptyDOMElement();
+    },
+  );
 });

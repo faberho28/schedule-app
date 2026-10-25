@@ -24,9 +24,13 @@ type NoticeProps = Omit<ComponentProps<'div'>, 'role'> & { tone: NoticeTone };
 
 /**
  * Aviso con fondo pastel, borde izquierdo de 3 px y texto del mismo tono. Los errores se anuncian
- * como `alert`; el resto como `status`. El color nunca va solo: lleva ícono y texto.
+ * como `alert`; el resto como `status`. El color nunca va solo: lleva ícono y texto. Sin contenido
+ * no dibuja nada, para que un aviso condicional no deje una caja vacía en pantalla.
  */
 export function Notice({ tone, className, children, ...props }: NoticeProps) {
+  if (children === null || children === undefined || children === false || children === '') {
+    return null;
+  }
   const { className: toneClass, icon: Icon } = TONES[tone];
   return (
     <div
