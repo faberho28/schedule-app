@@ -264,7 +264,7 @@ Todo el texto visible de la interfaz MUST usar "servicio" donde antes decía "ci
 
 ### Requirement: Identidad visual y accesibilidad
 
-La aplicación MUST llamarse "Schedule App" y usar la paleta del brief de diseño del usuario (decisión del 2026-10-25): tipografía Inter autoalojada, rojo de marca `#E31937` para el logo, el control activo y la acción principal, azul `#4F7CF7` como `primary` (estado activo y datos), neutros claros (`app-bg` `#F3F4F6`, `background` `#F9FAFB`, `card` `#FFFFFF`, `border` `#ECEDEF`) y tonos pastel de evento (`--event-*`) para estados y avisos, en tema claro y oscuro. Los colores semánticos de estado MUST acompañarse siempre de texto. Todo par de color de texto sobre fondo MUST cumplir contraste WCAG AA (al menos 4,5:1 para texto y 3:1 para componentes de interfaz) en tema oscuro y en todos los pares del tema claro, salvo los declarados de forma explícita en `ACCEPTED_AA_EXCEPTIONS` de la prueba de tokens (cada excepción lleva su relación medida y el motivo "aceptado por el brief de diseño del usuario"; la prueba falla si un par declarado empeora, si uno no declarado incumple o si uno declarado ya cumple). Los objetivos táctiles interactivos MUST medir al menos 44 px por 44 px.
+La aplicación MUST llamarse "Schedule App" y usar la paleta del brief de diseño del usuario (decisión del 2026-10-25): tipografía Inter autoalojada, rojo de marca `#E31937` para el logo, el control activo y la acción principal, azul `#4F7CF7` como `primary` (estado activo y datos), neutros claros (`app-bg` `#F3F4F6`, `background` `#F9FAFB`, `card` `#FFFFFF`, `border` `#ECEDEF`) y tonos pastel de evento (`--event-*`) para estados y avisos, en tema claro y oscuro. Los colores semánticos de estado MUST acompañarse siempre de texto. Todo par de color de texto sobre fondo MUST cumplir contraste WCAG AA (al menos 4,5:1 para texto y 3:1 para componentes de interfaz) en tema oscuro y en todos los pares del tema claro, salvo los declarados de forma explícita en `ACCEPTED_AA_EXCEPTIONS` de la prueba de tokens (cada excepción lleva su relación medida y el motivo "aceptado por el brief de diseño del usuario"; la prueba falla si un par declarado empeora, si uno no declarado incumple o si uno declarado ya cumple). Los objetivos táctiles interactivos MUST medir al menos 44 px por 44 px; los controles de la barra de la agenda MAY medir 40 px de alto desde 1024 px, donde se usa el puntero.
 
 #### Scenario: Nombre y color primario
 
@@ -280,19 +280,31 @@ La aplicación MUST llamarse "Schedule App" y usar la paleta del brief de diseñ
 
 #### Scenario: Objetivo táctil
 
-- GIVEN un botón de la barra inferior o de la barra de herramientas
+- GIVEN un botón de la barra inferior o de la barra de herramientas en una pantalla menor a 1024 px
 - WHEN se mide su área interactiva
 - THEN es de al menos 44 px por 44 px
 
+#### Scenario: Controles de la barra en escritorio
+
+- GIVEN la barra de la agenda a 1024 px o más
+- WHEN se miden sus controles
+- THEN miden 40 px de alto y están alineados al centro
+
 ### Requirement: Barra de herramientas de la agenda
 
-La barra de la agenda MUST ofrecer: alternar Día/Semana (en escritorio), navegación de fechas (anterior y siguiente), el botón "Hoy", el campo "Buscar servicio o cliente" (ver `global-search`) y el botón "Nuevo servicio". Los cuatro indicadores del Panel MUST NOT mostrarse en la agenda.
+La barra de la agenda MUST ofrecer: alternar Día/Semana (en escritorio), navegación de fechas (anterior y siguiente), el botón "Hoy", el título del rango visible (por ejemplo `19 – 25 oct 2026`) junto a la navegación, un selector de fecha con calendario (botón con la fecha formateada y el ícono de calendario, sin campo de fecha nativo), el campo "Buscar servicio o cliente" (ver `global-search`) y el botón "Nuevo servicio". El color de marca MUST reservarse en la barra para "Nuevo servicio"; la vista activa del alternador se marca con fondo `background` y sombra. Los cuatro indicadores del Panel MUST NOT mostrarse en la agenda.
 
 #### Scenario: Elementos de la barra
 
 - GIVEN la agenda en escritorio
 - WHEN el dueño la abre
-- THEN ve Día/Semana, navegación de fechas, "Hoy", el campo de búsqueda y "Nuevo servicio"
+- THEN ve Día/Semana, navegación de fechas, "Hoy", el título del rango, el selector de fecha, el campo de búsqueda y "Nuevo servicio"
+
+#### Scenario: Elegir una fecha con el calendario
+
+- GIVEN la agenda en la vista de día del 6 nov 2026
+- WHEN el dueño abre el selector de fecha y elige el 20 de noviembre
+- THEN el calendario se cierra y la agenda muestra el 20 nov 2026
 
 #### Scenario: Botón "Hoy"
 
