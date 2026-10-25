@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setDesktopViewport } from '@/test/viewport';
 import { AgendaGrid, type AgendaAppointment, type AgendaGridProps } from './AgendaGrid';
+
+// La grilla es una vista de escritorio: se ejecuta explícitamente con ese ancho.
+beforeEach(() => setDesktopViewport());
 
 const CARLOS = 'tech-carlos';
 const MARTA = 'tech-marta';

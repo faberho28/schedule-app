@@ -73,7 +73,21 @@ src/
   test/         arnés de pruebas (setup de Vitest y servidor MSW)
 ```
 
-Rutas: `/agenda?view=day|week&date=YYYY-MM-DD`, `/customers`, `/customers/:id`, `/settings/business`, `/settings/services`, `/settings/technicians` y `/settings/technicians/:id`.
+Rutas: `/` (Panel de control), `/agenda?view=day|week&date=YYYY-MM-DD`, `/customers`, `/customers/:id`, `/settings/business`, `/settings/services`, `/settings/technicians`, `/settings/technicians/:id` y `/profile`. `/settings` redirige a `/settings/business`.
+
+### Shell adaptable
+
+`useIsDesktop()` (`src/shared/lib/use-media-query.ts`) consulta `matchMedia('(min-width: 1024px)')` con `useSyncExternalStore`. `AppLayout` elige según ese valor:
+
+- Desde 1024 px, `Sidebar`: barra lateral oscura con Panel de control, Agenda, Clientes, Técnicos, Tipos de servicio, Configuración y Perfil al pie. Entre 1024 y 1279 px se contrae a íconos (la etiqueta queda `sr-only`); desde 1280 px (`xl:`) muestra las etiquetas.
+- Por debajo de 1024 px, `BottomNav`: Panel, Agenda, Clientes, Técnicos y "Más" (Tipos de servicio y Configuración). Perfil no está en la barra inferior: se abre desde el ícono del encabezado del Panel (`features/dashboard/ProfileLink.tsx`).
+- `PageHeader` (`shared/ui`) reemplaza a `PageTitle` en las pantallas. En móvil y fuera de `/` muestra "Volver": `navigate(-1)` si hubo navegación dentro de la aplicación y, si no, `/`.
+
+Las entradas de navegación están en `src/app/nav-items.ts`. Las medidas reales (objetivo táctil de 44 px, contracción de la barra lateral) no se miden en jsdom; las pruebas comprueban clases y atributos ARIA y el resto se revisa a mano.
+
+### Perfil simulado
+
+`/profile` muestra un Perfil de demostración ("Dueño del negocio") con un aviso visible, sin cierre de sesión. Sus datos están en `src/features/profile/profile.mock.ts`, marcado con `MOCK`. `profile-mock.guard.test.ts` falla si un archivo fuera de `features/profile` importa ese módulo o si el archivo pierde el marcador. La deuda de reemplazarlo por el usuario autenticado está en `openspec/changes/sprint-2-owner-panel/debts.md`.
 
 El estado del servidor vive en TanStack Query, la vista y la fecha en la URL y los diálogos en estado local. No hay store global.
 
@@ -157,6 +171,8 @@ Para probarlo: `npm run build && npm run preview`, abre la aplicación, instála
 ## Pruebas
 
 Se escriben primero (TDD estricto, ver `openspec/config.yaml`). `src/test/setup.ts` levanta MSW con `onUnhandledFrame: 'error'`: una petición sin handler hace fallar la prueba. Cada prueba registra sus respuestas con `server.use(...)` de `src/test/server.ts`.
+
+jsdom no implementa `matchMedia`. `src/test/viewport.ts` lo simula, se instala en `setup.ts` y arranca en ancho móvil (390 px) en cada prueba. Una prueba de escritorio llama a `setDesktopViewport()` (1280 px por defecto) y vuelve a móvil con `setMobileViewport()`; ambos disparan el evento `change` de los oyentes. Las pruebas de la grilla y de la agenda se ejecutan explícitamente como escritorio.
 
 Las fechas que muestra la interfaz se formatean con `Intl.DateTimeFormat` en la zona horaria del negocio (`src/shared/lib/dates.ts`). La interfaz no calcula cupos ni horarios: eso lo hace la API.
 

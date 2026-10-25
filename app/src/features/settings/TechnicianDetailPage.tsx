@@ -3,7 +3,7 @@ import { Navigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { useBusiness } from './business-api';
 import { EraseTechnicianDialog } from './EraseTechnicianDialog';
@@ -50,7 +50,7 @@ export function TechnicianDetailPage() {
 
   return (
     <section className="flex max-w-xl flex-col gap-6">
-      <PageTitle>Ficha del técnico</PageTitle>
+      <PageHeader title="Ficha del técnico" />
 
       {technician.isPending ? <p>Cargando…</p> : null}
       {technician.isError ? (

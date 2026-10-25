@@ -10,7 +10,7 @@ import type { components } from '@/shared/api/schema';
 import { formatDayLabel, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { AgendaGrid, type AgendaAppointment, type AgendaTechnician } from './AgendaGrid';
 import { visibleHoursFor } from './agenda-layout';
 import { useAppointments } from './agenda-api';
@@ -31,7 +31,7 @@ export function AgendaPage(props: AgendaPageProps) {
 
   return (
     <section className="flex flex-col gap-4">
-      <PageTitle>Agenda</PageTitle>
+      <PageHeader title="Agenda" />
       {business.isPending ? <p>Cargando agenda…</p> : null}
       {business.isError ? (
         <ErrorNotice error={business.error} onRetry={() => void business.refetch()} />

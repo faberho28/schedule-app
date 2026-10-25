@@ -5,7 +5,7 @@ import type { components } from '@/shared/api/schema';
 import { fieldErrorsOf } from '@/shared/lib/error-messages';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { FormField } from '@/shared/ui/FormField';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { useBusiness, useUpdateBusiness } from './business-api';
 import { validateBusinessForm, type BusinessFormErrors } from './business-validation';
 
@@ -16,7 +16,7 @@ export function BusinessSettingsPage() {
 
   return (
     <section className="flex max-w-xl flex-col gap-4">
-      <PageTitle>Configuración del negocio</PageTitle>
+      <PageHeader title="Configuración del negocio" />
       {business.isPending ? <p>Cargando…</p> : null}
       {business.isError ? (
         <ErrorNotice error={business.error} onRetry={() => void business.refetch()} />

@@ -69,7 +69,7 @@ export interface CatalogContext {
 }
 
 export const CATALOG_CONTEXTS: CatalogContext[] = [
-  { file: 'src/app/AppLayout.tsx', reason: 'ítem de menú del catálogo' },
+  { file: 'src/app/nav-items.ts', reason: 'ítem de menú del catálogo' },
   {
     file: 'src/features/settings/ServicesSettingsPage.tsx',
     reason: 'pantalla del catálogo de tipos de servicio',

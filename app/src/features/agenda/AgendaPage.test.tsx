@@ -1,12 +1,16 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setDesktopViewport } from '@/test/viewport';
 import type { components } from '@/shared/api/schema';
 import { apiUrl, appointment, business, IDS, problem, technician } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
 import { AgendaPage } from './AgendaPage';
+
+// La agenda se ejecuta explícitamente con ancho de escritorio.
+beforeEach(() => setDesktopViewport());
 
 type Appointment = components['schemas']['Appointment'];
 type Technician = components['schemas']['Technician'];

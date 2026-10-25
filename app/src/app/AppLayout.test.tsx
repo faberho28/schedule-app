@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { server } from '@/test/server';
+import { setDesktopViewport, setMobileViewport } from '@/test/viewport';
 import { AppLayout } from './AppLayout';
 
 const OFFLINE_TEXT =
@@ -34,13 +35,48 @@ describe('AppLayout', () => {
     expect(screen.getByText('contenido de la agenda')).toBeInTheDocument();
   });
 
-  it('ofrece la navegación principal en español con tuteo neutro', () => {
+  it('en escritorio ofrece la barra lateral con las siete secciones y sin barra inferior', () => {
+    setDesktopViewport();
     renderLayout('/agenda');
 
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
     const labels = Array.from(nav.querySelectorAll('a')).map((link) => link.textContent);
 
-    expect(labels).toEqual(['Agenda', 'Clientes', 'Tipos de servicio', 'Técnicos', 'Negocio']);
+    expect(labels).toEqual([
+      'Panel de control',
+      'Agenda',
+      'Clientes',
+      'Técnicos',
+      'Tipos de servicio',
+      'Configuración',
+      'Perfil',
+    ]);
+    expect(screen.getAllByRole('navigation')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Más' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
+  });
+
+  it('en móvil ofrece la barra inferior con Más y sin Perfil', () => {
+    renderLayout('/agenda');
+
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+    const labels = Array.from(nav.querySelectorAll('a, button')).map((el) => el.textContent);
+
+    expect(labels).toEqual(['Panel', 'Agenda', 'Clientes', 'Técnicos', 'Más']);
+    expect(screen.getAllByRole('navigation')).toHaveLength(1);
+    expect(screen.queryByRole('link', { name: 'Perfil' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
+  });
+
+  it('cambia de barra lateral a barra inferior al estrechar la ventana', () => {
+    setDesktopViewport();
+    renderLayout('/agenda');
+    expect(screen.getByRole('link', { name: 'Perfil' })).toBeInTheDocument();
+
+    act(() => setMobileViewport());
+
+    expect(screen.queryByRole('link', { name: 'Perfil' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Más' })).toBeInTheDocument();
   });
 
   it('marca la sección activa y navega al pulsar otra', async () => {

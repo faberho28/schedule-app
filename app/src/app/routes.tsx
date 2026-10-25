@@ -2,6 +2,8 @@ import { Navigate, type RouteObject } from 'react-router';
 import { AgendaPage } from '@/features/agenda/AgendaPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
+import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { ProfilePage } from '@/features/profile/ProfilePage';
 import { BusinessSettingsPage } from '@/features/settings/BusinessSettingsPage';
 import { ServicesSettingsPage } from '@/features/settings/ServicesSettingsPage';
 import { TechnicianDetailPage } from '@/features/settings/TechnicianDetailPage';
@@ -17,7 +19,8 @@ export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
     children: [
-      { index: true, element: <Navigate to="/agenda" replace /> },
+      { index: true, element: <DashboardPage /> },
+      { path: 'profile', element: <ProfilePage /> },
       { path: 'agenda', element: <AgendaPage /> },
       { path: 'customers', element: <CustomersPage /> },
       { path: 'customers/:id', element: <CustomerDetailPage /> },

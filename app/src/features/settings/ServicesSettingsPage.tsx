@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import type { components } from '@/shared/api/schema';
 import { formatDuration, formatPrice } from '@/shared/lib/format';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { ServiceFormDialog } from './ServiceFormDialog';
 import { useServices, useUpdateService } from './services-api';
 import { durationWarningMessage } from './service-form';
@@ -19,17 +19,19 @@ export function ServicesSettingsPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <PageTitle>Tipos de servicio</PageTitle>
-        <Button
-          onClick={() => {
-            setNotice('');
-            setDialog(null);
-          }}
-        >
-          Nuevo tipo de servicio
-        </Button>
-      </div>
+      <PageHeader
+        title="Tipos de servicio"
+        actions={
+          <Button
+            onClick={() => {
+              setNotice('');
+              setDialog(null);
+            }}
+          >
+            Nuevo tipo de servicio
+          </Button>
+        }
+      />
 
       <p role="status" className="text-sm font-medium text-status-pending-foreground">
         {notice}

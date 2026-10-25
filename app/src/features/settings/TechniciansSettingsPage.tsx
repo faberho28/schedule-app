@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { components } from '@/shared/api/schema';
 import { technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
-import { PageTitle } from '@/shared/ui/PageTitle';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { TechnicianCreateDialog } from './TechnicianCreateDialog';
 import { useTechnicians } from './technicians-api';
 
@@ -17,10 +17,10 @@ export function TechniciansSettingsPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <PageTitle>Técnicos</PageTitle>
-        <Button onClick={() => setCreating(true)}>Nuevo técnico</Button>
-      </div>
+      <PageHeader
+        title="Técnicos"
+        actions={<Button onClick={() => setCreating(true)}>Nuevo técnico</Button>}
+      />
 
       <label className="flex min-h-11 items-center gap-3 text-sm">
         <input

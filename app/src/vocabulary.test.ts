@@ -57,8 +57,8 @@ describe('reglas de vocabulario', () => {
   });
 
   it('exige "tipo de servicio" en los contextos del catálogo', () => {
-    expect(rulesOf('src/app/AppLayout.tsx', 'Servicios')).toEqual(['catalogo']);
-    expect(rulesOf('src/app/AppLayout.tsx', 'Tipos de servicio')).toEqual([]);
+    expect(rulesOf('src/app/nav-items.ts', 'Servicios')).toEqual(['catalogo']);
+    expect(rulesOf('src/app/nav-items.ts', 'Tipos de servicio')).toEqual([]);
     expect(
       rulesOf('src/features/settings/ServiceFormDialog.tsx', 'Nuevo tipo de servicio'),
     ).toEqual([]);
