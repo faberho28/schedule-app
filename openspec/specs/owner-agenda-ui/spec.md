@@ -4,7 +4,7 @@
 
 ### Requirement: Shell de PWA instalable
 
-La aplicación MUST ser instalable como PWA con nombre "Schedule App" y paleta primaria azul. El sprint MUST cubrir únicamente el shell instalable; la aplicación MUST NOT cachear datos de agenda para uso sin conexión.
+La aplicación MUST ser instalable como PWA con nombre "Schedule App" y la paleta del brief de diseño (rojo de marca). El sprint MUST cubrir únicamente el shell instalable; la aplicación MUST NOT cachear datos de agenda para uso sin conexión.
 
 #### Scenario: Instalación
 
@@ -158,7 +158,7 @@ La API MUST publicar un documento OpenAPI y el cliente de la aplicación MUST ge
 
 ### Requirement: Navegación lateral desde 1024 px
 
-Desde 1024 px de ancho la interfaz MUST mostrar una barra lateral oscura (tokens slate) con exactamente 7 secciones en este orden: "Panel de control", "Agenda", "Clientes", "Técnicos", "Tipos de servicio", "Configuración" y, al pie, "Perfil". La barra MUST contraerse a íconos en anchos intermedios (entre 1024 px y el ancho en que el menú completo cabe), sin perder el nombre accesible de cada entrada. La barra MUST NOT incluir entradas para funciones que no existen (Reportes, Exportar, Mes). "Configuración" MUST agrupar los datos del negocio (buffer y hora de envío del seguimiento).
+Desde 1024 px de ancho la interfaz MUST mostrar una barra lateral clara (`Sidebar` de shadcn/ui en variante `inset`, tokens `--sidebar-*`) con exactamente 7 secciones en este orden: "Panel de control", "Agenda", "Clientes", "Técnicos", "Tipos de servicio", "Configuración" y, al pie, "Perfil". La barra MUST contraerse a íconos en anchos intermedios (entre 1024 px y el ancho en que el menú completo cabe), sin perder el nombre accesible de cada entrada. La barra MUST NOT incluir entradas para funciones que no existen (Reportes, Exportar, Mes). "Configuración" MUST agrupar los datos del negocio (buffer y hora de envío del seguimiento).
 
 #### Scenario: Siete secciones en orden
 
@@ -258,19 +258,19 @@ Todo el texto visible de la interfaz MUST usar "servicio" donde antes decía "ci
 
 ### Requirement: Identidad visual y accesibilidad
 
-La aplicación MUST llamarse "Schedule App" y usar un color primario azul alrededor de `#2563EB` con neutros slate de los tokens existentes, en tema claro y oscuro. Los colores semánticos de estado MUST acompañarse siempre de texto. Todo par de color de texto sobre fondo nuevo MUST cumplir contraste WCAG AA (al menos 4,5:1 para texto y 3:1 para componentes de interfaz) en tema claro y oscuro, verificado por una prueba de tokens. Los objetivos táctiles interactivos MUST medir al menos 44 px por 44 px.
+La aplicación MUST llamarse "Schedule App" y usar la paleta del brief de diseño del usuario (decisión del 2026-10-25): tipografía Inter autoalojada, rojo de marca `#E31937` para el logo, el control activo y la acción principal, azul `#4F7CF7` como `primary` (estado activo y datos), neutros claros (`app-bg` `#F3F4F6`, `background` `#F9FAFB`, `card` `#FFFFFF`, `border` `#ECEDEF`) y tonos pastel de evento (`--event-*`) para estados y avisos, en tema claro y oscuro. Los colores semánticos de estado MUST acompañarse siempre de texto. Todo par de color de texto sobre fondo MUST cumplir contraste WCAG AA (al menos 4,5:1 para texto y 3:1 para componentes de interfaz) en tema oscuro y en todos los pares del tema claro, salvo los declarados de forma explícita en `ACCEPTED_AA_EXCEPTIONS` de la prueba de tokens (cada excepción lleva su relación medida y el motivo "aceptado por el brief de diseño del usuario"; la prueba falla si un par declarado empeora, si uno no declarado incumple o si uno declarado ya cumple). Los objetivos táctiles interactivos MUST medir al menos 44 px por 44 px.
 
 #### Scenario: Nombre y color primario
 
 - GIVEN la aplicación abierta
 - WHEN se revisan el título, la barra lateral y el manifiesto
-- THEN el nombre es "Schedule App" y el primario es un azul alrededor de `#2563EB`
+- THEN el nombre es "Schedule App" y la marca usa el rojo `#E31937` (manifiesto, íconos y acción principal) y la tipografía es Inter
 
 #### Scenario: Contraste de los tokens nuevos
 
 - GIVEN los tokens de la barra lateral, de estado y de la paleta de técnicos
 - WHEN corre la prueba de tokens
-- THEN cada par cumple AA en tema claro y en tema oscuro
+- THEN cada par cumple AA en tema oscuro y en tema claro, salvo los nueve pares del tema claro declarados en `ACCEPTED_AA_EXCEPTIONS` con su relación medida
 
 #### Scenario: Objetivo táctil
 
@@ -348,7 +348,7 @@ Cada técnico MUST recibir un color de una paleta fija de 10 colores distinguibl
 
 - GIVEN la paleta de 10 colores
 - WHEN corre la prueba de tokens
-- THEN no hay dos colores iguales y, en ambos temas, el texto sobre el fondo de cada color cumple 4,5:1 o más y el color de acento (franja de la tarjeta) cumple 3:1 o más contra la superficie de la tarjeta
+- THEN no hay dos colores iguales y, en ambos temas, el texto sobre el fondo de cada color cumple 4,5:1 o más (sin excepciones declaradas para esta paleta) y el color de acento (franja de la tarjeta) cumple 3:1 o más contra la superficie de la tarjeta
 
 ### Requirement: Horas visibles derivadas de la disponibilidad
 
