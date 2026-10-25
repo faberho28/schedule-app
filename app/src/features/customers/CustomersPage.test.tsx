@@ -109,6 +109,39 @@ describe('CustomersPage', () => {
     expect(await screen.findByText('No se encontraron clientes.')).toBeInTheDocument();
   });
 
+  it('"maria" lista a "María Gómez": envía el texto tal cual y muestra lo que responde la API', async () => {
+    const user = userEvent.setup();
+    const maria = customer({
+      id: '00000000-0000-4000-8000-0000000000d4',
+      name: 'María Gómez',
+      phone: '+573205550000',
+    });
+    const queries: string[] = [];
+    // La API ignora acentos y mayúsculas; el servidor falso lo reproduce.
+    const fold = (text: string) =>
+      text
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase();
+    server.use(
+      http.get(apiUrl('/customers'), ({ request }) => {
+        const search = new URL(request.url).searchParams.get('search') ?? '';
+        queries.push(search);
+        return HttpResponse.json(
+          [ANA, maria].filter((item) => search === '' || fold(item.name).includes(fold(search))),
+        );
+      }),
+    );
+    renderPage(<CustomersPage />);
+    await screen.findByText('Ana Pérez');
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar cliente' }), 'maria');
+
+    expect(await screen.findByText('María Gómez')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Ana Pérez')).not.toBeInTheDocument());
+    expect(queries.at(-1)).toBe('maria');
+  });
+
   it('invita a crear el primer cliente cuando no hay ninguno', async () => {
     serve([]);
     renderPage(<CustomersPage />);

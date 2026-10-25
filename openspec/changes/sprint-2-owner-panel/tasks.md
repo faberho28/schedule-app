@@ -198,13 +198,13 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 13: Búsqueda global (commit 13)
 
-- [ ] 13.1 Hook de búsqueda con pausa de 250 ms y mínimo de 2 caracteres (clave `['appointments','search',q]`; no envía con menos). Área: `app/src/features/agenda/search-api.ts`, `search-api.test.ts` (a crear). Spec: GS-R2, GS-R5. Verif: RED con temporizadores falsos: "mar" escrita tecla por tecla envía una sola solicitud; un solo carácter no envía nada.
-- [ ] 13.2 `GlobalSearch` (desplegable): grupos "Clientes" y "Servicios", grupo vacío oculto, carga, error en español con reintento al escribir, "Sin resultados", "Escribe al menos 2 caracteres", teclado y roles accesibles. Área: `app/src/features/agenda/GlobalSearch.tsx`, `GlobalSearch.test.tsx` (a crear). Spec: GS-R5, GS-R2. Verif: RED con MSW por cada estado.
-- [ ] 13.3 Filas: servicio con fecha y hora, cliente, tipo de servicio, técnico y estado como texto ("Cancelado" visible); cliente anonimizado como "Cliente eliminado (bear_1)"; técnico eliminado como "Técnico eliminado (fox_2)". Área: `GlobalSearch.tsx`. Spec: GS-R1, GS-R4, GS-R5, AU-R14. Verif: RED.
-- [ ] 13.4 Elegir un cliente abre `/customers/:id`; elegir un servicio abre `/agenda?view=day&date=<día en zona del negocio>&appointment=<id>`. Área: `GlobalSearch.tsx`. Spec: GS-R5. Verif: RED: servicio del 2026-11-03 10:00 abre la agenda en ese día con la ficha.
-- [ ] 13.5 Cablear el campo "Buscar servicio o cliente" en la barra de la agenda de escritorio y de móvil. Área: `AgendaToolbar`, `AgendaPage.tsx`. Spec: AU-R6, GS-R5. Verif: RED, el campo existe en ambas barras.
-- [ ] 13.6 Pantalla Clientes y selector de cliente de "Nuevo servicio" envían `search` a la API y muestran el resultado sin filtrar de nuevo en el navegador. Área: `app/src/features/customers/*`, `app/src/features/appointments/CreateAppointmentDialog.tsx`. Spec: CS-R1. Verif: RED con MSW: "maria" lista a "María Gómez" en ambos.
-- [ ] 13.7 Documentar la búsqueda global en `app/README.md`. Área: `app/README.md`. Spec: n/a. Verif: manual.
+- [x] 13.1 Hook de búsqueda con pausa de 250 ms y mínimo de 2 caracteres (clave `['appointments','search',q]`; no envía con menos). Área: `app/src/features/agenda/search-api.ts`, `search-api.test.ts` (a crear). Spec: GS-R2, GS-R5. Verif: RED con temporizadores falsos: "mar" escrita tecla por tecla envía una sola solicitud; un solo carácter no envía nada.
+- [x] 13.2 `GlobalSearch` (desplegable): grupos "Clientes" y "Servicios", grupo vacío oculto, carga, error en español con reintento al escribir, "Sin resultados", "Escribe al menos 2 caracteres", teclado y roles accesibles. Área: `app/src/features/agenda/GlobalSearch.tsx`, `GlobalSearch.test.tsx` (a crear). Spec: GS-R5, GS-R2. Verif: RED con MSW por cada estado.
+- [x] 13.3 Filas: servicio con fecha y hora, cliente, tipo de servicio, técnico y estado como texto ("Cancelado" visible); cliente anonimizado como "Cliente eliminado (bear_1)"; técnico eliminado como "Técnico eliminado (fox_2)". Área: `GlobalSearch.tsx`. Spec: GS-R1, GS-R4, GS-R5, AU-R14. Verif: RED.
+- [x] 13.4 Elegir un cliente abre `/customers/:id`; elegir un servicio abre `/agenda?view=day&date=<día en zona del negocio>&appointment=<id>`. Área: `GlobalSearch.tsx`. Spec: GS-R5. Verif: RED: servicio del 2026-11-03 10:00 abre la agenda en ese día con la ficha.
+- [x] 13.5 Cablear el campo "Buscar servicio o cliente" en la barra de la agenda de escritorio y de móvil. Área: `AgendaToolbar`, `AgendaPage.tsx`. Spec: AU-R6, GS-R5. Verif: RED, el campo existe en ambas barras.
+- [x] 13.6 Pantalla Clientes y selector de cliente de "Nuevo servicio" envían `search` a la API y muestran el resultado sin filtrar de nuevo en el navegador. Área: `app/src/features/customers/*`, `app/src/features/appointments/CreateAppointmentDialog.tsx`. Spec: CS-R1. Verif: RED con MSW: "maria" lista a "María Gómez" en ambos.
+- [x] 13.7 Documentar la búsqueda global en `app/README.md`. Área: `app/README.md`. Spec: n/a. Verif: manual.
 
 ## Fase 14: Reasignación con técnicos libres (commit 14)
 

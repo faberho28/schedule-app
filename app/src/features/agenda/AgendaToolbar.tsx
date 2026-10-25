@@ -17,7 +17,7 @@ type AgendaToolbarProps = {
   onDateChange(date: LocalDate): void;
   /** Sin manejador no hay botón "Nuevo servicio" (no hay técnicos activos). */
   onCreate?(): void;
-  /** Campo de búsqueda global. Lo aporta la fase de búsqueda; aquí solo se reserva su lugar. */
+  /** Campo de búsqueda global: en escritorio va en la barra y en móvil en una fila propia. */
   search?: ReactNode;
   /** Selector de técnicos visibles (solo escritorio). */
   selector?: ReactNode;
@@ -27,8 +27,8 @@ type AgendaToolbarProps = {
 
 /**
  * Barra de la agenda: en escritorio, el alternador Día/Semana, la navegación de fechas, el campo de
- * búsqueda y "Nuevo servicio", con el selector de técnicos y los filtros debajo. En móvil solo la
- * navegación de un día y "Nuevo servicio". Todos los controles miden al menos 44 px.
+ * búsqueda y "Nuevo servicio", con el selector de técnicos y los filtros debajo. En móvil la
+ * navegación de un día y "Nuevo servicio", con el campo de búsqueda debajo. Todos los controles miden al menos 44 px.
  */
 export function AgendaToolbar({
   isDesktop,
@@ -104,7 +104,7 @@ export function AgendaToolbar({
           </>
         ) : null}
 
-        {isDesktop ? <div className="min-w-0 flex-1">{search}</div> : null}
+        {isDesktop && search ? <div className="min-w-0 flex-1">{search}</div> : null}
 
         {onCreate ? (
           <Button type="button" className="ml-auto min-h-11" onClick={onCreate}>
@@ -113,6 +113,8 @@ export function AgendaToolbar({
           </Button>
         ) : null}
       </div>
+
+      {!isDesktop && search ? <div>{search}</div> : null}
 
       {isDesktop && (selector || filters) ? (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">

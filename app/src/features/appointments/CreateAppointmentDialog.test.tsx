@@ -150,6 +150,17 @@ describe('CreateAppointmentDialog: selección', () => {
     expect(await screen.findByText('No se encontraron clientes.')).toBeInTheDocument();
   });
 
+  it('"maria" lista a "María Gómez": envía el texto tal cual y muestra lo que responde la API', async () => {
+    const user = userEvent.setup();
+    const requests = serve({ customers: [customer({ name: 'María Gómez' })] });
+    renderDialog();
+
+    await user.type(await screen.findByLabelText('Buscar cliente'), 'maria');
+
+    expect(await screen.findByRole('button', { name: /María Gómez/ })).toBeInTheDocument();
+    expect(requests.customerSearches.at(-1)).toBe('maria');
+  });
+
   it('ofrece solo los tipos de servicio activos', async () => {
     const user = userEvent.setup();
     serve({

@@ -20,6 +20,7 @@ import {
 import { AgendaGrid, type AgendaAppointment, type GridTechnician } from './AgendaGrid';
 import { AgendaList } from './AgendaList';
 import { AgendaToolbar } from './AgendaToolbar';
+import { GlobalSearch } from './GlobalSearch';
 import { TechnicianSelector } from './TechnicianSelector';
 import {
   formatMinuteOfDay,
@@ -217,6 +218,7 @@ function AgendaScreen({
         onToday={() => go({ date: today() })}
         onDateChange={(next) => go({ date: next })}
         onCreate={canCreate ? () => open({ kind: 'create' }) : undefined}
+        search={<GlobalSearch timeZone={timeZone} />}
         selector={
           gridMode && appointments.data && options.length > 0 ? (
             <TechnicianSelector
