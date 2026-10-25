@@ -42,7 +42,13 @@ Todo el texto visible MUST estar en español neutro con tuteo (sin voseo), inclu
 
 ### Requirement: Agenda día y semana por técnico
 
-En escritorio (desde 1024 px) la agenda MUST ser una única grilla de tiempo al estilo de Google Calendar, con vista de día y de semana, implementada con CSS Grid propio sin librería de calendario. Los servicios que coinciden en el tiempo MUST mostrarse lado a lado. Los técnicos visibles son los del selector (hasta 10) y se distinguen por color y por nombre o iniciales. La agenda MUST NOT ofrecer vista Mes ni arrastrar y soltar.
+En escritorio (desde 1024 px) la agenda MUST ser una única grilla de tiempo al estilo de Google Calendar, con vista de día y de semana, implementada con CSS Grid propio sin librería de calendario. Los servicios que coinciden en el tiempo MUST mostrarse lado a lado. Los técnicos visibles son los del selector (hasta 10) y se distinguen por color y por nombre o iniciales. La agenda MUST NOT ofrecer vista Mes ni arrastrar y soltar. En escritorio la agenda MUST abrir por defecto en la vista de semana; la vista de día solo se muestra cuando la URL la pide de forma explícita (`view=day`), y por debajo de 1024 px la vista es siempre de día.
+
+#### Scenario: Vista por defecto en escritorio
+
+- GIVEN el dueño en escritorio abre la agenda sin indicar vista
+- WHEN se muestra la agenda
+- THEN ve la vista de semana, y al elegir "Día" la URL pasa a `view=day`
 
 #### Scenario: Vista de día
 
