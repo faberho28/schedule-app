@@ -33,8 +33,14 @@ export function TechnicianSelector({
     <fieldset className="flex min-w-0 flex-col gap-1.5">
       <legend className="sr-only">Técnicos</legend>
       <div className="flex flex-wrap items-center gap-2">
-        <span aria-hidden="true" className="text-sm font-medium">
-          Técnicos
+        <span
+          aria-hidden="true"
+          className="inline-flex h-11 items-center rounded-xl border bg-card px-4 text-sm text-muted-foreground"
+        >
+          Técnicos:&nbsp;
+          <strong className="font-semibold text-foreground">
+            {selectedIds.length} de {options.length}
+          </strong>
         </span>
         {options.map((option) => {
           const checked = selectedIds.includes(option.id);
@@ -43,7 +49,7 @@ export function TechnicianSelector({
             <label
               key={option.id}
               className={cn(
-                'inline-flex min-h-11 items-center gap-2 rounded-full border bg-background px-3 text-sm font-medium focus-within:ring-2 focus-within:ring-ring',
+                'inline-flex min-h-11 items-center gap-2 rounded-xl border bg-card px-3 text-sm font-medium transition-colors duration-150 hover:bg-muted focus-within:ring-[3px] focus-within:ring-ring/40 motion-reduce:transition-none',
                 disabled && 'opacity-60',
               )}
             >
@@ -59,8 +65,8 @@ export function TechnicianSelector({
                 data-color-index={option.colorIndex}
                 className="size-3.5 shrink-0 rounded-full border-2"
                 style={{
-                  backgroundColor: `var(--tech-${option.colorIndex})`,
-                  borderColor: `var(--tech-${option.colorIndex}-accent)`,
+                  backgroundColor: `var(--tech-${option.colorIndex}-bg)`,
+                  borderColor: `var(--tech-${option.colorIndex}-border)`,
                 }}
               />
               <span className="max-w-48 truncate">

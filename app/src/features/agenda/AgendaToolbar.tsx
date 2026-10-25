@@ -3,7 +3,11 @@ import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { LocalDate } from '@/shared/lib/dates';
+import { cn } from '@/shared/lib/utils';
 import type { AgendaView } from './agenda-params';
+
+/** Botones unidos del grupo de navegación (anterior, Hoy, siguiente): solo los extremos redondean. */
+const JOINED = 'min-h-11 rounded-none first:rounded-l-lg last:rounded-r-lg';
 
 type AgendaToolbarProps = {
   isDesktop: boolean;
@@ -47,8 +51,42 @@ export function AgendaToolbar({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
+        {showDateControls ? (
+          <div role="group" aria-label="Navegación de la agenda" className="flex items-center">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className={JOINED}
+              aria-label={view === 'day' ? 'Día anterior' : 'Semana anterior'}
+              onClick={() => onShift(-1)}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className={JOINED}
+              onClick={onToday}
+            >
+              Hoy
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className={JOINED}
+              aria-label={view === 'day' ? 'Día siguiente' : 'Semana siguiente'}
+              onClick={() => onShift(1)}
+            >
+              <ChevronRight aria-hidden="true" />
+            </Button>
+          </div>
+        ) : null}
+
         {isDesktop ? (
-          <div role="group" aria-label="Vista" className="flex gap-1">
+          <div role="group" aria-label="Vista" className="flex gap-1 rounded-lg bg-muted p-1">
             <ViewButton current={view} value="day" onSelect={onViewChange}>
               Día
             </ViewButton>
@@ -58,56 +96,28 @@ export function AgendaToolbar({
           </div>
         ) : null}
 
-        {showDateControls ? (
-          <>
-            <div
-              role="group"
-              aria-label="Navegación de la agenda"
-              className="flex items-center gap-1"
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="min-h-11 min-w-11"
-                aria-label={view === 'day' ? 'Día anterior' : 'Semana anterior'}
-                onClick={() => onShift(-1)}
-              >
-                <ChevronLeft aria-hidden="true" />
-              </Button>
-              <Button type="button" variant="outline" className="min-h-11" onClick={onToday}>
-                Hoy
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="min-h-11 min-w-11"
-                aria-label={view === 'day' ? 'Día siguiente' : 'Semana siguiente'}
-                onClick={() => onShift(1)}
-              >
-                <ChevronRight aria-hidden="true" />
-              </Button>
-            </div>
-
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              Fecha
-              <Input
-                type="date"
-                className="min-h-11"
-                value={date}
-                onChange={(event) => {
-                  if (event.target.value) onDateChange(event.target.value);
-                }}
-              />
-            </label>
-          </>
-        ) : null}
-
         {isDesktop && search ? <div className="min-w-0 flex-1">{search}</div> : null}
 
+        {showDateControls ? (
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            Fecha
+            <Input
+              type="date"
+              className="min-h-11 rounded-lg bg-card text-sm text-foreground"
+              value={date}
+              onChange={(event) => {
+                if (event.target.value) onDateChange(event.target.value);
+              }}
+            />
+          </label>
+        ) : null}
+
         {onCreate ? (
-          <Button type="button" className="ml-auto min-h-11" onClick={onCreate}>
+          <Button
+            type="button"
+            className="ml-auto min-h-11 rounded-lg bg-brand text-brand-foreground transition-colors duration-150 hover:bg-brand/90 motion-reduce:transition-none"
+            onClick={onCreate}
+          >
             <Plus aria-hidden="true" />
             Nuevo servicio
           </Button>
@@ -140,8 +150,13 @@ function ViewButton({
   return (
     <Button
       type="button"
-      variant={current === value ? 'default' : 'outline'}
-      className="min-h-11"
+      variant="ghost"
+      className={cn(
+        'min-h-9 rounded-lg px-4 text-[13px] transition-colors duration-150 motion-reduce:transition-none',
+        current === value
+          ? 'bg-brand text-brand-foreground hover:bg-brand'
+          : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
+      )}
       aria-pressed={current === value}
       onClick={() => onSelect(value)}
     >
