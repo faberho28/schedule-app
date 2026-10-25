@@ -156,9 +156,16 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.click(screen.getByRole('button', { name: 'Cancelar el servicio' }));
 
     expect(await screen.findByText('Servicio cancelado.')).toHaveAttribute('role', 'status');
-    expect(await screen.findByRole('button', { name: /Ana Pérez.*Cancelado/ })).toBeInTheDocument();
+    // Los cancelados quedan ocultos por defecto en la grilla.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Ana Pérez/ })).not.toBeInTheDocument(),
+    );
     expect(state.listings).toBeGreaterThan(listingsBefore);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('switch', { name: 'Mostrar cancelados' }));
+
+    expect(await screen.findByRole('button', { name: /Ana Pérez.*Cancelado/ })).toBeInTheDocument();
   });
 
   it('mueve la cita a otro cupo y la agenda la muestra en su nuevo horario y técnico', async () => {
@@ -173,12 +180,10 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
     expect(await screen.findByText('Servicio movido.')).toBeInTheDocument();
-    const marta = screen.getByRole('group', { name: 'Marta, vie 6 nov' });
     expect(
-      await within(marta).findByRole('button', { name: /10:00 a 11:30, Ana Pérez/ }),
+      await screen.findByRole('button', { name: /10:00 a 11:30, Ana Pérez.*técnico Marta/ }),
     ).toBeInTheDocument();
-    const carlos = screen.getByRole('group', { name: 'Carlos, vie 6 nov' });
-    expect(within(carlos).queryByRole('button', { name: /Ana Pérez/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /técnico Carlos/ })).not.toBeInTheDocument();
   });
 
   it('reasigna la cita a otro técnico conservando la hora', async () => {
@@ -192,22 +197,19 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.click(screen.getByRole('button', { name: 'Reasignar' }));
 
     expect(await screen.findByText('Servicio reasignado.')).toBeInTheDocument();
-    const marta = screen.getByRole('group', { name: 'Marta, vie 6 nov' });
     expect(
-      await within(marta).findByRole('button', {
-        name: /08:00 a 09:30, Ana Pérez.*técnico cambiado/,
+      await screen.findByRole('button', {
+        name: /08:00 a 09:30, Ana Pérez.*técnico Marta.*técnico cambiado/,
       }),
     ).toBeInTheDocument();
   });
 
-  it('crea una cita desde la celda de un técnico y la agenda la muestra', async () => {
+  it('crea un servicio desde el botón del día y la agenda lo muestra', async () => {
     const user = userEvent.setup();
     const state = serve([]);
     renderAgenda();
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Nuevo servicio con Marta el vie 6 nov' }),
-    );
+    await user.click(await screen.findByRole('button', { name: 'Nuevo servicio el vie 6 nov' }));
     await user.type(await screen.findByLabelText('Buscar cliente'), 'Ana');
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
     const select = screen.getByLabelText('Tipo de servicio');
@@ -218,9 +220,8 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
 
     expect(await screen.findByText('Servicio creado.')).toBeInTheDocument();
     expect(state.commands).toEqual(['create']);
-    const marta = screen.getByRole('group', { name: 'Marta, vie 6 nov' });
     expect(
-      await within(marta).findByRole('button', { name: /10:00 a 11:30, Ana Pérez/ }),
+      await screen.findByRole('button', { name: /10:00 a 11:30, Ana Pérez.*técnico Marta/ }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

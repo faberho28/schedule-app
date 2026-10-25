@@ -1,8 +1,5 @@
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { AppointmentFlows, type AppointmentFlow } from '@/features/appointments/AppointmentFlows';
 import { useAppointment } from '@/features/appointments/appointments-api';
 import { ApiError } from '@/shared/api/errors';
@@ -14,11 +11,22 @@ import { formatDayLabel, localDateOf, type LocalDate } from '@/shared/lib/dates'
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { cn } from '@/shared/lib/utils';
-import { AgendaFilters, type FilterOption, type FilterPatch } from './AgendaFilters';
-import { AgendaGrid, type AgendaAppointment, type AgendaTechnician } from './AgendaGrid';
+import {
+  AgendaFilters,
+  CancelledSwitch,
+  type FilterOption,
+  type FilterPatch,
+} from './AgendaFilters';
+import { AgendaGrid, type AgendaAppointment, type GridTechnician } from './AgendaGrid';
 import { AgendaList } from './AgendaList';
-import { visibleHoursFor } from './agenda-layout';
+import { AgendaToolbar } from './AgendaToolbar';
+import { TechnicianSelector } from './TechnicianSelector';
+import {
+  formatMinuteOfDay,
+  visibleHoursFor,
+  visibleMinutesOf,
+  type VisibleHours,
+} from './agenda-layout';
 import { filterAppointments } from './agenda-list';
 import { useAppointments, useToClose } from './agenda-api';
 import {
@@ -29,15 +37,21 @@ import {
   type AgendaParams,
   type AgendaView,
 } from './agenda-params';
+import { initialsOf, selectorOptions, technicianColorMap } from './technician-view';
+import { useTechnicianSelection } from './use-technician-selection';
+import { useVisibleHours } from './visible-hours-api';
 
 type Appointment = components['schemas']['Appointment'];
 type Technician = components['schemas']['Technician'];
 
+/** El último minuto que admite el parámetro `to` (`HH:MM`) de la lista de una franja. */
+const LAST_MINUTE_OF_DAY = 24 * 60 - 1;
+
 type AgendaPageProps = {
-  /** Sustituye la apertura de la ficha de la cita al tocarla (por defecto abre sus diálogos). */
+  /** Sustituye la apertura de la ficha del servicio al tocarlo (por defecto abre sus diálogos). */
   onAppointmentSelect?(id: string): void;
-  /** Sustituye la apertura de "Nueva cita" al pedirla en la columna de un técnico y un día. */
-  onEmptyCellSelect?(technicianId: string, day: LocalDate): void;
+  /** Sustituye la apertura de "Nuevo servicio" al pedirlo para un día de la grilla. */
+  onEmptySlotSelect?(day: LocalDate): void;
 };
 
 export function AgendaPage(props: AgendaPageProps) {
@@ -58,14 +72,15 @@ export function AgendaPage(props: AgendaPageProps) {
 function AgendaScreen({
   timeZone,
   onAppointmentSelect,
-  onEmptyCellSelect,
+  onEmptySlotSelect,
 }: AgendaPageProps & { timeZone: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isDesktop = useIsDesktop();
   const today = () => localDateOf(new Date().toISOString(), timeZone);
   const params = parseAgendaParams(searchParams, today(), isDesktop);
   const { view, date } = params;
-  const days = daysOf(view, date);
+  // Estable entre renders: la grilla memoriza su disposición por día.
+  const days = useMemo(() => daysOf(view, date), [view, date]);
   const from = days[0]!;
   const to = days[days.length - 1]!;
 
@@ -82,6 +97,35 @@ function AgendaScreen({
   const listItems = toCloseMode ? toClose.data?.items : appointments.data;
   const [flow, setFlow] = useState<AppointmentFlow | null>(null);
   const [notice, setNotice] = useState('');
+
+  // Grilla de escritorio: se muestran los servicios de los técnicos elegidos, sin los cancelados
+  // salvo que el interruptor los pida. Las horas visibles salen de una sola solicitud agregada.
+  const gridMode = isDesktop && !listMode;
+  const shownAppointments = useMemo(
+    () =>
+      (appointments.data ?? []).filter((item) => params.cancelled || item.status !== 'cancelled'),
+    [appointments.data, params.cancelled],
+  );
+  const idsWithServices = useMemo(
+    () => new Set(shownAppointments.map((item) => item.technician.id)),
+    [shownAppointments],
+  );
+  const selection = useTechnicianSelection(technicians.data, idsWithServices);
+  const colors = useMemo(
+    () => technicianColorMap(technicians.data ?? [], selection.selectedIds),
+    [technicians.data, selection.selectedIds],
+  );
+  const options = useMemo(
+    () => selectorOptions(technicians.data ?? [], idsWithServices, colors),
+    [technicians.data, idsWithServices, colors],
+  );
+  // Sin los servicios del rango no se sabe qué técnicos recordados siguen vigentes: se espera.
+  const hours = useVisibleHours(
+    from,
+    to,
+    gridMode && appointments.data !== undefined ? selection.selectedIds : [],
+  );
+  const baseHours = useMemo(() => visibleMinutesOf(hours.data?.days ?? []), [hours.data]);
 
   // Servicio pedido por enlace: se busca primero en el rango cargado y, si no está, por su id.
   const linkedId = params.appointment;
@@ -141,7 +185,20 @@ function AgendaScreen({
       }),
       { replace: true },
     );
-  const touch = isDesktop ? undefined : 'min-h-11';
+  const openOverflow = (day: LocalDate, fromMinute: number, toMinute: number) =>
+    setSearchParams(
+      serializeAgendaParams({
+        ...params,
+        cancelled: explicitCancelled,
+        view: 'day',
+        date: day,
+        display: 'list',
+        from: formatMinuteOfDay(Math.min(fromMinute, LAST_MINUTE_OF_DAY)),
+        to: formatMinuteOfDay(Math.min(toMinute, LAST_MINUTE_OF_DAY)),
+        technician: selection.selectedIds,
+        appointment: null,
+      }),
+    );
   const open = (next: AppointmentFlow | null) => {
     setNotice('');
     setFlow(next);
@@ -150,80 +207,27 @@ function AgendaScreen({
 
   return (
     <>
-      <div className="flex flex-wrap items-end gap-3">
-        {isDesktop ? (
-          <div role="group" aria-label="Vista" className="flex gap-1">
-            <ViewButton current={view} value="day" onSelect={(next) => go({ view: next })}>
-              Día
-            </ViewButton>
-            <ViewButton current={view} value="week" onSelect={(next) => go({ view: next })}>
-              Semana
-            </ViewButton>
-          </div>
-        ) : null}
-
-        {toCloseMode ? null : (
-          <>
-            <div
-              role="group"
-              aria-label="Navegación de la agenda"
-              className="flex items-center gap-1"
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className={cn(touch, !isDesktop && 'min-w-11')}
-                aria-label={view === 'day' ? 'Día anterior' : 'Semana anterior'}
-                onClick={() => go({ date: shiftDate(view, date, -1) })}
-              >
-                <ChevronLeft aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className={touch}
-                onClick={() => go({ date: today() })}
-              >
-                Hoy
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className={cn(touch, !isDesktop && 'min-w-11')}
-                aria-label={view === 'day' ? 'Día siguiente' : 'Semana siguiente'}
-                onClick={() => go({ date: shiftDate(view, date, 1) })}
-              >
-                <ChevronRight aria-hidden="true" />
-              </Button>
-            </div>
-
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              Fecha
-              <Input
-                type="date"
-                className={touch}
-                value={date}
-                onChange={(event) => {
-                  if (event.target.value) go({ date: event.target.value });
-                }}
-              />
-            </label>
-          </>
-        )}
-
-        {canCreate ? (
-          <Button
-            type="button"
-            className={cn('ml-auto', touch)}
-            onClick={() => open({ kind: 'create' })}
-          >
-            <Plus aria-hidden="true" />
-            Nuevo servicio
-          </Button>
-        ) : null}
-      </div>
+      <AgendaToolbar
+        isDesktop={isDesktop}
+        view={view}
+        date={date}
+        showDateControls={!toCloseMode}
+        onViewChange={(next) => go({ view: next })}
+        onShift={(step) => go({ date: shiftDate(view, date, step) })}
+        onToday={() => go({ date: today() })}
+        onDateChange={(next) => go({ date: next })}
+        onCreate={canCreate ? () => open({ kind: 'create' }) : undefined}
+        selector={
+          gridMode && appointments.data && options.length > 0 ? (
+            <TechnicianSelector
+              options={options}
+              selectedIds={selection.selectedIds}
+              onToggle={selection.toggle}
+            />
+          ) : null
+        }
+        filters={gridMode ? <CancelledSwitch params={params} onChange={changeFilters} /> : null}
+      />
 
       <p role="status" className="min-h-5 text-sm font-medium">
         {notice}
@@ -242,13 +246,16 @@ function AgendaScreen({
         <ErrorNotice error={linked.error} onRetry={() => void linked.refetch()} />
       ) : null}
 
-      {technicians.isPending || source.isPending ? <p>Cargando agenda…</p> : null}
-      {technicians.isError || source.isError ? (
+      {technicians.isPending || source.isPending || (gridMode && hours.isLoading) ? (
+        <p>Cargando agenda…</p>
+      ) : null}
+      {technicians.isError || source.isError || (gridMode && hours.isError) ? (
         <ErrorNotice
-          error={technicians.error ?? source.error}
+          error={technicians.error ?? source.error ?? hours.error}
           onRetry={() => {
             if (technicians.isError) void technicians.refetch();
             if (source.isError) void source.refetch();
+            if (hours.isError) void hours.refetch();
           }}
         />
       ) : null}
@@ -265,18 +272,20 @@ function AgendaScreen({
           onSelect={onAppointmentSelect ?? ((id) => open({ kind: 'detail', id }))}
         />
       ) : null}
-      {!listMode && technicians.data && appointments.data ? (
-        <AgendaContent
+      {gridMode && technicians.data && appointments.data && !hours.isLoading && !hours.isError ? (
+        <GridContent
           view={view}
           days={days}
           timeZone={timeZone}
           technicians={technicians.data}
-          appointments={appointments.data}
+          shownAppointments={shownAppointments}
+          hasOptions={options.length > 0}
+          selectedIds={selection.selectedIds}
+          colors={colors}
+          baseHours={baseHours}
           onAppointmentSelect={onAppointmentSelect ?? ((id) => open({ kind: 'detail', id }))}
-          onEmptyCellSelect={
-            onEmptyCellSelect ??
-            ((technicianId, day) => open({ kind: 'create', technicianId, day }))
-          }
+          onOverflowSelect={openOverflow}
+          onEmptySlotSelect={onEmptySlotSelect ?? ((day) => open({ kind: 'create', day }))}
         />
       ) : null}
 
@@ -293,29 +302,6 @@ function AgendaScreen({
         }}
       />
     </>
-  );
-}
-
-function ViewButton({
-  current,
-  value,
-  onSelect,
-  children,
-}: {
-  current: AgendaView;
-  value: AgendaView;
-  onSelect(view: AgendaView): void;
-  children: string;
-}) {
-  return (
-    <Button
-      type="button"
-      variant={current === value ? 'default' : 'outline'}
-      aria-pressed={current === value}
-      onClick={() => onSelect(value)}
-    >
-      {children}
-    </Button>
   );
 }
 
@@ -368,6 +354,8 @@ function ListContent({
     ...params,
     cancelled: explicitCancelled,
     display: 'grid',
+    // La grilla ignora los chips de técnico: los que puso "+N más" no se arrastran de vuelta.
+    technician: params.from !== null || params.to !== null ? [] : params.technician,
     from: null,
     to: null,
     appointment: null,
@@ -414,64 +402,80 @@ function ListContent({
   );
 }
 
-type AgendaContentProps = {
+type GridContentProps = {
   view: AgendaView;
   days: LocalDate[];
   timeZone: string;
   technicians: Technician[];
-  appointments: Appointment[];
+  shownAppointments: Appointment[];
+  hasOptions: boolean;
+  selectedIds: string[];
+  colors: ReadonlyMap<string, number>;
+  baseHours: VisibleHours | null;
   onAppointmentSelect(id: string): void;
-  onEmptyCellSelect(technicianId: string, day: LocalDate): void;
+  onOverflowSelect(day: LocalDate, fromMinute: number, toMinute: number): void;
+  onEmptySlotSelect(day: LocalDate): void;
 };
 
-function AgendaContent({
+/** Grilla de escritorio con los técnicos elegidos, o el aviso de por qué no hay nada que mostrar. */
+function GridContent({
   view,
   days,
   timeZone,
   technicians,
-  appointments,
+  shownAppointments,
+  hasOptions,
+  selectedIds,
+  colors,
+  baseHours,
   onAppointmentSelect,
-  onEmptyCellSelect,
-}: AgendaContentProps) {
-  const agendaTechnicians = toAgendaTechnicians(technicians, appointments);
-  if (agendaTechnicians.length === 0) {
+  onOverflowSelect,
+  onEmptySlotSelect,
+}: GridContentProps) {
+  const gridTechnicians = useMemo<GridTechnician[]>(
+    () =>
+      selectedIds.flatMap((id) => {
+        const technician = technicians.find((candidate) => candidate.id === id);
+        if (technician === undefined) return [];
+        const name = technicianLabel(technician);
+        return [{ id, name, initials: initialsOf(name), colorIndex: colors.get(id) ?? 1 }];
+      }),
+    [selectedIds, technicians, colors],
+  );
+  const agendaAppointments = useMemo(() => {
+    const selected = new Set(selectedIds);
+    return shownAppointments
+      .filter((appointment) => selected.has(appointment.technician.id))
+      .map(toAgendaAppointment);
+  }, [shownAppointments, selectedIds]);
+  const visibleHours = useMemo(
+    () => visibleHoursFor(agendaAppointments, days, timeZone, baseHours),
+    [agendaAppointments, days, timeZone, baseHours],
+  );
+
+  if (!hasOptions) {
     return <p>Aún no hay técnicos activos. Crea uno en la sección Técnicos.</p>;
   }
-  const agendaAppointments = appointments.map(toAgendaAppointment);
+  if (selectedIds.length === 0) {
+    return <p role="status">Selecciona al menos un técnico</p>;
+  }
 
   return (
     <>
-      {appointments.length === 0 ? <p>No hay servicios en este rango.</p> : null}
+      {agendaAppointments.length === 0 ? <p>No hay servicios en este rango.</p> : null}
       <AgendaGrid
         view={view}
         days={days}
         timeZone={timeZone}
-        technicians={agendaTechnicians}
+        technicians={gridTechnicians}
         appointments={agendaAppointments}
-        visibleHours={visibleHoursFor(agendaAppointments, days, timeZone)}
+        visibleHours={visibleHours}
         onAppointmentSelect={onAppointmentSelect}
-        onEmptyCellSelect={onEmptyCellSelect}
+        onOverflowSelect={onOverflowSelect}
+        onEmptySlotSelect={onEmptySlotSelect}
       />
     </>
   );
-}
-
-/**
- * Columnas de la agenda: los técnicos activos y, además, los inactivos o eliminados que tengan
- * citas en el rango, para que esas citas sigan visibles. Solo los activos ofrecen citas nuevas.
- */
-function toAgendaTechnicians(
-  technicians: Technician[],
-  appointments: Appointment[],
-): AgendaTechnician[] {
-  const withAppointments = new Set(appointments.map((appointment) => appointment.technician.id));
-  return technicians
-    .map((technician) => ({
-      id: technician.id,
-      name: technicianLabel(technician),
-      active: technician.active && technician.anonymized_at === null,
-    }))
-    .filter((technician) => technician.active || withAppointments.has(technician.id));
 }
 
 function toAgendaAppointment(appointment: Appointment): AgendaAppointment {

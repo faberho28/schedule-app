@@ -48,38 +48,7 @@ export function AgendaFilters({ params, technicians, serviceTypes, onChange }: A
         <Chip pressed={params.toClose} onClick={() => onChange({ toClose: !params.toClose })}>
           Por cerrar
         </Chip>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={params.cancelled}
-          onClick={() =>
-            onChange(
-              params.cancelled
-                ? {
-                    cancelled: false,
-                    status: params.status.filter((status) => status !== 'cancelled'),
-                  }
-                : { cancelled: true },
-            )
-          }
-          className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'relative inline-block h-5 w-9 rounded-full border transition-colors',
-              params.cancelled ? 'bg-primary' : 'bg-muted',
-            )}
-          >
-            <span
-              className={cn(
-                'absolute top-0.5 size-3.5 rounded-full bg-background shadow transition-all',
-                params.cancelled ? 'left-4.5' : 'left-0.5',
-              )}
-            />
-          </span>
-          Mostrar cancelados
-        </button>
+        <CancelledSwitch params={params} onChange={onChange} />
         {hasFilters ? (
           <Button
             type="button"
@@ -139,6 +108,53 @@ export function AgendaFilters({ params, technicians, serviceTypes, onChange }: A
         </ChipGroup>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Interruptor "Mostrar cancelados", compartido por la lista y la grilla de escritorio. Al apagarlo
+ * también quita el chip de estado "Cancelado", que por sí solo ya los mostraría.
+ */
+export function CancelledSwitch({
+  params,
+  onChange,
+}: {
+  params: Pick<AgendaParams, 'cancelled' | 'status'>;
+  onChange(patch: FilterPatch): void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={params.cancelled}
+      onClick={() =>
+        onChange(
+          params.cancelled
+            ? {
+                cancelled: false,
+                status: params.status.filter((status) => status !== 'cancelled'),
+              }
+            : { cancelled: true },
+        )
+      }
+      className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'relative inline-block h-5 w-9 rounded-full border transition-colors',
+          params.cancelled ? 'bg-primary' : 'bg-muted',
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-0.5 size-3.5 rounded-full bg-background shadow transition-all',
+            params.cancelled ? 'left-4.5' : 'left-0.5',
+          )}
+        />
+      </span>
+      Mostrar cancelados
+    </button>
   );
 }
 

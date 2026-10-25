@@ -17,6 +17,8 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup();
   resetViewport();
+  // La selección de técnicos de la agenda vive en `localStorage`: no debe pasar de una prueba a otra.
+  localStorage.clear();
   server.resetHandlers();
 });
 

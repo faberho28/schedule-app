@@ -100,7 +100,7 @@ describe('AgendaPage en móvil: lista de un día', () => {
     expect(names()).toEqual(['Luis Gómez', 'Mia Ríos']);
     expect(screen.queryByRole('button', { name: 'Día' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Semana' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('group', { name: /Carlos, / })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Agenda del día' })).not.toBeInTheDocument();
   });
 
   it('anterior, siguiente y Hoy avanzan de a un día', async () => {
@@ -410,11 +410,12 @@ describe('AgendaPage: lista filtrada por franja', () => {
     serve();
     const { router } = open('?view=day&date=2026-10-24&display=list&from=08:30&to=09:30');
     const link = await screen.findByRole('link', { name: 'Volver a la grilla' });
-    expect(screen.queryByRole('group', { name: /Carlos, / })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Agenda del día' })).not.toBeInTheDocument();
 
     await user.click(link);
 
-    expect(await screen.findByRole('group', { name: 'Carlos, sáb 24 oct' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Agenda del día' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'sáb 24 oct' })).toBeInTheDocument();
     const params = new URLSearchParams(router.state.location.search);
     expect([params.has('display'), params.has('from'), params.has('to')]).toEqual([
       false,
