@@ -28,6 +28,8 @@ function Toaster(props: ToasterProps) {
           content: 'flex min-w-0 flex-1 flex-col gap-0.5',
           title: 'font-medium',
           description: 'opacity-90',
+          actionButton:
+            'ml-auto inline-flex h-7 shrink-0 items-center rounded-md bg-current/15 px-2.5 text-xs font-semibold outline-none hover:bg-current/25 focus-visible:ring-[3px] focus-visible:ring-ring/40',
           closeButton:
             'absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-md opacity-70 outline-none hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/40',
         },

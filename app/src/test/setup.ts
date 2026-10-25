@@ -11,6 +11,11 @@ installViewport();
 // jsdom no implementa `scrollIntoView`, que `cmdk` usa al mover la fila activa.
 Element.prototype.scrollIntoView ??= () => {};
 
+// Ni la captura de puntero, que usan los avisos (gesto de deslizar) y el arrastre del calendario.
+Element.prototype.setPointerCapture ??= () => {};
+Element.prototype.releasePointerCapture ??= () => {};
+Element.prototype.hasPointerCapture ??= () => false;
+
 // jsdom no implementa `ResizeObserver`, que Radix usa al abrir tooltips y popovers.
 globalThis.ResizeObserver ??= class {
   observe() {}
