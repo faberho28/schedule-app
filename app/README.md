@@ -234,7 +234,8 @@ Los tokens vienen del brief de diseño y se usan tal cual. Son variables CSS en 
 - Eventos: `--event-{blue,purple,amber,red,green}-{bg,border,text}`. Los usan las variantes del `Badge` y, en la Fase 3, los bloques de la agenda.
 - Forma: `--radius` 0,75 rem; tarjetas `rounded-xl` con `shadow-xs`; pills y botones de 8 px.
 - Tipografía: Inter variable, autoalojada con `@fontsource-variable/inter` (solo subconjunto latino, sin CDN: la app funciona sin conexión).
-- Componentes base: `Card`, `Badge` (variantes blue, purple, amber, red, green), `Sidebar` y `ToggleGroup` de shadcn/ui en `src/components/ui`, y `SegmentedControl` (`src/components/SegmentedControl.tsx`), que envuelve a `ToggleGroup`.
+- Panel de control: `KpiCard` (`src/components/KpiCard.tsx`) muestra etiqueta, valor, sufijo, detalle, ícono y pie opcional; con `href` es un enlace y con `tone="attention"` usa el ámbar suave (Servicios pendientes con conteo mayor que 0). La barra de Eficiencia usa `accent` como pista y `primary` como barra, y se oculta si no hay tasa. El estado de cada fila es un `Badge` con ícono y texto: pendiente ámbar, confirmado azul, completado verde, no asistió rojo y cancelado `neutral`. No se añadieron tokens.
+- Componentes base: `Card`, `Badge` (variantes blue, purple, amber, red, green y neutral, esta última gris con `secondary`), `Sidebar` y `ToggleGroup` de shadcn/ui en `src/components/ui`, y `SegmentedControl` (`src/components/SegmentedControl.tsx`), que envuelve a `ToggleGroup`.
 
 ### Contraste
 

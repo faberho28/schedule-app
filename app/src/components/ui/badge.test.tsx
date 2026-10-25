@@ -14,4 +14,10 @@ describe('Badge', () => {
       );
     },
   );
+
+  it('la variante neutral usa el gris pastel de los tokens secundarios', () => {
+    render(<Badge variant="neutral">etiqueta</Badge>);
+
+    expect(screen.getByText('etiqueta')).toHaveClass('bg-secondary', 'text-secondary-foreground');
+  });
 });

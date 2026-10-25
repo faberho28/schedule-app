@@ -20,6 +20,7 @@ const badgeVariants = cva(
         amber: 'bg-event-amber-bg text-event-amber-text',
         red: 'bg-event-red-bg text-event-red-text',
         green: 'bg-event-green-bg text-event-green-text',
+        neutral: 'bg-secondary text-secondary-foreground',
         link: 'text-primary underline-offset-4 [a&]:hover:underline',
       },
     },
