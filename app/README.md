@@ -138,6 +138,16 @@ Viven en `src/features/customers/`. Las consultas cuelgan de `['customers']` (`c
 
 Los colores son variables CSS en `src/index.css` (convención de shadcn/ui): azul primario `#2563EB`, neutros slate y un par fondo/texto por cada estado del servicio (`pending`, `confirmed`, `completed`, `no_show`, `cancelled`). Hay tema claro y oscuro (clase `.dark`, que `index.html` activa según `prefers-color-scheme`). `src/theme/tokens.test.ts` verifica que todos los pares cumplan contraste AA (4,5:1).
 
+### Colores de técnicos
+
+`--tech-1` a `--tech-10` definen el fondo tenue de la tarjeta; `--tech-N-foreground` es el texto y `--tech-N-accent` la franja izquierda. Tema claro: fondo 100, texto 900 y acento 600 de la escala de Tailwind; tema oscuro: fondo 950, texto 100 y acento 400. Los tonos son blue, emerald, amber, rose, violet, cyan, orange, lime, fuchsia y stone. Las pruebas exigen texto sobre fondo con 4,5:1 o más, acento contra `--card` con 3:1 o más y 10 acentos distintos. El color nunca es la única señal: la tarjeta muestra también el nombre del técnico.
+
+`assignTechnicianColors` (`src/features/agenda/technician-colors.ts`) es una función pura. Recibe todos los técnicos del negocio (eliminados incluidos, `includeAnonymized=true`) y los ids visibles. El color preferido es el rango por antigüedad (`created_at`, luego `id`) módulo 10. Los visibles se recorren por antigüedad y, si el preferido ya está tomado dentro de la selección, se usa el siguiente libre. Con 10 técnicos o menos los colores no cambian nunca, y borrar a uno no mueve a los demás. Con más de 10, solo cambian ante un choque; si los 10 colores están tomados, el color se repite.
+
+### Barra lateral
+
+`--sidebar`, `--sidebar-foreground`, `--sidebar-muted-foreground`, `--sidebar-accent` (elemento activo, azul primario), `--sidebar-accent-foreground`, `--sidebar-hover` y `--sidebar-border` forman una barra oscura con la escala slate, en ambos temas. Cada par texto/fondo cumple AA en `tokens.test.ts`.
+
 ## PWA
 
 Solo el shell es instalable. El service worker precachea JS, CSS, HTML e íconos, y **no guarda respuestas de la API**: sin conexión no hay datos de agenda. Cuando no hay red, la aplicación muestra la pantalla "Sin conexión" con el botón "Reintentar", que comprueba la conexión con una petición real a la API. Las opciones están en `pwa.config.ts`.

@@ -30,6 +30,13 @@ describe('manifest de la PWA', () => {
     expect(manifest.lang).toBe('es');
   });
 
+  it('usa el mismo nombre y color primario en index.html', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+
+    expect(html).toContain('<title>Schedule App</title>');
+    expect(html).toContain('<meta name="theme-color" content="#2563EB" />');
+  });
+
   it('describe la aplicación con el vocabulario de servicios, en el manifiesto y en index.html', () => {
     const description = 'Agenda de servicios para tu negocio';
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
