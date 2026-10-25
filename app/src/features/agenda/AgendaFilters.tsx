@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/shared/lib/utils';
 import type { AgendaParams } from './agenda-params';
 import { toggleValue } from './agenda-list';
@@ -124,38 +125,22 @@ export function CancelledSwitch({
   onChange(patch: FilterPatch): void;
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={params.cancelled}
-      onClick={() =>
-        onChange(
-          params.cancelled
-            ? {
-                cancelled: false,
-                status: params.status.filter((status) => status !== 'cancelled'),
-              }
-            : { cancelled: true },
-        )
-      }
-      className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          'relative inline-block h-5 w-9 rounded-full border transition-colors',
-          params.cancelled ? 'bg-primary' : 'bg-muted',
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-0.5 size-3.5 rounded-full bg-background shadow transition-all',
-            params.cancelled ? 'left-4.5' : 'left-0.5',
-          )}
-        />
-      </span>
+    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm font-medium">
+      <Switch
+        checked={params.cancelled}
+        onCheckedChange={(checked) =>
+          onChange(
+            checked
+              ? { cancelled: true }
+              : {
+                  cancelled: false,
+                  status: params.status.filter((status) => status !== 'cancelled'),
+                },
+          )
+        }
+      />
       Mostrar cancelados
-    </button>
+    </label>
   );
 }
 

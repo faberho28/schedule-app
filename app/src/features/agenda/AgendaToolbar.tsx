@@ -1,13 +1,17 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import type { LocalDate } from '@/shared/lib/dates';
 import { cn } from '@/shared/lib/utils';
 import type { AgendaView } from './agenda-params';
+import { AgendaDatePicker } from './AgendaDatePicker';
 
-/** Botones unidos del grupo de navegación (anterior, Hoy, siguiente): solo los extremos redondean. */
-const JOINED = 'min-h-11 rounded-none first:rounded-l-lg last:rounded-r-lg';
+/**
+ * Botones unidos del grupo de navegación (anterior, Hoy, siguiente): solo los extremos redondean.
+ * Miden 44 px en pantallas táctiles y 40 px desde 1024 px, donde se usa el puntero.
+ */
+const JOINED = 'min-h-11 rounded-none first:rounded-l-lg last:rounded-r-lg lg:h-10 lg:min-h-10';
+const JOINED_ICON = `${JOINED} lg:size-10`;
 
 type AgendaToolbarProps = {
   isDesktop: boolean;
@@ -32,7 +36,8 @@ type AgendaToolbarProps = {
 /**
  * Barra de la agenda: en escritorio, el alternador Día/Semana, la navegación de fechas, el campo de
  * búsqueda y "Nuevo servicio", con el selector de técnicos y los filtros debajo. En móvil la
- * navegación de un día y "Nuevo servicio", con el campo de búsqueda debajo. Todos los controles miden al menos 44 px.
+ * navegación de un día y "Nuevo servicio", con el campo de búsqueda debajo. Los controles miden 44 px
+ * en pantallas táctiles y 40 px desde 1024 px. El color de marca es solo de "Nuevo servicio".
  */
 export function AgendaToolbar({
   isDesktop,
@@ -50,14 +55,14 @@ export function AgendaToolbar({
 }: AgendaToolbarProps) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {showDateControls ? (
           <div role="group" aria-label="Navegación de la agenda" className="flex items-center">
             <Button
               type="button"
               variant="secondary"
               size="icon"
-              className={JOINED}
+              className={JOINED_ICON}
               aria-label={view === 'day' ? 'Día anterior' : 'Semana anterior'}
               onClick={() => onShift(-1)}
             >
@@ -76,7 +81,7 @@ export function AgendaToolbar({
               type="button"
               variant="secondary"
               size="icon"
-              className={JOINED}
+              className={JOINED_ICON}
               aria-label={view === 'day' ? 'Día siguiente' : 'Semana siguiente'}
               onClick={() => onShift(1)}
             >
@@ -86,7 +91,11 @@ export function AgendaToolbar({
         ) : null}
 
         {isDesktop ? (
-          <div role="group" aria-label="Vista" className="flex gap-1 rounded-lg bg-muted p-1">
+          <div
+            role="group"
+            aria-label="Vista"
+            className="flex h-10 items-center gap-1 rounded-lg bg-muted p-1"
+          >
             <ViewButton current={view} value="day" onSelect={onViewChange}>
               Día
             </ViewButton>
@@ -98,24 +107,12 @@ export function AgendaToolbar({
 
         {isDesktop && search ? <div className="min-w-0 flex-1">{search}</div> : null}
 
-        {showDateControls ? (
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Fecha
-            <Input
-              type="date"
-              className="min-h-11 rounded-lg bg-card text-sm text-foreground"
-              value={date}
-              onChange={(event) => {
-                if (event.target.value) onDateChange(event.target.value);
-              }}
-            />
-          </label>
-        ) : null}
+        {showDateControls ? <AgendaDatePicker date={date} onChange={onDateChange} /> : null}
 
         {onCreate ? (
           <Button
             type="button"
-            className="ml-auto min-h-11 rounded-lg bg-brand text-brand-foreground transition-colors duration-150 hover:bg-brand/90 motion-reduce:transition-none"
+            className="ml-auto min-h-11 rounded-lg bg-brand text-brand-foreground transition-colors duration-150 hover:bg-brand/90 motion-reduce:transition-none lg:h-10 lg:min-h-10"
             onClick={onCreate}
           >
             <Plus aria-hidden="true" />
@@ -152,9 +149,9 @@ function ViewButton({
       type="button"
       variant="ghost"
       className={cn(
-        'min-h-9 rounded-lg px-4 text-[13px] transition-colors duration-150 motion-reduce:transition-none',
+        'h-8 min-h-8 rounded-md px-4 text-[13px] transition-colors duration-150 motion-reduce:transition-none',
         current === value
-          ? 'bg-brand text-brand-foreground hover:bg-brand'
+          ? 'bg-background text-foreground shadow-sm hover:bg-background'
           : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
       )}
       aria-pressed={current === value}

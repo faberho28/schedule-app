@@ -42,6 +42,42 @@ describe('TechnicianSelector: presentación', () => {
     );
   });
 
+  it('la casilla marcada toma el color del técnico, sin un círculo aparte', () => {
+    render(
+      <TechnicianSelector
+        options={[option('ana', { colorIndex: 3 })]}
+        selectedIds={['ana']}
+        onToggle={vi.fn()}
+      />,
+    );
+
+    const ana = screen.getByRole('checkbox', { name: 'ANA' });
+    expect(ana).toHaveAttribute('data-color-index', '3');
+    expect(ana.getAttribute('style')).toContain('var(--tech-3-border)');
+    expect(ana).toHaveClass(
+      'data-[state=checked]:bg-(--tech-color)',
+      'data-[state=checked]:border-(--tech-color)',
+    );
+    expect(ana.closest('label')!.querySelectorAll('[data-color-index]')).toHaveLength(1);
+  });
+
+  it('el técnico sin marcar se ve atenuado y el marcado no', () => {
+    render(
+      <TechnicianSelector
+        options={[option('ana'), option('beto')]}
+        selectedIds={['ana']}
+        onToggle={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('checkbox', { name: 'ANA' }).closest('label')).not.toHaveClass(
+      'opacity-70',
+    );
+    expect(screen.getByRole('checkbox', { name: 'BETO' }).closest('label')).toHaveClass(
+      'opacity-70',
+    );
+  });
+
   it('marca como inactivo al técnico desactivado y no a los demás', () => {
     render(
       <TechnicianSelector

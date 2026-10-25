@@ -109,17 +109,17 @@ describe('AgendaPage en móvil: lista de un día', () => {
     vi.setSystemTime(new Date('2026-10-26T15:00:00Z'));
     serve();
     open('?date=2026-10-24');
-    const date = await screen.findByLabelText('Fecha');
+    const date = await screen.findByRole('button', { name: /^Fecha:/ });
 
     await user.click(screen.getByRole('button', { name: 'Día siguiente' }));
-    await waitFor(() => expect(date).toHaveValue('2026-10-25'));
+    await waitFor(() => expect(date).toHaveAccessibleName('Fecha: 25 oct 2026'));
     await user.click(screen.getByRole('button', { name: 'Día anterior' }));
     await user.click(screen.getByRole('button', { name: 'Día anterior' }));
-    await waitFor(() => expect(date).toHaveValue('2026-10-23'));
+    await waitFor(() => expect(date).toHaveAccessibleName('Fecha: 23 oct 2026'));
     await user.click(screen.getByRole('button', { name: 'Día anterior' }));
-    await waitFor(() => expect(date).toHaveValue('2026-10-22'));
+    await waitFor(() => expect(date).toHaveAccessibleName('Fecha: 22 oct 2026'));
     await user.click(screen.getByRole('button', { name: 'Hoy' }));
-    await waitFor(() => expect(date).toHaveValue('2026-10-26'));
+    await waitFor(() => expect(date).toHaveAccessibleName('Fecha: 26 oct 2026'));
   });
 
   it('un día sin servicios muestra el mensaje de lista vacía', async () => {
@@ -161,7 +161,7 @@ describe('AgendaPage en móvil: lista de un día', () => {
     for (const name of ['Día anterior', 'Día siguiente', 'Hoy']) {
       expect(screen.getByRole('button', { name })).toHaveClass('min-h-11');
     }
-    expect(screen.getByLabelText('Fecha')).toHaveClass('min-h-11');
+    expect(screen.getByRole('button', { name: /^Fecha:/ })).toHaveClass('min-h-11');
   });
 });
 
@@ -261,7 +261,8 @@ describe('AgendaPage en móvil: cancelados', () => {
     await screen.findByRole('button', { name: /Luis Gómez/ });
     const toggle = screen.getByRole('switch', { name: 'Mostrar cancelados' });
     expect(toggle).toHaveAttribute('aria-checked', 'false');
-    expect(toggle).toHaveClass('min-h-11');
+    // El área táctil es la etiqueta que envuelve al interruptor.
+    expect(toggle.closest('label')).toHaveClass('min-h-11');
 
     await user.click(toggle);
 
@@ -321,7 +322,7 @@ describe('AgendaPage en móvil: Por cerrar', () => {
     ]);
     expect(new URLSearchParams(router.state.location.search).get('toClose')).toBe('1');
     expect(hits.toClose).toBe(1);
-    expect(screen.queryByLabelText('Fecha')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Fecha:/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Mostrando/)).not.toBeInTheDocument();
   });
 

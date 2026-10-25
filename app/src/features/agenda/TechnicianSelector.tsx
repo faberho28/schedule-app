@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/shared/lib/utils';
 import { MAX_VISIBLE_TECHNICIANS } from './technician-selection';
 
@@ -18,8 +20,8 @@ type TechnicianSelectorProps = {
 };
 
 /**
- * Casillas de los técnicos visibles. Cada una lleva el color del técnico; al llegar al tope las
- * demás quedan deshabilitadas. Es un grupo de casillas nativas: se opera con el teclado.
+ * Casillas de los técnicos visibles. Cada una se rellena con el color del técnico al marcarse y se
+ * atenúa si no lo está; al llegar al tope las demás quedan deshabilitadas. Se opera con el teclado.
  */
 export function TechnicianSelector({
   options,
@@ -50,24 +52,19 @@ export function TechnicianSelector({
               key={option.id}
               className={cn(
                 'inline-flex min-h-11 items-center gap-2 rounded-xl border bg-card px-3 text-sm font-medium transition-colors duration-150 hover:bg-muted focus-within:ring-[3px] focus-within:ring-ring/40 motion-reduce:transition-none',
+                !checked && 'opacity-70',
                 disabled && 'opacity-60',
               )}
             >
-              <input
-                type="checkbox"
-                className="size-4 shrink-0 accent-primary"
+              <Checkbox
+                data-color-index={option.colorIndex}
+                className="data-[state=checked]:border-(--tech-color) data-[state=checked]:bg-(--tech-color)"
+                style={
+                  { '--tech-color': `var(--tech-${option.colorIndex}-border)` } as CSSProperties
+                }
                 checked={checked}
                 disabled={disabled}
-                onChange={() => onToggle(option.id)}
-              />
-              <span
-                aria-hidden="true"
-                data-color-index={option.colorIndex}
-                className="size-3.5 shrink-0 rounded-full border-2"
-                style={{
-                  backgroundColor: `var(--tech-${option.colorIndex}-bg)`,
-                  borderColor: `var(--tech-${option.colorIndex}-border)`,
-                }}
+                onCheckedChange={() => onToggle(option.id)}
               />
               <span className="max-w-48 truncate">
                 {option.label}

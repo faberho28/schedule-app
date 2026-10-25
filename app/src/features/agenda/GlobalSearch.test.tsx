@@ -124,6 +124,14 @@ describe('GlobalSearch: estados', () => {
     const { input } = setup();
     expect(input).toHaveAttribute('maxlength', '100');
   });
+
+  it('no roba el foco al montarse, mide 40 px en escritorio y tiene un foco suave', () => {
+    serve({ customers: [], services: [] });
+    const { input } = setup();
+
+    expect(input).not.toHaveFocus();
+    expect(input).toHaveClass('lg:h-10', 'focus-visible:ring-2', 'focus-visible:ring-ring/20');
+  });
 });
 
 describe('GlobalSearch: filas', () => {

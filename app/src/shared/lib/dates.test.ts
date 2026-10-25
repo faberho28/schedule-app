@@ -4,6 +4,7 @@ import {
   formatDate,
   formatDateTime,
   formatDayLabel,
+  formatLocalDate,
   formatTime,
   localDateOf,
   weekOf,
@@ -73,6 +74,13 @@ describe('formatDayLabel', () => {
   it('muestra día de la semana, número y mes abreviados en español', () => {
     expect(formatDayLabel('2026-10-22')).toBe('jue 22 oct');
     expect(formatDayLabel('2026-12-01')).toBe('mar 1 dic');
+  });
+});
+
+describe('formatLocalDate', () => {
+  it('muestra día, mes abreviado y año de una fecha local', () => {
+    expect(formatLocalDate('2026-10-25')).toBe('25 oct 2026');
+    expect(formatLocalDate('2026-12-01')).toBe('1 dic 2026');
   });
 });
 

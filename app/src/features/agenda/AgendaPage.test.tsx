@@ -302,7 +302,7 @@ describe('AgendaPage: barra de herramientas de escritorio', () => {
     expect(screen.getByRole('button', { name: 'Día anterior' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Día siguiente' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Hoy' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Fecha')).toHaveValue('2026-11-06');
+    expect(screen.getByRole('button', { name: 'Fecha: 6 nov 2026' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Nuevo servicio' })).toBeInTheDocument();
   });
 
@@ -874,14 +874,14 @@ describe('AgendaPage: navegación', () => {
     const { router } = renderAgenda();
     await screen.findByRole('region', { name: 'Agenda del día' });
 
-    const input = screen.getByLabelText('Fecha');
-    expect(input).toHaveValue('2026-11-06');
-    // user-event no escribe fechas parciales en un campo `date` controlado; se emite el cambio final.
-    fireEvent.change(input, { target: { value: '2026-12-01' } });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Fecha: 6 nov 2026' }));
+    const calendar = await screen.findByRole('dialog');
+    await user.click(within(calendar).getByRole('button', { name: /20 de noviembre/i }));
 
-    await screen.findByRole('heading', { level: 2, name: 'mar 1 dic' });
-    expect(router.state.location.search).toBe('?view=day&date=2026-12-01');
-    expect(requests.appointments.at(-1)).toBe('?from=2026-12-01&to=2026-12-01');
+    await screen.findByRole('heading', { level: 2, name: 'vie 20 nov' });
+    expect(router.state.location.search).toBe('?view=day&date=2026-11-20');
+    expect(requests.appointments.at(-1)).toBe('?from=2026-11-20&to=2026-11-20');
   });
 
   it('describe el rango visible', async () => {

@@ -113,6 +113,17 @@ export function formatDateTime(instant: string, timeZone: string): string {
   return `${formatDayLabel(localDateOf(instant, timeZone))} ${formatTime(instant, timeZone)}`;
 }
 
+/** Fecha local con año, por ejemplo `25 oct 2026`. */
+export function formatLocalDate(date: LocalDate): string {
+  const { day, month, year } = parts(new Date(toUtcMs(date)), {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return `${day} ${month} ${year}`.replaceAll('.', '');
+}
+
 /** Etiqueta corta de un día local, por ejemplo `jue 22 oct`. */
 export function formatDayLabel(date: LocalDate): string {
   const { weekday, day, month } = parts(new Date(toUtcMs(date)), {

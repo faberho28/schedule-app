@@ -81,7 +81,7 @@ describe('AgendaPage: búsqueda global', () => {
     await user.click(await screen.findByRole('option', { name: /Ana Pérez/ }));
 
     expect(await screen.findByRole('dialog', { name: 'Ana Pérez' })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText('Fecha')).toHaveValue('2026-11-03'));
+    await waitFor(() => expect(screen.getByLabelText(/^Fecha:/)).toHaveTextContent('3 nov 2026'));
     expect(new URLSearchParams(router.state.location.search).get('appointment')).toBe(IDS.apt2);
   });
 });

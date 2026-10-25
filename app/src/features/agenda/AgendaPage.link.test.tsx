@@ -56,7 +56,8 @@ describe('AgendaPage: abrir un servicio por enlace', () => {
     const { router } = open(`?view=day&date=2026-11-06&appointment=${IDS.apt2}`);
 
     expect(await screen.findByRole('dialog', { name: 'Ana Pérez' })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText('Fecha')).toHaveValue('2026-11-03'));
+    // La ficha abierta oculta el resto de la página a los roles: se busca por la etiqueta.
+    await waitFor(() => expect(screen.getByLabelText(/^Fecha:/)).toHaveTextContent('3 nov 2026'));
     const params = new URLSearchParams(router.state.location.search);
     expect(params.get('date')).toBe('2026-11-03');
     expect(params.get('appointment')).toBe(IDS.apt2);
