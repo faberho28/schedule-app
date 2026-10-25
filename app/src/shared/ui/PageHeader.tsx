@@ -12,15 +12,26 @@ type PageHeaderProps = {
 };
 
 /**
- * Encabezado de pantalla. En móvil y fuera del Panel muestra "Volver": regresa a la pantalla
- * anterior si hubo navegación dentro de la aplicación y, si no, al Panel (`/`). Título a la
- * izquierda, acción a la derecha y un divisor fino debajo.
+ * Encabezado de pantalla. En escritorio la barra lateral ya dice en qué módulo se está: el título
+ * queda solo para lectores de pantalla (el `h1` de la ruta) y las acciones van a la derecha, sin
+ * divisor. En móvil y fuera del Panel muestra "Volver": regresa a la pantalla anterior si hubo
+ * navegación dentro de la aplicación y, si no, al Panel (`/`). Título a la izquierda, acción a la
+ * derecha y un divisor fino debajo.
  */
 export function PageHeader({ title, actions }: PageHeaderProps) {
   const isDesktop = useIsDesktop();
   const location = useLocation();
   const navigate = useNavigate();
   const showBack = !isDesktop && location.pathname !== '/';
+
+  if (isDesktop) {
+    return (
+      <>
+        <h1 className="sr-only">{title}</h1>
+        {actions ? <div className="flex items-center justify-end gap-3">{actions}</div> : null}
+      </>
+    );
+  }
 
   return (
     <div className="mb-6 flex items-center justify-between gap-3 border-b pb-4">

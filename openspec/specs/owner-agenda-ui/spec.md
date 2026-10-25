@@ -312,6 +312,22 @@ El resultado de una acción del dueño (por ejemplo "Servicio cancelado.", "Clie
 - WHEN se guarda
 - THEN aparece un toast de advertencia con la cantidad de servicios que conservan la duración anterior y permanece más tiempo en pantalla
 
+### Requirement: Título de pantalla en escritorio
+
+Desde 1024 px las pantallas MUST NOT mostrar un título visible ni el divisor bajo él: la barra lateral ya indica el módulo. Cada pantalla MUST conservar su encabezado de nivel 1 para tecnología de asistencia (visualmente oculto) y MUST conservar sus acciones (por ejemplo "Nuevo cliente"), alineadas a la derecha. Por debajo de 1024 px el título visible, el divisor y "Volver" MUST mantenerse.
+
+#### Scenario: Pantalla de módulo en escritorio
+
+- GIVEN el dueño en Clientes a 1024 px o más
+- WHEN la pantalla carga
+- THEN no hay título visible ni divisor, "Nuevo cliente" está a la derecha y la página tiene un `h1` "Clientes" solo para lectores de pantalla
+
+#### Scenario: Pantalla de módulo en móvil
+
+- GIVEN el dueño en Clientes en una pantalla menor a 1024 px
+- WHEN la pantalla carga
+- THEN ve el título "Clientes", el divisor y el botón "Volver"
+
 ### Requirement: Barra de herramientas de la agenda
 
 La barra de la agenda MUST ofrecer: alternar Día/Semana (en escritorio), navegación de fechas (anterior y siguiente), el botón "Hoy", el título del rango visible (por ejemplo `19 – 25 oct 2026`) junto a la navegación, un selector de fecha con calendario (botón con la fecha formateada y el ícono de calendario, sin campo de fecha nativo), el campo "Buscar servicio o cliente" (ver `global-search`) y el botón "Nuevo servicio". El color de marca MUST reservarse en la barra para "Nuevo servicio"; la vista activa del alternador se marca con fondo `background` y sombra. Los cuatro indicadores del Panel MUST NOT mostrarse en la agenda.
