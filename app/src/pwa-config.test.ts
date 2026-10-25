@@ -24,8 +24,8 @@ describe('manifest de la PWA', () => {
   it('identifica la aplicación como "Schedule App" con la paleta del diseño', () => {
     expect(manifest.name).toBe('Schedule App');
     expect(manifest.short_name).toBe('Schedule App');
-    expect(manifest.theme_color).toBe('#2563EB');
-    expect(manifest.background_color).toBe('#F8FAFC');
+    expect(manifest.theme_color).toBe('#E31937');
+    expect(manifest.background_color).toBe('#F3F4F6');
     expect(manifest.display).toBe('standalone');
     expect(manifest.lang).toBe('es');
   });
@@ -34,7 +34,7 @@ describe('manifest de la PWA', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
 
     expect(html).toContain('<title>Schedule App</title>');
-    expect(html).toContain('<meta name="theme-color" content="#2563EB" />');
+    expect(html).toContain('<meta name="theme-color" content="#E31937" />');
   });
 
   it('describe la aplicación con el vocabulario de servicios, en el manifiesto y en index.html', () => {
