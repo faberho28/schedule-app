@@ -63,7 +63,8 @@ const DEFAULT_ROW_MINUTES = 15;
 const MINUTES_PER_HOUR = 60;
 const PX_PER_MINUTE = 1.25;
 const MAX_COLUMNS = { day: 6, week: 2 } as const;
-const DAY_HEADER = 'flex h-14 items-center justify-between gap-1 border-b px-2 text-sm';
+// Sin borde inferior: la línea que separa el encabezado de la grilla es la primera línea de hora.
+const DAY_HEADER = 'flex h-14 items-center justify-between gap-1 px-2 text-sm';
 
 /** Sábado o domingo de una fecha local `YYYY-MM-DD` (sin depender de la zona horaria). */
 function isWeekend(day: LocalDate): boolean {
@@ -155,12 +156,16 @@ function TimeAxis({
 
   return (
     <div aria-hidden="true" className="sticky left-0 z-20 w-14 shrink-0 border-r bg-card">
-      <div className={cn(DAY_HEADER, 'border-b-0')} />
+      <div className={DAY_HEADER} />
       <div className="relative border-t" style={bodyHeight(totalRows, rowMinutes)}>
         {hours.map((minute) => (
           <span
             key={minute}
-            className="absolute right-2 -translate-y-1/2 text-[11px] text-muted-foreground tabular-nums"
+            className={cn(
+              'absolute right-2 text-[11px] text-muted-foreground tabular-nums',
+              // La primera hora cae sobre el borde del encabezado: se deja bajo su línea.
+              minute === visibleHours.startMinute ? 'mt-1' : '-translate-y-1/2',
+            )}
             style={{ top: (minute - visibleHours.startMinute) * PX_PER_MINUTE }}
           >
             {formatMinuteOfDay(minute)}
@@ -308,7 +313,7 @@ function DaySection({
         ) : null}
       </div>
       <ul
-        className="grid border-t"
+        className="grid grid-cols-[minmax(0,1fr)]"
         style={{
           ...bodyHeight(totalRows, rowMinutes),
           gridTemplateRows: `repeat(${totalRows}, 1fr)`,
@@ -319,7 +324,7 @@ function DaySection({
         {blocks.map(({ appointment, technician, geometry, position }) => (
           <li
             key={appointment.id}
-            className="z-10 flex min-h-0"
+            className="z-10 flex min-h-0 min-w-0 px-px"
             style={slotStyle(geometry.startRow, geometry.bodyRows + geometry.tailRows, position)}
           >
             <AppointmentCard
@@ -334,7 +339,7 @@ function DaySection({
         {overflow.map((group) => (
           <li
             key={`overflow-${group.ids[0]}`}
-            className="z-10 flex min-h-0"
+            className="z-10 flex min-h-0 min-w-0 px-px"
             style={slotStyle(group.fromRow, group.toRow - group.fromRow, group)}
           >
             <button

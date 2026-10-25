@@ -123,6 +123,33 @@ describe('AgendaGrid: vista de día', () => {
     expect(screen.getByRole('listitem')).toHaveStyle({ width: '100%', marginLeft: '0%' });
   });
 
+  it('la columna del día no crece con su contenido y los solapes dejan 2 px entre sí', () => {
+    const { technicians, appointments } = simultaneous(2);
+    renderGrid({ technicians, appointments });
+
+    // Sin `minmax(0, 1fr)` la pista implícita se ensancha con el contenido y los porcentajes de los
+    // bloques se calculan sobre una columna más ancha que el día.
+    expect(screen.getByRole('list')).toHaveClass('grid-cols-[minmax(0,1fr)]');
+    for (const item of screen.getAllByRole('listitem')) {
+      expect(item).toHaveClass('min-w-0', 'px-px');
+    }
+  });
+
+  it('la primera hora queda bajo su línea para no chocar con el encabezado', () => {
+    renderGrid({ visibleHours: { startMinute: 8 * 60, endMinute: 11 * 60 } });
+
+    expect(screen.getByText('08:00', { ignore: 'button *' })).not.toHaveClass('-translate-y-1/2');
+    expect(screen.getByText('09:00', { ignore: 'button *' })).toHaveClass('-translate-y-1/2');
+  });
+
+  it('el encabezado del día no suma un segundo borde sobre la línea de la grilla', () => {
+    renderGrid();
+
+    const header = screen.getByRole('heading', { level: 2 }).parentElement!;
+    expect(header).not.toHaveClass('border-b');
+    expect(screen.getByRole('list')).not.toHaveClass('border-t');
+  });
+
   it('rotula el eje con las horas de la ventana visible y lo oculta a la tecnología de asistencia', () => {
     renderGrid({ visibleHours: { startMinute: 8 * 60, endMinute: 11 * 60 } });
 
