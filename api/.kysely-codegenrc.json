@@ -1,0 +1,5 @@
+{
+  "dialect": "postgres",
+  "outFile": "src/database/db.generated.ts",
+  "excludePattern": "public.kysely_*"
+}

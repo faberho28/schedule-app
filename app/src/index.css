@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tokens de color (convención de shadcn/ui sobre variables CSS). Tema claro por defecto;
+ * el tema oscuro se activa con la clase `.dark` en <html> (ver index.html).
+ * Todos los pares texto/fondo cumplen contraste AA (4,5:1); lo verifica src/theme/tokens.test.ts.
+ */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #2563eb;
+  --radius: 0.5rem;
+
+  /* Estados de la cita: fondo y texto. */
+  --status-pending: #fef3c7;
+  --status-pending-foreground: #92400e;
+  --status-confirmed: #dbeafe;
+  --status-confirmed-foreground: #1e40af;
+  --status-completed: #dcfce7;
+  --status-completed-foreground: #166534;
+  --status-no-show: #fee2e2;
+  --status-no-show-foreground: #991b1b;
+  --status-cancelled: #f1f5f9;
+  --status-cancelled-foreground: #475569;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --primary: #60a5fa;
+  --primary-foreground: #0f172a;
+  --secondary: #334155;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --destructive: #f87171;
+  --destructive-foreground: #0f172a;
+  --border: #334155;
+  --input: #475569;
+  --ring: #60a5fa;
+
+  --status-pending: #451a03;
+  --status-pending-foreground: #fde68a;
+  --status-confirmed: #172554;
+  --status-confirmed-foreground: #bfdbfe;
+  --status-completed: #052e16;
+  --status-completed-foreground: #bbf7d0;
+  --status-no-show: #450a0a;
+  --status-no-show-foreground: #fecaca;
+  --status-cancelled: #1e293b;
+  --status-cancelled-foreground: #cbd5e1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-foreground: var(--status-pending-foreground);
+  --color-status-confirmed: var(--status-confirmed);
+  --color-status-confirmed-foreground: var(--status-confirmed-foreground);
+  --color-status-completed: var(--status-completed);
+  --color-status-completed-foreground: var(--status-completed-foreground);
+  --color-status-no-show: var(--status-no-show);
+  --color-status-no-show-foreground: var(--status-no-show-foreground);
+  --color-status-cancelled: var(--status-cancelled);
+  --color-status-cancelled-foreground: var(--status-cancelled-foreground);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
