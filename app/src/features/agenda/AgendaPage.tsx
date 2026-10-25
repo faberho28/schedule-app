@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { AppointmentFlows, type AppointmentFlow } from '@/features/appointments/AppointmentFlows';
 import { useAppointment } from '@/features/appointments/appointments-api';
+import { Button } from '@/components/ui/button';
 import { ApiError } from '@/shared/api/errors';
 import { useIsDesktop } from '@/shared/lib/use-media-query';
 import { useBusiness } from '@/features/settings/business-api';
@@ -13,7 +14,7 @@ import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import {
   AgendaFilters,
-  CancelledSwitch,
+  cancelledPatch,
   type FilterOption,
   type FilterPatch,
 } from './AgendaFilters';
@@ -21,7 +22,7 @@ import { AgendaGrid, type AgendaAppointment, type GridTechnician } from './Agend
 import { AgendaList } from './AgendaList';
 import { AgendaToolbar } from './AgendaToolbar';
 import { GlobalSearch } from './GlobalSearch';
-import { TechnicianSelector } from './TechnicianSelector';
+import { TechnicianFilter } from './TechnicianFilter';
 import {
   formatMinuteOfDay,
   visibleHoursFor,
@@ -120,6 +121,13 @@ function AgendaScreen({
     () => selectorOptions(technicians.data ?? [], idsWithServices, colors),
     [technicians.data, idsWithServices, colors],
   );
+  const serviceCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of shownAppointments) {
+      counts.set(item.technician.id, (counts.get(item.technician.id) ?? 0) + 1);
+    }
+    return counts;
+  }, [shownAppointments]);
   // Sin los servicios del rango no se sabe qué técnicos recordados siguen vigentes: se espera.
   const hours = useVisibleHours(
     from,
@@ -205,6 +213,7 @@ function AgendaScreen({
     setFlow(next);
   };
   const canCreate = technicians.data?.some((technician) => technician.active) ?? false;
+  const selectAllTechnicians = () => selection.selectAll(options.map((option) => option.id));
 
   return (
     <>
@@ -220,16 +229,27 @@ function AgendaScreen({
         onDateChange={(next) => go({ date: next })}
         onCreate={canCreate ? () => open({ kind: 'create' }) : undefined}
         search={<GlobalSearch timeZone={timeZone} />}
-        selector={
+        technicianFilter={
           gridMode && appointments.data && options.length > 0 ? (
-            <TechnicianSelector
+            <TechnicianFilter
               options={options}
               selectedIds={selection.selectedIds}
+              counts={serviceCounts}
+              showCancelled={params.cancelled}
+              canReset={
+                params.cancelled || selection.selectedIds.join() !== selection.defaultIds.join()
+              }
               onToggle={selection.toggle}
+              onSelectAll={selectAllTechnicians}
+              onClear={selection.clear}
+              onShowCancelledChange={(show) => changeFilters(cancelledPatch(params, show))}
+              onReset={() => {
+                selection.reset();
+                if (params.cancelled) changeFilters(cancelledPatch(params, false));
+              }}
             />
           ) : null
         }
-        filters={gridMode ? <CancelledSwitch params={params} onChange={changeFilters} /> : null}
       />
 
       <p role="status" className="min-h-5 text-sm font-medium">
@@ -278,6 +298,7 @@ function AgendaScreen({
           selectedIds={selection.selectedIds}
           colors={colors}
           baseHours={baseHours}
+          onSelectAllTechnicians={selectAllTechnicians}
           onAppointmentSelect={onAppointmentSelect ?? ((id) => open({ kind: 'detail', id }))}
           onOverflowSelect={openOverflow}
           onEmptySlotSelect={onEmptySlotSelect ?? ((day) => open({ kind: 'create', day }))}
@@ -407,6 +428,7 @@ type GridContentProps = {
   selectedIds: string[];
   colors: ReadonlyMap<string, number>;
   baseHours: VisibleHours | null;
+  onSelectAllTechnicians(): void;
   onAppointmentSelect(id: string): void;
   onOverflowSelect(day: LocalDate, fromMinute: number, toMinute: number): void;
   onEmptySlotSelect(day: LocalDate): void;
@@ -423,6 +445,7 @@ function GridContent({
   selectedIds,
   colors,
   baseHours,
+  onSelectAllTechnicians,
   onAppointmentSelect,
   onOverflowSelect,
   onEmptySlotSelect,
@@ -452,7 +475,14 @@ function GridContent({
     return <p>Aún no hay técnicos activos. Crea uno en la sección Técnicos.</p>;
   }
   if (selectedIds.length === 0) {
-    return <p role="status">Selecciona al menos un técnico</p>;
+    return (
+      <div className="flex flex-col items-start gap-3">
+        <p role="status">Selecciona al menos un técnico</p>
+        <Button type="button" variant="outline" onClick={onSelectAllTechnicians}>
+          Seleccionar todos
+        </Button>
+      </div>
+    );
   }
 
   return (

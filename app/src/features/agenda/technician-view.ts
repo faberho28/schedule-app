@@ -1,6 +1,5 @@
 import type { components } from '@/shared/api/schema';
 import { technicianLabel } from '@/shared/lib/people';
-import type { SelectorOption } from './TechnicianSelector';
 import {
   TECHNICIAN_COLOR_COUNT,
   assignTechnicianColors,
@@ -8,6 +7,17 @@ import {
 } from './technician-colors';
 
 type Technician = components['schemas']['Technician'];
+
+export type SelectorOption = {
+  id: string;
+  label: string;
+  /** Iniciales del avatar, las mismas de sus tarjetas en la grilla. */
+  initials: string;
+  /** Desactivado o eliminado, pero con servicios en el rango visible. */
+  inactive: boolean;
+  /** Color del técnico (1 a 10), el mismo de sus tarjetas en la grilla. */
+  colorIndex: number;
+};
 
 function isCurrent(technician: Technician): boolean {
   return technician.active && technician.anonymized_at === null;
@@ -59,6 +69,7 @@ export function selectorOptions(
     .map((technician) => ({
       id: technician.id,
       label: technicianLabel(technician),
+      initials: initialsOf(technicianLabel(technician)),
       inactive: !isCurrent(technician),
       colorIndex: colors.get(technician.id) ?? 1,
     }));

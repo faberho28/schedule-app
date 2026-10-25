@@ -187,7 +187,7 @@ export function GlobalSearch({ timeZone }: { timeZone: string }) {
           id={listboxId}
           role="listbox"
           aria-label="Resultados de la búsqueda"
-          className="absolute left-0 right-0 z-20 mt-1 max-h-96 overflow-y-auto rounded-xl border bg-popover p-2 shadow-xs"
+          className="absolute right-0 z-20 mt-1 max-h-96 w-96 max-w-[calc(100vw-2rem)] min-w-full overflow-y-auto rounded-xl border bg-popover p-2 shadow-xs"
         >
           {customers.length > 0 ? (
             <div role="group" aria-labelledby={customersLabelId} className="flex flex-col gap-1">

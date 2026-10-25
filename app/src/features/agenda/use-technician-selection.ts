@@ -33,13 +33,34 @@ export function useTechnicianSelection(
     return reconcileSelection(state.ids, technicians, idsWithServices);
   }, [technicians, idsWithServices, state]);
 
-  const toggle = (id: string) => {
-    const selected = selectedIds.includes(id);
-    if (!selected && selectedIds.length >= MAX_VISIBLE_TECHNICIANS) return;
-    const ids = selected ? selectedIds.filter((current) => current !== id) : [...selectedIds, id];
+  // La selección que se elige sola cuando el dueño no ha tocado nada.
+  const defaultIds = useMemo(
+    () => (technicians === undefined ? [] : reconcileSelection(null, technicians, idsWithServices)),
+    [technicians, idsWithServices],
+  );
+
+  const apply = (ids: string[]) => {
     writeStoredSelection(ids);
     setState({ ids, cleared: ids.length === 0 });
   };
 
-  return { selectedIds, toggle };
+  const toggle = (id: string) => {
+    const selected = selectedIds.includes(id);
+    if (!selected && selectedIds.length >= MAX_VISIBLE_TECHNICIANS) return;
+    apply(selected ? selectedIds.filter((current) => current !== id) : [...selectedIds, id]);
+  };
+
+  /** Marca a los técnicos de `candidateIds` en su orden, hasta el máximo visible. */
+  const selectAll = (candidateIds: readonly string[]) =>
+    apply(candidateIds.slice(0, MAX_VISIBLE_TECHNICIANS));
+
+  const clear = () => apply([]);
+
+  /** Vuelve a la selección por defecto y olvida la guardada. */
+  const reset = () => {
+    writeStoredSelection([]);
+    setState({ ids: [], cleared: false });
+  };
+
+  return { selectedIds, defaultIds, toggle, selectAll, clear, reset };
 }

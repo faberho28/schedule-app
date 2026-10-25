@@ -56,6 +56,12 @@ function renderAgenda(entry = ENTRY, props: Parameters<typeof AgendaPage>[0] = {
 const remember = (...ids: string[]) =>
   localStorage.setItem(SELECTION_STORAGE_KEY, JSON.stringify({ version: 1, ids }));
 
+/** Abre el filtro de técnicos de la barra y devuelve consultas acotadas a su panel. */
+async function openTechnicianFilter(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: /^Técnicos/ }));
+  return within(await screen.findByRole('dialog'));
+}
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -344,7 +350,8 @@ describe('AgendaPage: barra de herramientas de escritorio', () => {
     });
     const { router } = renderAgenda();
     await screen.findByRole('button', { name: /Ana Pérez/ });
-    const toggle = screen.getByRole('switch', { name: 'Mostrar cancelados' });
+    const panel = await openTechnicianFilter(user);
+    const toggle = panel.getByRole('switch', { name: 'Mostrar cancelados' });
 
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     expect(screen.queryByRole('button', { name: /Luis Gómez/ })).not.toBeInTheDocument();
@@ -355,19 +362,23 @@ describe('AgendaPage: barra de herramientas de escritorio', () => {
       await screen.findByRole('button', { name: /Luis Gómez.*Cancelado/ }),
     ).toBeInTheDocument();
     expect(new URLSearchParams(router.state.location.search).get('cancelled')).toBe('1');
-    expect(screen.getByRole('switch', { name: 'Mostrar cancelados' })).toHaveAttribute(
+    // El panel sigue abierto y el botón avisa que hay un filtro activo.
+    expect(panel.getByRole('switch', { name: 'Mostrar cancelados' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
+    expect(screen.getByRole('button', { name: /^Técnicos.*con cancelados/ })).toBeInTheDocument();
   });
 
   it('con cancelled=1 en la URL los cancelados se ven desde el inicio', async () => {
+    const user = userEvent.setup();
     serve({ appointments: [appointment({ status: 'cancelled' })] });
 
     renderAgenda(`${ENTRY}&cancelled=1`);
 
     expect(await screen.findByRole('button', { name: /Ana Pérez.*Cancelado/ })).toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: 'Mostrar cancelados' })).toHaveAttribute(
+    const panel = await openTechnicianFilter(user);
+    expect(panel.getByRole('switch', { name: 'Mostrar cancelados' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
@@ -388,12 +399,14 @@ describe('AgendaPage: barra de herramientas de escritorio', () => {
 
     renderAgenda();
     await screen.findByRole('region', { name: 'Agenda del día' });
+    const panel = await openTechnicianFilter(userEvent.setup());
 
-    expect(screen.queryByRole('checkbox', { name: /Marta/ })).not.toBeInTheDocument();
+    expect(panel.getByRole('checkbox', { name: 'Carlos' })).toBeInTheDocument();
+    expect(panel.queryByRole('checkbox', { name: /Marta/ })).not.toBeInTheDocument();
   });
 });
 
-describe('AgendaPage: selector de técnicos', () => {
+describe('AgendaPage: filtro de técnicos', () => {
   const TECHNICIAN_CARDS = [
     appointment(),
     appointment({
@@ -404,15 +417,32 @@ describe('AgendaPage: selector de técnicos', () => {
   ];
 
   it('marca por defecto a los técnicos activos y muestra los servicios de todos', async () => {
+    const user = userEvent.setup();
     serve({ appointments: TECHNICIAN_CARDS });
 
     renderAgenda();
 
     expect(await screen.findByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Marta' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Técnicos: todos' })).toBeInTheDocument();
+    const panel = await openTechnicianFilter(user);
+    expect(panel.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
+    expect(panel.getByRole('checkbox', { name: 'Marta' })).toBeChecked();
     expect(screen.getByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Luis Gómez/ })).toBeInTheDocument();
+  });
+
+  it('cada técnico muestra cuántos servicios tiene en el rango visible', async () => {
+    const user = userEvent.setup();
+    serve({ appointments: TECHNICIAN_CARDS });
+    renderAgenda();
+    await screen.findByRole('button', { name: /Luis Gómez/ });
+
+    const panel = await openTechnicianFilter(user);
+
+    expect(
+      within(panel.getByRole('option', { name: /Carlos/ })).getByText('1'),
+    ).toBeInTheDocument();
+    expect(within(panel.getByRole('option', { name: /Marta/ })).getByText('1')).toBeInTheDocument();
   });
 
   it('desmarcar a un técnico oculta sus servicios y pide una sola solicitud nueva de horas', async () => {
@@ -421,7 +451,11 @@ describe('AgendaPage: selector de técnicos', () => {
     renderAgenda();
     await screen.findByRole('button', { name: /Luis Gómez/ });
 
-    await user.click(screen.getByRole('checkbox', { name: 'Marta' }));
+    const panel = await openTechnicianFilter(user);
+    await user.click(panel.getByRole('checkbox', { name: 'Marta' }));
+    // El panel sigue abierto para seguir eligiendo.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Técnicos: 1 de 2' })).toBeInTheDocument();
 
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: /Luis Gómez/ })).not.toBeInTheDocument(),
@@ -437,12 +471,47 @@ describe('AgendaPage: selector de técnicos', () => {
     renderAgenda();
     await screen.findByRole('button', { name: /Luis Gómez/ });
 
-    await user.click(screen.getByRole('checkbox', { name: 'Carlos' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Marta' }));
+    const panel = await openTechnicianFilter(user);
+    await user.click(panel.getByRole('checkbox', { name: 'Carlos' }));
+    await user.click(panel.getByRole('checkbox', { name: 'Marta' }));
 
     expect(await screen.findByText('Selecciona al menos un técnico')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Agenda del día' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Ana Pérez/ })).not.toBeInTheDocument();
+  });
+
+  it('desde el aviso de "Selecciona al menos un técnico" se puede seleccionar a todos', async () => {
+    const user = userEvent.setup();
+    serve({ appointments: TECHNICIAN_CARDS });
+    renderAgenda();
+    await screen.findByRole('button', { name: /Luis Gómez/ });
+    const panel = await openTechnicianFilter(user);
+    await user.click(panel.getByText('Seleccionar todos'));
+    expect(await screen.findByText('Selecciona al menos un técnico')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('button', { name: 'Seleccionar todos' }));
+
+    expect(await screen.findByRole('button', { name: /Luis Gómez/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
+  });
+
+  it('"Restablecer filtros" vuelve a la selección por defecto y oculta los cancelados', async () => {
+    const user = userEvent.setup();
+    serve({ appointments: TECHNICIAN_CARDS });
+    const { router } = renderAgenda(`${ENTRY}&cancelled=1`);
+    await screen.findByRole('button', { name: /Luis Gómez/ });
+    const panel = await openTechnicianFilter(user);
+    await user.click(panel.getByRole('checkbox', { name: 'Marta' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Luis Gómez/ })).not.toBeInTheDocument(),
+    );
+
+    await user.click(panel.getByRole('button', { name: 'Restablecer filtros' }));
+
+    expect(await screen.findByRole('button', { name: /Luis Gómez/ })).toBeInTheDocument();
+    expect(new URLSearchParams(router.state.location.search).has('cancelled')).toBe(false);
+    expect(panel.getByRole('button', { name: 'Restablecer filtros' })).toBeDisabled();
   });
 
   it('la selección sobrevive a recargar la página', async () => {
@@ -450,19 +519,22 @@ describe('AgendaPage: selector de técnicos', () => {
     serve({ appointments: TECHNICIAN_CARDS });
     const first = renderAgenda();
     await screen.findByRole('button', { name: /Luis Gómez/ });
-    await user.click(screen.getByRole('checkbox', { name: 'Marta' }));
+    const panel = await openTechnicianFilter(user);
+    await user.click(panel.getByRole('checkbox', { name: 'Marta' }));
     first.router.dispose();
     document.body.innerHTML = '';
 
     renderAgenda();
 
     expect(await screen.findByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Marta' })).not.toBeChecked();
+    const reopened = await openTechnicianFilter(user);
+    expect(reopened.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
+    expect(reopened.getByRole('checkbox', { name: 'Marta' })).not.toBeChecked();
     expect(screen.queryByRole('button', { name: /Luis Gómez/ })).not.toBeInTheDocument();
   });
 
   it('con 14 técnicos activos marca los 10 más antiguos y bloquea los demás', async () => {
+    const user = userEvent.setup();
     const technicians = Array.from({ length: 14 }, (_, index) =>
       technician({
         id: `00000000-0000-4000-8000-0000000002${String(index).padStart(2, '0')}`,
@@ -473,10 +545,12 @@ describe('AgendaPage: selector de técnicos', () => {
 
     renderAgenda();
 
-    await screen.findByRole('checkbox', { name: 'Técnico 01' });
-    expect(screen.getAllByRole('checkbox', { checked: true })).toHaveLength(10);
-    expect(screen.getByRole('checkbox', { name: 'Técnico 11' })).toBeDisabled();
-    expect(screen.getByText('Máximo 10 técnicos visibles')).toBeInTheDocument();
+    const panel = await openTechnicianFilter(user);
+    await panel.findByRole('checkbox', { name: 'Técnico 01' });
+    // 10 técnicos y "Seleccionar todos", que cuenta como completo.
+    expect(panel.getAllByRole('checkbox', { checked: true })).toHaveLength(11);
+    expect(panel.getByRole('checkbox', { name: 'Técnico 11' })).toBeDisabled();
+    expect(panel.getByText('Máximo 10 técnicos visibles')).toBeInTheDocument();
   });
 
   it('la casilla y la tarjeta de un técnico llevan el mismo color en el día y en la semana', async () => {
@@ -484,21 +558,19 @@ describe('AgendaPage: selector de técnicos', () => {
     serve({ appointments: TECHNICIAN_CARDS });
     renderAgenda();
     const card = await screen.findByRole('button', { name: /Luis Gómez/ });
-    const swatch = () =>
-      screen
-        .getByRole('checkbox', { name: 'Marta' })
-        .closest('label')
-        ?.querySelector('[data-color-index]');
+    const swatch = async () =>
+      (await openTechnicianFilter(user)).getByRole('checkbox', { name: 'Marta' });
     const inDay = card.dataset.colorIndex;
 
     expect(inDay).toBe('2');
-    expect(swatch()).toHaveAttribute('data-color-index', inDay);
+    expect(await swatch()).toHaveAttribute('data-color-index', inDay);
 
+    // Pulsar fuera cierra el panel; se vuelve a abrir en la vista de semana.
     await user.click(screen.getByRole('button', { name: 'Semana' }));
     const inWeek = await screen.findByRole('button', { name: /Luis Gómez/ });
 
     expect(inWeek.dataset.colorIndex).toBe(inDay);
-    expect(swatch()).toHaveAttribute('data-color-index', inDay);
+    expect(await swatch()).toHaveAttribute('data-color-index', inDay);
   });
 
   it('el color de un técnico no cambia al eliminar a otro (la lista conserva su fila)', async () => {
@@ -519,14 +591,16 @@ describe('AgendaPage: selector de técnicos', () => {
     expect(card.dataset.colorIndex).toBe('3');
   });
 
-  it('los técnicos del selector llevan nombre y el estado de inactivo, no solo color', async () => {
+  it('los técnicos del filtro llevan nombre, iniciales y el estado de inactivo, no solo color', async () => {
     serve({ appointments: [appointment()] });
-
     renderAgenda();
+    await screen.findByRole('button', { name: /Ana Pérez/ });
 
-    const box = await screen.findByRole('checkbox', { name: 'Carlos' });
-    expect(box.closest('label')).toHaveTextContent('Carlos');
-    expect(screen.getByRole('group', { name: 'Técnicos' })).toBeInTheDocument();
+    const panel = await openTechnicianFilter(userEvent.setup());
+
+    const row = panel.getByRole('option', { name: /Carlos/ });
+    expect(row).toHaveTextContent('Carlos');
+    expect(within(row).getByText('CA')).toBeInTheDocument();
   });
 });
 
@@ -667,8 +741,9 @@ describe('AgendaPage: técnicos y clientes eliminados', () => {
         name: /Ana Pérez.*técnico Técnico eliminado \(tiger_1\)/,
       }),
     ).toBeInTheDocument();
+    const panel = await openTechnicianFilter(userEvent.setup());
     expect(
-      screen.getByRole('checkbox', { name: 'Técnico eliminado (tiger_1) Inactivo' }),
+      panel.getByRole('checkbox', { name: 'Técnico eliminado (tiger_1) Inactivo' }),
     ).toBeChecked();
     expect(requests.technicians).toEqual(['?includeAnonymized=true']);
   });
@@ -681,23 +756,25 @@ describe('AgendaPage: técnicos y clientes eliminados', () => {
 
     renderAgenda();
 
-    const box = await screen.findByRole('checkbox', {
+    const panel = await openTechnicianFilter(userEvent.setup());
+    const box = await panel.findByRole('checkbox', {
       name: 'Técnico eliminado (tiger_1) Inactivo',
     });
     expect(box).not.toBeChecked();
     expect(screen.queryByRole('button', { name: /Ana Pérez/ })).not.toBeInTheDocument();
   });
 
-  it('el eliminado y el inactivo sin servicios en el rango no figuran en el selector', async () => {
+  it('el eliminado y el inactivo sin servicios en el rango no figuran en el filtro', async () => {
     remember(CARLOS.id, ERASED.id, INACTIVE.id);
     serve({ technicians: [CARLOS, ERASED, INACTIVE], appointments: [appointment()] });
 
     renderAgenda();
 
     expect(await screen.findByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
-    expect(screen.queryByRole('checkbox', { name: /Técnico eliminado/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', { name: /Marta/ })).not.toBeInTheDocument();
+    const panel = await openTechnicianFilter(userEvent.setup());
+    expect(panel.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
+    expect(panel.queryByRole('checkbox', { name: /Técnico eliminado/ })).not.toBeInTheDocument();
+    expect(panel.queryByRole('checkbox', { name: /Marta/ })).not.toBeInTheDocument();
   });
 
   it('un inactivo recordado con servicios sigue marcado, con su color y sus servicios', async () => {
@@ -710,12 +787,10 @@ describe('AgendaPage: técnicos y clientes eliminados', () => {
     renderAgenda();
 
     const card = await screen.findByRole('button', { name: /Ana Pérez.*técnico Marta/ });
-    const box = screen.getByRole('checkbox', { name: 'Marta Inactivo' });
+    const panel = await openTechnicianFilter(userEvent.setup());
+    const box = panel.getByRole('checkbox', { name: 'Marta Inactivo' });
     expect(box).toBeChecked();
-    expect(box.closest('label')?.querySelector('[data-color-index]')).toHaveAttribute(
-      'data-color-index',
-      card.dataset.colorIndex,
-    );
+    expect(box).toHaveAttribute('data-color-index', card.dataset.colorIndex);
   });
 
   it('un técnico recordado que ya no está en la lista se descarta sin romper nada', async () => {
@@ -725,8 +800,9 @@ describe('AgendaPage: técnicos y clientes eliminados', () => {
     renderAgenda();
 
     expect(await screen.findByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Marta' })).not.toBeChecked();
+    const panel = await openTechnicianFilter(userEvent.setup());
+    expect(panel.getByRole('checkbox', { name: 'Carlos' })).toBeChecked();
+    expect(panel.getByRole('checkbox', { name: 'Marta' })).not.toBeChecked();
   });
 
   it('muestra al cliente eliminado con su alias', async () => {

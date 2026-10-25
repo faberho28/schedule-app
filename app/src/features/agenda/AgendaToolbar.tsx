@@ -29,17 +29,16 @@ type AgendaToolbarProps = {
   onCreate?(): void;
   /** Campo de búsqueda global: en escritorio va en la barra y en móvil en una fila propia. */
   search?: ReactNode;
-  /** Selector de técnicos visibles (solo escritorio). */
-  selector?: ReactNode;
-  /** Filtros que aplican a la grilla, como "Mostrar cancelados" (solo escritorio). */
-  filters?: ReactNode;
+  /** Filtro de técnicos y cancelados de la grilla (solo escritorio). */
+  technicianFilter?: ReactNode;
 };
 
 /**
- * Barra de la agenda: en escritorio, el alternador Día/Semana, la navegación de fechas, el campo de
- * búsqueda y "Nuevo servicio", con el selector de técnicos y los filtros debajo. En móvil la
- * navegación de un día y "Nuevo servicio", con el campo de búsqueda debajo. Los controles miden 44 px
- * en pantallas táctiles y 40 px desde 1024 px. El color de marca es solo de "Nuevo servicio".
+ * Barra de la agenda. En escritorio, en una sola fila: la navegación de fechas y el título del rango
+ * a la izquierda, y a la derecha el alternador Día/Semana, el filtro de técnicos, la búsqueda, la
+ * fecha y "Nuevo servicio". En móvil, la navegación de un día, la fecha y "Nuevo servicio", con el
+ * campo de búsqueda debajo. Los controles miden 44 px en pantallas táctiles y 40 px desde 1024 px.
+ * El color de marca es solo de "Nuevo servicio".
  */
 export function AgendaToolbar({
   isDesktop,
@@ -53,12 +52,11 @@ export function AgendaToolbar({
   onDateChange,
   onCreate,
   search,
-  selector,
-  filters,
+  technicianFilter,
 }: AgendaToolbarProps) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         {showDateControls ? (
           <div role="group" aria-label="Navegación de la agenda" className="flex items-center">
             <Button
@@ -99,45 +97,42 @@ export function AgendaToolbar({
           </p>
         ) : null}
 
-        {isDesktop ? (
-          <div
-            role="group"
-            aria-label="Vista"
-            className="flex h-10 items-center gap-1 rounded-lg bg-muted p-1"
-          >
-            <ViewButton current={view} value="day" onSelect={onViewChange}>
-              Día
-            </ViewButton>
-            <ViewButton current={view} value="week" onSelect={onViewChange}>
-              Semana
-            </ViewButton>
-          </div>
-        ) : null}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {isDesktop ? (
+            <div
+              role="group"
+              aria-label="Vista"
+              className="flex h-10 items-center gap-1 rounded-lg bg-muted p-1"
+            >
+              <ViewButton current={view} value="day" onSelect={onViewChange}>
+                Día
+              </ViewButton>
+              <ViewButton current={view} value="week" onSelect={onViewChange}>
+                Semana
+              </ViewButton>
+            </div>
+          ) : null}
 
-        {isDesktop && search ? <div className="min-w-0 flex-1">{search}</div> : null}
+          {isDesktop ? technicianFilter : null}
 
-        {showDateControls ? <AgendaDatePicker date={date} onChange={onDateChange} /> : null}
+          {isDesktop && search ? <div className="w-72 min-w-0">{search}</div> : null}
 
-        {onCreate ? (
-          <Button
-            type="button"
-            className="ml-auto min-h-11 rounded-lg bg-brand text-brand-foreground transition-colors duration-150 hover:bg-brand/90 motion-reduce:transition-none lg:h-10 lg:min-h-10"
-            onClick={onCreate}
-          >
-            <Plus aria-hidden="true" />
-            Nuevo servicio
-          </Button>
-        ) : null}
+          {showDateControls ? <AgendaDatePicker date={date} onChange={onDateChange} /> : null}
+
+          {onCreate ? (
+            <Button
+              type="button"
+              className="min-h-11 rounded-lg bg-brand text-brand-foreground transition-colors duration-150 hover:bg-brand/90 motion-reduce:transition-none lg:h-10 lg:min-h-10"
+              onClick={onCreate}
+            >
+              <Plus aria-hidden="true" />
+              Nuevo servicio
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {!isDesktop && search ? <div>{search}</div> : null}
-
-      {isDesktop && (selector || filters) ? (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          {selector}
-          {filters}
-        </div>
-      ) : null}
     </div>
   );
 }

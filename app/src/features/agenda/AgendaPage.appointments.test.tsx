@@ -166,7 +166,10 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     expect(state.listings).toBeGreaterThan(listingsBefore);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('switch', { name: 'Mostrar cancelados' }));
+    await user.click(screen.getByRole('button', { name: /^Técnicos/ }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('switch', { name: 'Mostrar cancelados' }),
+    );
 
     expect(await screen.findByRole('button', { name: /Ana Pérez.*Cancelado/ })).toBeInTheDocument();
   });

@@ -314,7 +314,19 @@ La barra de la agenda MUST ofrecer: alternar Día/Semana (en escritorio), navega
 
 ### Requirement: Selector de técnicos visibles
 
-En escritorio la agenda MUST ofrecer un selector con una casilla de color por técnico activo para elegir a los técnicos visibles. Se MUST poder elegir como máximo 10; al llegar al tope las demás casillas MUST quedar deshabilitadas con el aviso "Máximo 10 técnicos visibles". El selector MUST listar a los técnicos activos y, además, a los desactivados o eliminados que tengan servicios en el rango visible. Por defecto MUST estar seleccionados los 10 técnicos activos más antiguos (por fecha de alta, desempate por identificador); con menos de 10, todos. La selección MUST recordarse en el navegador (por dispositivo) y sobrevivir a recargar la página. Un técnico recordado que luego se desactivó o eliminó MUST permanecer en la selección mientras tenga servicios en el rango visible, mostrado con su color y marcado como inactivo; MUST salir de la selección cuando no tenga ninguno. Los ids desconocidos MUST descartarse; si queda vacía la selección recordada MUST aplicarse el valor por defecto. Si el dueño desmarca todos, la grilla MUST mostrar "Selecciona al menos un técnico".
+En escritorio la agenda MUST ofrecer, en la barra, un único botón "Técnicos" que abre un panel para elegir a los técnicos visibles. El botón MUST mostrar "Todos" cuando están todos marcados, una insignia con el número cuando la selección es parcial y un punto cuando "Mostrar cancelados" está activo. El panel MUST contener: "Seleccionar todos" (con estado indeterminado en una selección parcial), una fila por técnico con casilla de su color, avatar con iniciales y cantidad de servicios en el rango visible, un campo "Buscar técnico…" solo cuando hay más de 6 técnicos, el interruptor "Mostrar cancelados" y "Restablecer filtros" (deshabilitado sin filtros aplicados). El panel MUST NOT cerrarse al elegir. Se MUST poder elegir como máximo 10; al llegar al tope las demás filas MUST quedar deshabilitadas con el aviso "Máximo 10 técnicos visibles", y "Seleccionar todos" MUST marcar solo los 10 primeros. El selector MUST listar a los técnicos activos y, además, a los desactivados o eliminados que tengan servicios en el rango visible. Por defecto MUST estar seleccionados los 10 técnicos activos más antiguos (por fecha de alta, desempate por identificador); con menos de 10, todos. La selección MUST recordarse en el navegador (por dispositivo) y sobrevivir a recargar la página. Un técnico recordado que luego se desactivó o eliminó MUST permanecer en la selección mientras tenga servicios en el rango visible, mostrado con su color y marcado como inactivo; MUST salir de la selección cuando no tenga ninguno. Los ids desconocidos MUST descartarse; si queda vacía la selección recordada MUST aplicarse el valor por defecto. Si el dueño desmarca todos, la grilla MUST mostrar "Selecciona al menos un técnico" y un botón "Seleccionar todos". En móvil el filtro por técnico sigue siendo el de chips de la lista.
+
+#### Scenario: Panel que no se cierra
+
+- GIVEN el panel de técnicos abierto
+- WHEN el dueño marca o desmarca a un técnico
+- THEN la selección cambia y el panel sigue abierto
+
+#### Scenario: Restablecer filtros
+
+- GIVEN una selección parcial de técnicos y "Mostrar cancelados" activo
+- WHEN el dueño pulsa "Restablecer filtros"
+- THEN vuelve la selección por defecto y los cancelados quedan ocultos
 
 #### Scenario: Valor por defecto
 
@@ -326,7 +338,7 @@ En escritorio la agenda MUST ofrecer un selector con una casilla de color por t�
 
 - GIVEN 10 técnicos marcados
 - WHEN el dueño intenta marcar un undécimo
-- THEN la casilla está deshabilitada y se muestra "Máximo 10 técnicos visibles"
+- THEN su fila está deshabilitada y se muestra "Máximo 10 técnicos visibles"
 
 #### Scenario: Persistencia
 

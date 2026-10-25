@@ -7,6 +7,9 @@ import { installViewport, resetViewport } from './viewport';
 // jsdom no implementa `matchMedia`; el ancho por defecto es móvil (ver `viewport.ts`).
 installViewport();
 
+// jsdom no implementa `scrollIntoView`, que `cmdk` usa al mover la fila activa.
+Element.prototype.scrollIntoView ??= () => {};
+
 // jsdom no implementa `ResizeObserver`, que Radix usa al abrir tooltips y popovers.
 globalThis.ResizeObserver ??= class {
   observe() {}

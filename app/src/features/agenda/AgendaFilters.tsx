@@ -114,9 +114,16 @@ export function AgendaFilters({ params, technicians, serviceTypes, onChange }: A
 }
 
 /**
- * Interruptor "Mostrar cancelados", compartido por la lista y la grilla de escritorio. Al apagarlo
- * también quita el chip de estado "Cancelado", que por sí solo ya los mostraría.
+ * Cambio de filtros al encender o apagar "Mostrar cancelados". Al apagarlo también quita el chip de
+ * estado "Cancelado", que por sí solo ya los mostraría.
  */
+export function cancelledPatch(params: Pick<AgendaParams, 'status'>, show: boolean): FilterPatch {
+  return show
+    ? { cancelled: true }
+    : { cancelled: false, status: params.status.filter((status) => status !== 'cancelled') };
+}
+
+/** Interruptor "Mostrar cancelados" de la lista móvil. En escritorio vive en el filtro de técnicos. */
 export function CancelledSwitch({
   params,
   onChange,
@@ -128,16 +135,7 @@ export function CancelledSwitch({
     <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm font-medium">
       <Switch
         checked={params.cancelled}
-        onCheckedChange={(checked) =>
-          onChange(
-            checked
-              ? { cancelled: true }
-              : {
-                  cancelled: false,
-                  status: params.status.filter((status) => status !== 'cancelled'),
-                },
-          )
-        }
+        onCheckedChange={(checked) => onChange(cancelledPatch(params, checked))}
       />
       Mostrar cancelados
     </label>

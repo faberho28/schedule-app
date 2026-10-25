@@ -69,6 +69,48 @@ describe('AgendaToolbar', () => {
     expect(screen.queryByText(/–/)).not.toBeInTheDocument();
   });
 
+  it('en escritorio ordena los controles: navegación, título, vista, técnicos, búsqueda, fecha y crear', () => {
+    renderToolbar({
+      rangeLabel: '19 – 25 oct 2026',
+      technicianFilter: <button type="button">Técnicos: todos</button>,
+      search: <input aria-label="Buscar" />,
+    });
+
+    const order = [
+      screen.getByRole('group', { name: 'Navegación de la agenda' }),
+      screen.getByText('19 – 25 oct 2026'),
+      screen.getByRole('group', { name: 'Vista' }),
+      screen.getByRole('button', { name: 'Técnicos: todos' }),
+      screen.getByRole('textbox', { name: 'Buscar' }),
+      screen.getByRole('button', { name: /^Fecha:/ }),
+      screen.getByRole('button', { name: 'Nuevo servicio' }),
+    ];
+    for (let index = 1; index < order.length; index += 1) {
+      expect(order[index - 1]!.compareDocumentPosition(order[index]!)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    }
+  });
+
+  it('separa los controles con 8 px y los deja a la derecha del título', () => {
+    const { container } = renderToolbar({ rangeLabel: '19 – 25 oct 2026' });
+
+    const row = container.firstElementChild!.firstElementChild!;
+    expect(row).toHaveClass('gap-2', 'items-center');
+    expect(screen.getByRole('group', { name: 'Vista' }).parentElement).toHaveClass('ml-auto');
+  });
+
+  it('en móvil no muestra el filtro de técnicos y deja la búsqueda en su propia fila', () => {
+    renderToolbar({
+      isDesktop: false,
+      technicianFilter: <button type="button">Técnicos: todos</button>,
+      search: <input aria-label="Buscar" />,
+    });
+
+    expect(screen.queryByRole('button', { name: 'Técnicos: todos' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Buscar' })).toBeInTheDocument();
+  });
+
   it('la fecha se elige con un botón y un calendario, no con el campo nativo', () => {
     const { container } = renderToolbar();
 

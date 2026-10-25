@@ -90,9 +90,15 @@ describe('selectorOptions', () => {
     ];
 
     expect(selectorOptions(technicians, new Set(['b', 'c']), colors)).toEqual([
-      { id: 'a', label: 'Ana', inactive: false, colorIndex: 1 },
-      { id: 'b', label: 'Beto', inactive: true, colorIndex: 2 },
-      { id: 'c', label: 'Técnico eliminado (tiger_1)', inactive: true, colorIndex: 3 },
+      { id: 'a', label: 'Ana', initials: 'AN', inactive: false, colorIndex: 1 },
+      { id: 'b', label: 'Beto', initials: 'BE', inactive: true, colorIndex: 2 },
+      {
+        id: 'c',
+        label: 'Técnico eliminado (tiger_1)',
+        initials: 'TE',
+        inactive: true,
+        colorIndex: 3,
+      },
     ]);
   });
 });
