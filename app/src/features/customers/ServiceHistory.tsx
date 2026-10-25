@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import { STATUS_STYLES } from '@/features/agenda/appointment-status';
 import type { components } from '@/shared/api/schema';
 import { formatDate, formatTime } from '@/shared/lib/dates';
@@ -49,12 +50,10 @@ export function ServiceHistory({
                 {formatDate(appointment.starts_at, timeZone)}{' '}
                 {formatTime(appointment.starts_at, timeZone)}
               </p>
-              <span
-                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status.className}`}
-              >
+              <Badge variant={status.variant}>
                 <StatusIcon aria-hidden="true" className="size-3.5" />
                 {status.label}
-              </span>
+              </Badge>
             </div>
             <p>{appointment.service_name_snapshot}</p>
             <p className="text-muted-foreground">

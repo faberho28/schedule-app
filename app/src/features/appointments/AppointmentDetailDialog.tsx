@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { Check, Undo2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -65,12 +66,10 @@ export function AppointmentDetailDialog({
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
           <dt className="font-medium">Estado</dt>
           <dd>
-            <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status.className}`}
-            >
+            <Badge variant={status.variant}>
               <StatusIcon aria-hidden="true" className="size-3.5" />
               {status.label}
-            </span>
+            </Badge>
           </dd>
           <dt className="font-medium">Horario</dt>
           <dd>

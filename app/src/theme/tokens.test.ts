@@ -128,6 +128,7 @@ function pairsOf(): [string, string][] {
     ['sidebar-foreground', 'sidebar'],
     ['sidebar-primary-foreground', 'sidebar-primary'],
     ['sidebar-accent-foreground', 'sidebar-accent'],
+    ['event-red-text', 'card'],
     ...STATES.map((state): [string, string] => [`status-${state}-foreground`, `status-${state}`]),
     ...EVENT_COLORS.map((c): [string, string] => [`event-${c}-text`, `event-${c}-bg`]),
   ];

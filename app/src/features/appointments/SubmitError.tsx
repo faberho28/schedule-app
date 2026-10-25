@@ -1,5 +1,6 @@
 import { ApiError } from '@/shared/api/errors';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
+import { Notice } from '@/shared/ui/Notice';
 
 type SubmitErrorProps = {
   error: unknown;
@@ -20,13 +21,12 @@ export function SubmitError({
 }: SubmitErrorProps) {
   if (error instanceof ApiError && error.code === 'slot_taken') {
     return (
-      <div
-        role="alert"
-        className="flex flex-col gap-1 rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive"
-      >
-        <p className="font-semibold">Cupo ocupado</p>
-        <p>{slotTakenHint}</p>
-      </div>
+      <Notice tone="error">
+        <div className="flex flex-col gap-1">
+          <p className="font-semibold">Cupo ocupado</p>
+          <p>{slotTakenHint}</p>
+        </div>
+      </Notice>
     );
   }
   return <ErrorNotice error={error} onRetry={error instanceof TypeError ? onRetry : undefined} />;
