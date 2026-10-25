@@ -48,6 +48,9 @@ function serve(initial: Appointment[] = [appointment()]) {
       state.listings += 1;
       return HttpResponse.json(state.appointments);
     }),
+    http.get(apiUrl(`/appointments/${IDS.apt1}/free-technicians`), () =>
+      HttpResponse.json([{ id: IDS.marta, name: 'Marta' }]),
+    ),
     http.get(apiUrl('/services'), () => HttpResponse.json([service()])),
     http.get(apiUrl('/customers'), () => HttpResponse.json([customer()])),
     http.get(apiUrl('/slots'), () =>
@@ -193,7 +196,7 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
     await user.click(await screen.findByRole('button', { name: 'Reasignar' }));
 
-    await user.selectOptions(await screen.findByLabelText('Nuevo técnico'), 'Marta');
+    await user.click(await screen.findByRole('radio', { name: 'Marta' }));
     await user.click(screen.getByRole('button', { name: 'Reasignar' }));
 
     expect(await screen.findByText('Servicio reasignado.')).toBeInTheDocument();

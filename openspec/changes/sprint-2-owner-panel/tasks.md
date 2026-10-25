@@ -208,12 +208,12 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 14: Reasignación con técnicos libres (commit 14)
 
-- [ ] 14.1 Hook `useFreeTechnicians(appointmentId)` con clave `['appointments','free-technicians',id]`. Área: `app/src/features/appointments/appointments-api.ts`. Spec: TF-R4. Verif: RED con MSW.
-- [ ] 14.2 `ReassignDialog` reemplaza el filtro local de técnicos activos por la lista libre: estado de carga, solo libres (tres técnicos activos, uno libre muestra uno) y "No hay técnicos libres en este horario". Área: `app/src/features/appointments/ReassignDialog.tsx`, `ReassignDialog.test.tsx`. Spec: TF-R4, AU-R17. Verif: RED con MSW.
-- [ ] 14.3 El técnico actual no aparece entre las opciones. Área: `ReassignDialog.tsx`. Spec: TF-R2. Verif: RED con MSW.
-- [ ] 14.4 Ante `slot_taken` (409) el diálogo muestra "Cupo ocupado", invalida `['appointments','free-technicians',id]` y recarga la lista. Área: `ReassignDialog.tsx`. Spec: TF-R4, AU-R17, AU-R15. Verif: RED con MSW: el servicio de técnicos libres se consulta de nuevo tras el 409.
-- [ ] 14.5 Tras reasignar con éxito se invalida `['appointments']`; se retira el código de filtro local que quedó sin uso. Área: `ReassignDialog.tsx`, `AppointmentFlows.tsx`. Spec: AU-R17. Verif: RED, la agenda se actualiza sin recargar; `lint` sin código muerto.
-- [ ] 14.6 Documentar la reasignación con técnicos libres en `app/README.md`. Área: `app/README.md`. Spec: n/a. Verif: manual.
+- [x] 14.1 Hook `useFreeTechnicians(appointmentId)` con clave `['appointments','free-technicians',id]`. Área: `app/src/features/appointments/appointments-api.ts`. Spec: TF-R4. Verif: RED con MSW.
+- [x] 14.2 `ReassignDialog` reemplaza el filtro local de técnicos activos por la lista libre: estado de carga, solo libres (tres técnicos activos, uno libre muestra uno) y "No hay técnicos libres en este horario". Área: `app/src/features/appointments/ReassignDialog.tsx`, `ReassignDialog.test.tsx`. Spec: TF-R4, AU-R17. Verif: RED con MSW.
+- [x] 14.3 El técnico actual no aparece entre las opciones. Área: `ReassignDialog.tsx`. Spec: TF-R2. Verif: RED con MSW.
+- [x] 14.4 Ante `slot_taken` (409) el diálogo muestra "Cupo ocupado", invalida `['appointments','free-technicians',id]` y recarga la lista. Área: `ReassignDialog.tsx`. Spec: TF-R4, AU-R17, AU-R15. Verif: RED con MSW: el servicio de técnicos libres se consulta de nuevo tras el 409.
+- [x] 14.5 Tras reasignar con éxito se invalida `['appointments']`; se retira el código de filtro local que quedó sin uso. Área: `ReassignDialog.tsx`, `AppointmentFlows.tsx`. Spec: AU-R17. Verif: RED, la agenda se actualiza sin recargar; `lint` sin código muerto.
+- [x] 14.6 Documentar la reasignación con técnicos libres en `app/README.md`. Área: `app/README.md`. Spec: n/a. Verif: manual.
 
 ## Fase 15: Criterios de aceptación y verificación manual pendiente
 

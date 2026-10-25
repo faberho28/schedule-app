@@ -44,6 +44,24 @@ export function useAppointment(id: string | null, { enabled = true }: { enabled?
   });
 }
 
+/** Clave de los técnicos libres de un servicio; cuelga de `['appointments']` y se refresca con ella. */
+export const freeTechniciansKey = (id: string) =>
+  [...appointmentKeys.all, 'free-technicians', id] as const;
+
+/**
+ * Técnicos libres en el horario exacto de un servicio (`GET /appointments/:id/free-technicians`).
+ * No se reutiliza entre aperturas: cada vez que se monta se vuelve a pedir.
+ */
+export function useFreeTechnicians(id: string) {
+  return useQuery({
+    queryKey: freeTechniciansKey(id),
+    queryFn: () =>
+      unwrap(apiClient.GET('/appointments/{id}/free-technicians', { params: { path: { id } } })),
+    staleTime: 0,
+    gcTime: 0,
+  });
+}
+
 /** Servicios que se pueden agendar: solo los activos. */
 export function useBookableServices() {
   return useQuery({
@@ -86,6 +104,9 @@ function refreshAfterRejection(queryClient: QueryClient, error: unknown) {
   if (!(error instanceof ApiError)) return;
   if (error.code === 'slot_taken' || error.code === 'slot_not_offered') {
     void queryClient.invalidateQueries({ queryKey: slotKeys.all });
+  }
+  if (error.code === 'slot_taken') {
+    void queryClient.invalidateQueries({ queryKey: [...appointmentKeys.all, 'free-technicians'] });
   }
   if (error.code === 'invalid_transition' || error.code === 'not_found') {
     void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });

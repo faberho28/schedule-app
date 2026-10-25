@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,12 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Select } from '@/components/ui/select';
 import type { components } from '@/shared/api/schema';
 import { formatDateTime } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
-import { FormField } from '@/shared/ui/FormField';
-import { useReassignAppointment } from './appointments-api';
+import { ErrorNotice } from '@/shared/ui/ErrorNotice';
+import { useFreeTechnicians, useReassignAppointment } from './appointments-api';
 import { SubmitError } from './SubmitError';
 
 type Appointment = components['schemas']['Appointment'];
@@ -29,9 +28,10 @@ type ReassignDialogProps = {
 };
 
 /**
- * Reasignación manual (UI-R4, AM-R4): cambia solo el técnico, nunca la hora. Ofrece a los demás
- * técnicos activos. La API es quien sabe si el elegido está libre a esa hora exacta: si no lo
- * está responde `slot_taken` y el diálogo queda abierto para elegir a otro.
+ * Reasignación manual (UI-R4, AM-R4): cambia solo el técnico, nunca la hora. Ofrece solo a los
+ * técnicos libres en el horario exacto del servicio (`GET /appointments/:id/free-technicians`).
+ * Si otro ocupa el horario antes de confirmar, la API responde `slot_taken`: el diálogo queda
+ * abierto y la lista se vuelve a pedir para elegir a otro.
  */
 export function ReassignDialog({
   appointment,
@@ -41,15 +41,17 @@ export function ReassignDialog({
   onReassigned,
 }: ReassignDialogProps) {
   const reassign = useReassignAppointment();
-  const [technicianId, setTechnicianId] = useState('');
+  const free = useFreeTechnicians(appointment.id);
+  const [chosenId, setChosenId] = useState('');
   const [error, setError] = useState<string>();
+  const errorId = useId();
 
-  const candidates = technicians.filter(
-    (technician) =>
-      technician.active &&
-      technician.anonymized_at === null &&
-      technician.id !== appointment.technician.id,
+  // El técnico actual no se ofrece. Si la elección ya no está en la lista (por ejemplo tras un
+  // `slot_taken` que recarga la lista), se descarta.
+  const candidates = (free.data ?? []).filter(
+    (technician) => technician.id !== appointment.technician.id,
   );
+  const technicianId = candidates.some((technician) => technician.id === chosenId) ? chosenId : '';
   const current = technicians.find((technician) => technician.id === appointment.technician.id);
   const currentName = current ? technicianLabel(current) : technicianLabel(appointment.technician);
 
@@ -78,29 +80,47 @@ export function ReassignDialog({
             La hora no cambia: solo pasa a otro técnico que esté libre en ese mismo horario.
           </p>
 
-          {candidates.length === 0 ? (
-            <p>No hay otros técnicos activos para este servicio.</p>
+          {free.isPending ? (
+            <p role="status" className="text-sm">
+              Buscando técnicos libres…
+            </p>
+          ) : free.isError ? (
+            <ErrorNotice error={free.error} onRetry={() => void free.refetch()} />
+          ) : candidates.length === 0 ? (
+            <p role="status">No hay técnicos libres en este horario</p>
           ) : (
-            <FormField label="Nuevo técnico" error={error}>
-              {(control) => (
-                <Select
-                  {...control}
-                  value={technicianId}
-                  onChange={(event) => {
-                    setTechnicianId(event.target.value);
-                    setError(undefined);
-                    reassign.reset();
-                  }}
+            <fieldset
+              role="radiogroup"
+              aria-describedby={error ? errorId : undefined}
+              aria-invalid={error ? true : undefined}
+              className="flex flex-col gap-2"
+            >
+              <legend className="mb-1.5 text-sm font-medium">Nuevo técnico</legend>
+              {candidates.map((technician) => (
+                <label
+                  key={technician.id}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm"
                 >
-                  <option value="">Selecciona un técnico</option>
-                  {candidates.map((technician) => (
-                    <option key={technician.id} value={technician.id}>
-                      {technicianLabel(technician)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </FormField>
+                  <input
+                    type="radio"
+                    name="technician"
+                    value={technician.id}
+                    checked={technicianId === technician.id}
+                    onChange={() => {
+                      setChosenId(technician.id);
+                      setError(undefined);
+                      reassign.reset();
+                    }}
+                  />
+                  {technician.name}
+                </label>
+              ))}
+              {error ? (
+                <p id={errorId} className="text-sm font-medium text-destructive">
+                  {error}
+                </p>
+              ) : null}
+            </fieldset>
           )}
 
           {reassign.isError ? (
@@ -115,7 +135,12 @@ export function ReassignDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={reassign.isPending || candidates.length === 0}>
+            <Button
+              type="submit"
+              disabled={
+                reassign.isPending || free.isPending || free.isError || candidates.length === 0
+              }
+            >
               Reasignar
             </Button>
           </DialogFooter>
