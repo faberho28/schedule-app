@@ -89,7 +89,7 @@ describe('AgendaPage: carga', () => {
       within(grid).getByRole('button', { name: /Luis Gómez.*técnico Marta/ }),
     ).toBeInTheDocument();
     expect(within(grid).getAllByRole('list')).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1, name: 'Agenda' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Vie 6 nov 2026' })).toBeInTheDocument();
     expect(requests.appointments).toEqual(['?from=2026-11-06&to=2026-11-06']);
   });
 
@@ -310,6 +310,29 @@ describe('AgendaPage: barra de herramientas de escritorio', () => {
     expect(screen.getByRole('button', { name: 'Hoy' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Fecha: 6 nov 2026' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Nuevo servicio' })).toBeInTheDocument();
+  });
+
+  it('la barra es lo primero de la página: el rango es el único título y no hay "Agenda" ni divisor', async () => {
+    serve();
+
+    renderAgenda();
+    await screen.findByRole('region', { name: 'Agenda del día' });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Vie 6 nov 2026');
+    expect(screen.queryByRole('heading', { level: 1, name: 'Agenda' })).not.toBeInTheDocument();
+    expect(document.querySelector('.border-b.pb-4')).not.toBeInTheDocument();
+    const navigation = screen.getByRole('group', { name: 'Navegación de la agenda' });
+    expect(navigation.closest('section')!.firstElementChild).toContainElement(navigation);
+  });
+
+  it('el aviso vacío no ocupa lugar entre la barra y la grilla', async () => {
+    serve();
+
+    renderAgenda();
+    await screen.findByRole('region', { name: 'Agenda del día' });
+
+    const notice = document.querySelector('p[role="status"]:empty');
+    expect(notice).toHaveClass('sr-only');
   });
 
   it('no muestra los indicadores del Panel ni una vista Mes', async () => {

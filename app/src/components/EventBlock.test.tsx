@@ -122,8 +122,76 @@ describe('EventBlock', () => {
     const { container } = render(<EventBlock {...base} tailRows={2} />);
 
     const tail = container.querySelector('[data-slot="event-tail"]');
-    expect(tail).toHaveClass('opacity-60');
+    expect(tail).toHaveClass('opacity-30');
+    expect(tail).not.toHaveClass('border-t', 'border-b');
     expect(tail).toHaveAttribute('title', 'Tiempo de traslado');
+  });
+
+  describe('densidad según el alto del bloque', () => {
+    it.each([
+      [59, 'compact'],
+      [60, 'medium'],
+      [100, 'medium'],
+      [101, 'full'],
+    ])('con %i px de alto usa la versión %s', (bodyHeight, density) => {
+      const { container } = render(<EventBlock {...base} bodyHeight={bodyHeight} />);
+
+      expect(container.querySelector('[data-slot="event-body"]')).toHaveAttribute(
+        'data-density',
+        density,
+      );
+    });
+
+    it('sin alto conocido muestra la versión completa', () => {
+      const { container } = render(<EventBlock {...base} />);
+
+      expect(container.querySelector('[data-slot="event-body"]')).toHaveAttribute(
+        'data-density',
+        'full',
+      );
+    });
+
+    it('compacto: una sola línea con hora, estado como ícono y cliente truncado', () => {
+      const { container } = render(<EventBlock {...base} bodyHeight={40} />);
+
+      const body = container.querySelector('[data-slot="event-body"]')!;
+      expect(body).toHaveClass('flex-row', 'items-center', 'overflow-hidden');
+      expect(screen.getByText('08:00–09:30')).toHaveClass('whitespace-nowrap');
+      expect(screen.getByRole('img', { name: 'Pendiente' })).toHaveClass('size-3');
+      expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
+      expect(screen.getByText('Ana Pérez')).toHaveClass('truncate', 'min-w-0', 'flex-1');
+      expect(screen.queryByText('Instalación')).not.toBeInTheDocument();
+      expect(screen.queryByText('Carlos Ruiz')).not.toBeInTheDocument();
+    });
+
+    it('mediano: hora y cliente, sin servicio ni técnico', () => {
+      const { container } = render(<EventBlock {...base} bodyHeight={75} />);
+
+      const body = container.querySelector('[data-slot="event-body"]')!;
+      expect(body).toHaveClass('flex-col', 'overflow-hidden');
+      expect(screen.getByText('08:00–09:30')).toBeInTheDocument();
+      expect(screen.getByText('Pendiente')).toBeInTheDocument();
+      expect(screen.getByText('Ana Pérez')).toBeInTheDocument();
+      expect(screen.queryByText('Instalación')).not.toBeInTheDocument();
+      expect(screen.queryByText('Carlos Ruiz')).not.toBeInTheDocument();
+    });
+
+    it('completo: suma servicio y técnico', () => {
+      render(<EventBlock {...base} bodyHeight={120} />);
+
+      expect(screen.getByText('Instalación')).toBeInTheDocument();
+      expect(screen.getByText('Carlos Ruiz')).toBeInTheDocument();
+    });
+
+    it('en cualquier versión el tooltip conserva todos los datos', async () => {
+      render(<EventBlock {...base} bodyHeight={40} />);
+
+      await userEvent.hover(screen.getByRole('button'));
+
+      const tooltip = await screen.findByRole('tooltip');
+      expect(tooltip).toHaveTextContent('Instalación');
+      expect(tooltip).toHaveTextContent('Carlos Ruiz');
+    });
   });
 
   it('avisa al pulsarlo', async () => {

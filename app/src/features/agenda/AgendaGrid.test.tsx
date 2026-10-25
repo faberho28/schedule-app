@@ -299,13 +299,32 @@ describe('AgendaGrid: encabezado del día', () => {
 
       const today = within(screen.getByRole('region', { name: 'mié 4 nov' }));
       expect(today.getByText('4')).toHaveClass(
-        'size-8',
         'rounded-full',
         'bg-primary',
         'text-primary-foreground',
       );
       const other = within(screen.getByRole('region', { name: 'jue 5 nov' }));
       expect(other.getByText('5')).not.toHaveClass('bg-primary');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('todos los encabezados miden lo mismo y centran el número en un contenedor de 32 px', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-04T15:00:00Z'));
+    try {
+      renderGrid({ view: 'week', days: WEEK });
+
+      for (const [region, number] of [
+        ['mié 4 nov', '4'],
+        ['jue 5 nov', '5'],
+      ] as const) {
+        const section = within(screen.getByRole('region', { name: region }));
+        const circle = section.getByText(number);
+        expect(circle).toHaveClass('size-8', 'flex', 'items-center', 'justify-center');
+        expect(circle.closest('h2')!.parentElement).toHaveClass('h-14');
+      }
     } finally {
       vi.useRealTimers();
     }

@@ -10,7 +10,8 @@ import { AgendaDatePicker } from './AgendaDatePicker';
  * Botones unidos del grupo de navegación (anterior, Hoy, siguiente): solo los extremos redondean.
  * Miden 44 px en pantallas táctiles y 40 px desde 1024 px, donde se usa el puntero.
  */
-const JOINED = 'min-h-11 rounded-none first:rounded-l-lg last:rounded-r-lg lg:h-10 lg:min-h-10';
+const JOINED =
+  'min-h-11 rounded-none not-first:-ml-px first:rounded-l-lg last:rounded-r-lg lg:h-10 lg:min-h-10';
 const JOINED_ICON = `${JOINED} lg:size-10`;
 
 type AgendaToolbarProps = {
@@ -19,7 +20,7 @@ type AgendaToolbarProps = {
   date: LocalDate;
   /** Falso en "Por cerrar", que ignora la fecha. */
   showDateControls: boolean;
-  /** Título del rango visible, junto a la navegación (por ejemplo `19 – 25 oct 2026`). */
+  /** Título de la vista, junto a la navegación (por ejemplo `19 – 25 oct 2026` o `Por cerrar`). */
   rangeLabel?: string;
   onViewChange(view: AgendaView): void;
   onShift(step: 1 | -1): void;
@@ -61,7 +62,7 @@ export function AgendaToolbar({
           <div role="group" aria-label="Navegación de la agenda" className="flex items-center">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="icon"
               className={JOINED_ICON}
               aria-label={view === 'day' ? 'Día anterior' : 'Semana anterior'}
@@ -69,18 +70,12 @@ export function AgendaToolbar({
             >
               <ChevronLeft aria-hidden="true" />
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className={JOINED}
-              onClick={onToday}
-            >
+            <Button type="button" variant="outline" size="sm" className={JOINED} onClick={onToday}>
               Hoy
             </Button>
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="icon"
               className={JOINED_ICON}
               aria-label={view === 'day' ? 'Día siguiente' : 'Semana siguiente'}
@@ -91,10 +86,18 @@ export function AgendaToolbar({
           </div>
         ) : null}
 
-        {showDateControls && rangeLabel ? (
-          <p aria-live="polite" className="text-xl font-semibold whitespace-nowrap">
-            {rangeLabel}
-          </p>
+        {rangeLabel ? (
+          // En escritorio es el único título de la vista; en móvil el encabezado de la pantalla ya
+          // cumple ese papel.
+          isDesktop ? (
+            <h1 aria-live="polite" className="text-xl font-semibold whitespace-nowrap">
+              {rangeLabel}
+            </h1>
+          ) : (
+            <p aria-live="polite" className="text-xl font-semibold whitespace-nowrap">
+              {rangeLabel}
+            </p>
+          )
         ) : null}
 
         <div className="ml-auto flex flex-wrap items-center gap-2">

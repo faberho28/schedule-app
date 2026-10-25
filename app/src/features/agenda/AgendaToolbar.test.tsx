@@ -63,10 +63,38 @@ describe('AgendaToolbar', () => {
     expect(navigation.nextElementSibling).toBe(title);
   });
 
+  it('en escritorio el título es el encabezado de nivel 1 de la vista', () => {
+    renderToolbar({ rangeLabel: '19 – 25 oct 2026' });
+
+    expect(screen.getByRole('heading', { level: 1, name: '19 – 25 oct 2026' })).toBeInTheDocument();
+  });
+
+  it('en móvil el título no es un encabezado: la pantalla ya tiene el suyo', () => {
+    renderToolbar({ isDesktop: false, rangeLabel: 'Vie 6 nov 2026' });
+
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.getByText('Vie 6 nov 2026')).toBeInTheDocument();
+  });
+
+  it('muestra el título aunque la fecha no aplique (Por cerrar)', () => {
+    renderToolbar({ showDateControls: false, rangeLabel: 'Por cerrar' });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Por cerrar' })).toBeInTheDocument();
+  });
+
   it('sin rango no dibuja el título', () => {
     renderToolbar();
 
     expect(screen.queryByText(/–/)).not.toBeInTheDocument();
+  });
+
+  it('todos los controles comparten el estilo outline: navegación sobre tarjeta con borde', () => {
+    renderToolbar();
+
+    for (const name of ['Semana anterior', 'Hoy', 'Semana siguiente', /^Fecha:/]) {
+      expect(screen.getByRole('button', { name })).toHaveClass('border', 'bg-card');
+    }
+    expect(screen.getByRole('group', { name: 'Vista' })).toHaveClass('h-10', 'bg-muted', 'p-1');
   });
 
   it('en escritorio ordena los controles: navegación, título, vista, técnicos, búsqueda, fecha y crear', () => {

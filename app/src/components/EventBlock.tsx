@@ -9,6 +9,20 @@ export type EventBlockStatus = {
   variant: React.ComponentProps<typeof Badge>['variant'];
 };
 
+/** Cuánto se muestra del servicio según el alto de su bloque. */
+export type EventDensity = 'compact' | 'medium' | 'full';
+
+/** Bajo este alto (px) el bloque cabe en una sola línea. */
+const COMPACT_BELOW = 60;
+/** Hasta este alto (px) se muestran la hora y el cliente; por encima, el servicio y el técnico. */
+const MEDIUM_UP_TO = 100;
+
+/** Versión del bloque para un alto en píxeles; sin alto conocido, la completa. */
+export function densityOf(heightPx: number): EventDensity {
+  if (heightPx < COMPACT_BELOW) return 'compact';
+  return heightPx <= MEDIUM_UP_TO ? 'medium' : 'full';
+}
+
 export type EventBlockProps = {
   /** Nombre accesible completo del bloque. */
   label: string;
@@ -27,6 +41,8 @@ export type EventBlockProps = {
   iconOnlyStatus?: boolean;
   /** Filas de la grilla que ocupa el servicio; 0 deja solo la cola de traslado. */
   bodyRows: number;
+  /** Alto en píxeles del cuerpo del servicio; sin él se muestra la versión completa. */
+  bodyHeight?: number;
   /** Filas del tiempo de traslado posterior, dibujadas como una franja rayada. */
   tailRows: number;
   onClick(): void;
@@ -34,8 +50,10 @@ export type EventBlockProps = {
 
 /**
  * Bloque de servicio de la grilla: fondo pastel, borde izquierdo de 3 px y texto oscuro del mismo
- * tono (tokens `--tech-N-*`). El color nunca va solo: lleva la hora, el estado con ícono y texto,
- * el cliente y el técnico con sus iniciales. La cola de traslado se ve como una franja rayada.
+ * tono (tokens `--tech-N-*`). El color nunca va solo: lleva la hora, el estado con ícono o texto,
+ * el cliente y, si cabe, el técnico con sus iniciales. Según su alto muestra todo, solo hora y
+ * cliente, o una única línea; el tooltip siempre conserva todos los datos. La cola de traslado se ve
+ * como una franja rayada tenue.
  */
 export function EventBlock({
   label,
@@ -51,10 +69,19 @@ export function EventBlock({
   closedEarly = false,
   iconOnlyStatus = false,
   bodyRows,
+  bodyHeight = Infinity,
   tailRows,
   onClick,
 }: EventBlockProps) {
   const StatusIcon = status.icon;
+  const density = densityOf(bodyHeight);
+  const timeText = (
+    <span className="text-xs font-semibold whitespace-nowrap tabular-nums">{time}</span>
+  );
+  const statusIcon = (
+    <StatusIcon role="img" aria-label={status.label} className="size-3 shrink-0" />
+  );
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -76,55 +103,82 @@ export function EventBlock({
           >
             {bodyRows > 0 ? (
               <span
-                className="flex min-h-0 flex-col gap-0.5 overflow-hidden px-2 py-1"
+                data-slot="event-body"
+                data-density={density}
+                className={cn(
+                  'flex min-h-0 overflow-hidden px-2 py-1',
+                  density === 'compact' ? 'flex-row items-center gap-1.5' : 'flex-col gap-0.5',
+                )}
                 style={{ flex: `${bodyRows} 1 0` }}
               >
-                <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  <span className="text-xs font-semibold whitespace-nowrap tabular-nums">
-                    {time}
-                  </span>
-                  {iconOnlyStatus ? (
-                    <StatusIcon role="img" aria-label={status.label} className="size-3 shrink-0" />
-                  ) : (
-                    <Badge
-                      variant={status.variant}
-                      className="h-5 rounded-full px-1.5 py-0 text-[10px]"
+                {density === 'compact' ? (
+                  <>
+                    {timeText}
+                    {statusIcon}
+                    <span
+                      className={cn(
+                        'min-w-0 flex-1 truncate text-[13px] font-semibold',
+                        cancelled && 'line-through',
+                      )}
                     >
-                      <StatusIcon aria-hidden="true" />
-                      {status.label}
-                    </Badge>
-                  )}
-                </span>
-                <span
-                  className={cn('truncate text-[13px] font-semibold', cancelled && 'line-through')}
-                >
-                  {customer}
-                </span>
-                {/* Bajo ~120 px de ancho no caben; el tooltip los ofrece al pasar el cursor. */}
-                <span
-                  data-slot="event-details"
-                  className="hidden min-w-0 flex-col gap-0.5 @[120px]/event:flex"
-                >
-                  <span className="truncate">{serviceName}</span>
-                  <span className="flex min-w-0 items-center gap-1">
-                    <span className="shrink-0 rounded bg-card/60 px-1 font-semibold">
-                      {technicianInitials}
+                      {customer}
                     </span>
-                    <span className="truncate">{technicianName}</span>
-                  </span>
-                </span>
-                {technicianChanged ? (
-                  <span className="flex items-center gap-1">
-                    <ArrowLeftRight aria-hidden="true" className="size-3.5 shrink-0" />
-                    Técnico cambiado
-                  </span>
-                ) : null}
-                {closedEarly ? (
-                  <span className="flex items-center gap-1">
-                    <FastForward aria-hidden="true" className="size-3.5 shrink-0" />
-                    Cierre anticipado
-                  </span>
-                ) : null}
+                  </>
+                ) : (
+                  <>
+                    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      {timeText}
+                      {iconOnlyStatus ? (
+                        statusIcon
+                      ) : (
+                        <Badge
+                          variant={status.variant}
+                          className="h-5 rounded-full px-1.5 py-0 text-[10px]"
+                        >
+                          <StatusIcon aria-hidden="true" />
+                          {status.label}
+                        </Badge>
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        'truncate text-[13px] font-semibold',
+                        cancelled && 'line-through',
+                      )}
+                    >
+                      {customer}
+                    </span>
+                    {density === 'full' ? (
+                      <>
+                        {/* Bajo ~120 px de ancho no caben; el tooltip los ofrece al pasar el cursor. */}
+                        <span
+                          data-slot="event-details"
+                          className="hidden min-w-0 flex-col gap-0.5 @[120px]/event:flex"
+                        >
+                          <span className="truncate">{serviceName}</span>
+                          <span className="flex min-w-0 items-center gap-1">
+                            <span className="shrink-0 rounded bg-card/60 px-1 font-semibold">
+                              {technicianInitials}
+                            </span>
+                            <span className="truncate">{technicianName}</span>
+                          </span>
+                        </span>
+                        {technicianChanged ? (
+                          <span className="flex items-center gap-1">
+                            <ArrowLeftRight aria-hidden="true" className="size-3.5 shrink-0" />
+                            Técnico cambiado
+                          </span>
+                        ) : null}
+                        {closedEarly ? (
+                          <span className="flex items-center gap-1">
+                            <FastForward aria-hidden="true" className="size-3.5 shrink-0" />
+                            Cierre anticipado
+                          </span>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </>
+                )}
               </span>
             ) : null}
             {tailRows > 0 ? (
@@ -132,7 +186,7 @@ export function EventBlock({
                 aria-hidden="true"
                 data-slot="event-tail"
                 title="Tiempo de traslado"
-                className="border-t border-dashed border-current/40 opacity-60"
+                className="opacity-30"
                 style={{
                   flex: `${tailRows} 1 0`,
                   backgroundImage:
@@ -147,6 +201,8 @@ export function EventBlock({
           <span>{serviceName}</span>
           <span>{technicianName}</span>
           <span>{status.label}</span>
+          {technicianChanged ? <span>Técnico cambiado</span> : null}
+          {closedEarly ? <span>Cierre anticipado</span> : null}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

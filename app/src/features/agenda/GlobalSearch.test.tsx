@@ -132,6 +132,14 @@ describe('GlobalSearch: estados', () => {
     expect(input).not.toHaveFocus();
     expect(input).toHaveClass('lg:h-10', 'focus-visible:ring-2', 'focus-visible:ring-ring/20');
   });
+
+  it('usa el mismo estilo outline que el resto de la barra: tarjeta con borde', () => {
+    serve({ customers: [], services: [] });
+    const { input } = setup();
+
+    expect(input).toHaveClass('bg-card', 'border');
+    expect(input).not.toHaveClass('bg-muted', 'border-transparent');
+  });
 });
 
 describe('GlobalSearch: filas', () => {

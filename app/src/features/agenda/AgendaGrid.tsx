@@ -287,7 +287,7 @@ function DaySection({
       )}
     >
       <div className={DAY_HEADER}>
-        <h2 id={id} className="flex flex-col items-start leading-none">
+        <h2 id={id} className="flex flex-col items-start gap-0.5 leading-none">
           <span className="sr-only">{dayLabel}</span>
           <span
             aria-hidden="true"
@@ -295,12 +295,12 @@ function DaySection({
           >
             {weekday}
           </span>
+          {/* Hoy solo cambia el fondo del círculo: el alto y la alineación son los de cualquier día. */}
           <span
             aria-hidden="true"
             className={cn(
-              'mt-1 text-[22px] font-semibold tabular-nums',
-              isToday &&
-                'grid size-8 place-items-center rounded-full bg-primary text-base text-primary-foreground',
+              'flex size-8 items-center justify-center rounded-full text-lg font-semibold tabular-nums',
+              isToday && 'bg-primary text-primary-foreground',
             )}
           >
             {number}
@@ -338,6 +338,7 @@ function DaySection({
               appointment={appointment}
               technician={technician}
               geometry={geometry}
+              rowMinutes={rowMinutes}
               timeZone={timeZone}
               onSelect={onAppointmentSelect}
             />
@@ -381,6 +382,7 @@ type AppointmentCardProps = {
   appointment: AgendaAppointment;
   technician: GridTechnician;
   geometry: BlockGeometry;
+  rowMinutes: number;
   timeZone: string;
   onSelect(id: string): void;
 };
@@ -389,6 +391,7 @@ function AppointmentCard({
   appointment,
   technician,
   geometry,
+  rowMinutes,
   timeZone,
   onSelect,
 }: AppointmentCardProps) {
@@ -423,6 +426,7 @@ function AppointmentCard({
       technicianChanged={appointment.technicianChanged}
       closedEarly={appointment.closedEarly}
       bodyRows={geometry.bodyRows}
+      bodyHeight={geometry.bodyRows * rowMinutes * PX_PER_MINUTE}
       tailRows={geometry.tailRows}
       onClick={() => onSelect(appointment.id)}
     />

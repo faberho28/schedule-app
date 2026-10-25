@@ -10,6 +10,7 @@ import { useTechnicians } from '@/features/settings/technicians-api';
 import type { components } from '@/shared/api/schema';
 import { formatRangeLabel, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
+import { cn } from '@/shared/lib/utils';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import {
@@ -58,10 +59,13 @@ type AgendaPageProps = {
 
 export function AgendaPage(props: AgendaPageProps) {
   const business = useBusiness();
+  const isDesktop = useIsDesktop();
 
   return (
     <section className="flex flex-col gap-4">
-      <PageHeader title="Agenda" />
+      {/* En escritorio la barra abre la página y el rango es su título; en móvil el encabezado
+          conserva "Volver". */}
+      {isDesktop ? null : <PageHeader title="Agenda" />}
       {business.isPending ? <p>Cargando agenda…</p> : null}
       {business.isError ? (
         <ErrorNotice error={business.error} onRetry={() => void business.refetch()} />
@@ -222,7 +226,7 @@ function AgendaScreen({
         view={view}
         date={date}
         showDateControls={!toCloseMode}
-        rangeLabel={formatRangeLabel(from, to)}
+        rangeLabel={toCloseMode ? 'Por cerrar' : formatRangeLabel(from, to)}
         onViewChange={(next) => go({ view: next })}
         onShift={(step) => go({ date: shiftDate(view, date, step) })}
         onToday={() => go({ date: today() })}
@@ -252,7 +256,8 @@ function AgendaScreen({
         }
       />
 
-      <p role="status" className="min-h-5 text-sm font-medium">
+      {/* Región de anuncio siempre presente; sin aviso no ocupa lugar entre la barra y la grilla. */}
+      <p role="status" className={cn('text-sm font-medium', notice === '' && 'sr-only')}>
         {notice}
       </p>
 

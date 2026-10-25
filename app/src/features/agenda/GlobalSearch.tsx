@@ -145,7 +145,7 @@ export function GlobalSearch({ timeZone }: { timeZone: string }) {
             role="combobox"
             type="text"
             autoComplete="off"
-            className="min-h-11 rounded-lg border-transparent bg-muted pl-9 focus-visible:ring-2 focus-visible:ring-ring/20 lg:h-10 lg:min-h-10"
+            className="min-h-11 rounded-lg pl-9 focus-visible:ring-2 focus-visible:ring-ring/20 lg:h-10 lg:min-h-10"
             placeholder="Buscar servicio o cliente"
             maxLength={SEARCH_MAX_LENGTH}
             value={term}
