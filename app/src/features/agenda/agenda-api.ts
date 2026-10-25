@@ -10,6 +10,7 @@ import type { LocalDate } from '@/shared/lib/dates';
 export const appointmentKeys = {
   all: ['appointments'] as const,
   range: (from: LocalDate, to: LocalDate) => ['appointments', 'range', { from, to }] as const,
+  detail: (id: string) => ['appointments', 'detail', id] as const,
 };
 
 /** Citas de un rango de días locales (ambos incluidos, hasta 62 días), canceladas incluidas. */

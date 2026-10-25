@@ -81,7 +81,7 @@ export function EraseCustomerDialog({
                     </span>
                     <Link
                       className="self-start text-primary underline underline-offset-4"
-                      to={`/agenda?view=day&date=${localDateOf(appointment.starts_at, timeZone)}`}
+                      to={`/agenda?view=day&date=${localDateOf(appointment.starts_at, timeZone)}&appointment=${appointment.id}`}
                     >
                       Abrir en la agenda
                       <span className="sr-only">

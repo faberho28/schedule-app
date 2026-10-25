@@ -31,6 +31,19 @@ export function useSlots(params: SlotsParams | null) {
   });
 }
 
+/**
+ * Un servicio por su identificador (`GET /appointments/:id`), para abrir su ficha por enlace cuando
+ * no está en el rango cargado. Con `null` o `enabled: false` no pide nada (y conserva lo ya
+ * cargado). Un id inexistente falla con `not_found`.
+ */
+export function useAppointment(id: string | null, { enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: appointmentKeys.detail(id ?? ''),
+    queryFn: () => unwrap(apiClient.GET('/appointments/{id}', { params: { path: { id: id! } } })),
+    enabled: id !== null && enabled,
+  });
+}
+
 /** Servicios que se pueden agendar: solo los activos. */
 export function useBookableServices() {
   return useQuery({

@@ -1,9 +1,12 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppointmentFlows, type AppointmentFlow } from '@/features/appointments/AppointmentFlows';
+import { useAppointment } from '@/features/appointments/appointments-api';
+import { ApiError } from '@/shared/api/errors';
+import { useIsDesktop } from '@/shared/lib/use-media-query';
 import { useBusiness } from '@/features/settings/business-api';
 import { useTechnicians } from '@/features/settings/technicians-api';
 import type { components } from '@/shared/api/schema';
@@ -14,7 +17,13 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { AgendaGrid, type AgendaAppointment, type AgendaTechnician } from './AgendaGrid';
 import { visibleHoursFor } from './agenda-layout';
 import { useAppointments } from './agenda-api';
-import { daysOf, parseAgendaParams, shiftDate, type AgendaView } from './agenda-params';
+import {
+  daysOf,
+  parseAgendaParams,
+  serializeAgendaParams,
+  shiftDate,
+  type AgendaView,
+} from './agenda-params';
 
 type Appointment = components['schemas']['Appointment'];
 type Technician = components['schemas']['Technician'];
@@ -47,8 +56,10 @@ function AgendaScreen({
   onEmptyCellSelect,
 }: AgendaPageProps & { timeZone: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const isDesktop = useIsDesktop();
   const today = () => localDateOf(new Date().toISOString(), timeZone);
-  const { view, date } = parseAgendaParams(searchParams, today());
+  const params = parseAgendaParams(searchParams, today(), isDesktop);
+  const { view, date } = params;
   const days = daysOf(view, date);
   const from = days[0]!;
   const to = days[days.length - 1]!;
@@ -57,8 +68,48 @@ function AgendaScreen({
   const appointments = useAppointments(from, to);
   const [flow, setFlow] = useState<AppointmentFlow | null>(null);
   const [notice, setNotice] = useState('');
+
+  // Servicio pedido por enlace: se busca primero en el rango cargado y, si no está, por su id.
+  const linkedId = params.appointment;
+  const loadedLinked = appointments.data?.some((item) => item.id === linkedId) ?? false;
+  // Al sustituir la fecha el rango se vuelve a cargar; lo ya traído por id se conserva en caché.
+  const linked = useAppointment(linkedId, {
+    enabled: appointments.data !== undefined && !loadedLinked,
+  });
+  const linkedDay = linked.data ? localDateOf(linked.data.starts_at, timeZone) : null;
+  const needsLinkedDay = linkedDay !== null && !days.includes(linkedDay);
+  useEffect(() => {
+    if (!needsLinkedDay || linkedDay === null) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('date', linkedDay);
+    setSearchParams(next, { replace: true });
+  }, [needsLinkedDay, linkedDay, searchParams, setSearchParams]);
+  const linkedNotFound = linked.error instanceof ApiError && linked.error.code === 'not_found';
+  const knownAppointments = [
+    ...(appointments.data ?? []),
+    ...(linked.data && !loadedLinked ? [linked.data] : []),
+  ];
+
+  const currentFlow: AppointmentFlow | null =
+    flow ?? (linkedId !== null ? { kind: 'detail', id: linkedId } : null);
+  const changeFlow = (next: AppointmentFlow | null) => {
+    setFlow(next);
+    if (next === null && linkedId !== null) {
+      const cleaned = new URLSearchParams(searchParams);
+      cleaned.delete('appointment');
+      setSearchParams(cleaned, { replace: true });
+    }
+  };
+  // Navegar a otro día o vista suelta el enlace al servicio.
   const go = (next: { view?: AgendaView; date?: LocalDate }) =>
-    setSearchParams({ view: next.view ?? view, date: next.date ?? date });
+    setSearchParams(
+      serializeAgendaParams({
+        ...params,
+        view: next.view ?? view,
+        date: next.date ?? date,
+        appointment: null,
+      }),
+    );
   const open = (next: AppointmentFlow | null) => {
     setNotice('');
     setFlow(next);
@@ -68,14 +119,16 @@ function AgendaScreen({
   return (
     <>
       <div className="flex flex-wrap items-end gap-3">
-        <div role="group" aria-label="Vista" className="flex gap-1">
-          <ViewButton current={view} value="day" onSelect={(next) => go({ view: next })}>
-            Día
-          </ViewButton>
-          <ViewButton current={view} value="week" onSelect={(next) => go({ view: next })}>
-            Semana
-          </ViewButton>
-        </div>
+        {isDesktop ? (
+          <div role="group" aria-label="Vista" className="flex gap-1">
+            <ViewButton current={view} value="day" onSelect={(next) => go({ view: next })}>
+              Día
+            </ViewButton>
+            <ViewButton current={view} value="week" onSelect={(next) => go({ view: next })}>
+              Semana
+            </ViewButton>
+          </div>
+        ) : null}
 
         <div role="group" aria-label="Navegación de la agenda" className="flex items-center gap-1">
           <Button
@@ -128,6 +181,11 @@ function AgendaScreen({
         {view === 'day' ? formatDayLabel(from) : `${formatDayLabel(from)} – ${formatDayLabel(to)}`}
       </p>
 
+      {linkedNotFound ? <p role="alert">No se encontró el servicio</p> : null}
+      {linked.isError && !linkedNotFound ? (
+        <ErrorNotice error={linked.error} onRetry={() => void linked.refetch()} />
+      ) : null}
+
       {technicians.isPending || appointments.isPending ? <p>Cargando agenda…</p> : null}
       {technicians.isError || appointments.isError ? (
         <ErrorNotice
@@ -154,14 +212,14 @@ function AgendaScreen({
       ) : null}
 
       <AppointmentFlows
-        flow={flow}
-        appointments={appointments.data ?? []}
+        flow={currentFlow}
+        appointments={knownAppointments}
         technicians={technicians.data ?? []}
         timeZone={timeZone}
         defaultDay={date}
-        onFlowChange={setFlow}
+        onFlowChange={changeFlow}
         onDone={(message) => {
-          setFlow(null);
+          changeFlow(null);
           setNotice(message);
         }}
       />

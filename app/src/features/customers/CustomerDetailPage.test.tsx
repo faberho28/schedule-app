@@ -709,8 +709,8 @@ describe('CustomerDetailPage: eliminar datos personales', () => {
 
       const links = await within(dialog).findAllByRole('link', { name: /Abrir en la agenda/ });
       expect(links.map((link) => link.getAttribute('href'))).toEqual([
-        '/agenda?view=day&date=2026-11-06',
-        '/agenda?view=day&date=2026-11-09',
+        `/agenda?view=day&date=2026-11-06&appointment=${IDS.apt1}`,
+        `/agenda?view=day&date=2026-11-09&appointment=${IDS.apt2}`,
       ]);
     });
 
