@@ -60,7 +60,7 @@ export function ScheduleConflictDialog({
           </DialogHeader>
           <ul className="flex flex-col gap-2">
             {state.reassigned.map(({ appointment, toTechnicianId }) => (
-              <li key={appointment.id} className="rounded-md border p-3 text-sm">
+              <li key={appointment.id} className="rounded-xl border border-border p-3 text-sm">
                 {describeAppointment(appointment, timeZone)}
                 <span className="block font-medium">
                   Ahora la atiende {technicianNameOf(toTechnicianId)}
@@ -102,7 +102,7 @@ export function ScheduleConflictDialog({
             {preview.affected.map((appointment) => {
               const target = proposalFor(appointment.id)?.to_technician_id ?? null;
               return (
-                <li key={appointment.id} className="rounded-md border p-3 text-sm">
+                <li key={appointment.id} className="rounded-xl border border-border p-3 text-sm">
                   {describeAppointment(appointment, timeZone)}
                   {target === null ? (
                     <span className="block font-medium text-destructive">

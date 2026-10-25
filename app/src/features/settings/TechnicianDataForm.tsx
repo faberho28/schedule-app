@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Notice } from '@/shared/ui/Notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { components } from '@/shared/api/schema';
@@ -52,7 +53,7 @@ export function TechnicianDataForm({ technician }: { technician: Technician }) {
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">Datos</h2>
+      <h2 className="text-base font-semibold">Datos</h2>
       <FormField label="Nombre" error={clientError ?? apiFields.name}>
         {(control) => (
           <Input
@@ -79,9 +80,7 @@ export function TechnicianDataForm({ technician }: { technician: Technician }) {
       <Button type="submit" disabled={update.isPending} className="self-start">
         Guardar datos
       </Button>
-      <p role="status" className="text-sm font-medium text-status-completed-foreground">
-        {saved ? 'Datos guardados' : null}
-      </p>
+      <Notice tone="success">{saved ? 'Datos guardados' : null}</Notice>
     </form>
   );
 }

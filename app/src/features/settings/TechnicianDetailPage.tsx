@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Notice } from '@/shared/ui/Notice';
 import { Navigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { technicianLabel } from '@/shared/lib/people';
@@ -71,7 +72,7 @@ export function TechnicianDetailPage() {
           <TechnicianDataForm key={current.id} technician={current} />
 
           <section className="flex flex-col gap-3" aria-labelledby="state-title">
-            <h2 id="state-title" className="text-lg font-semibold">
+            <h2 id="state-title" className="text-base font-semibold">
               Estado
             </h2>
             <p>{current.active ? 'Activo' : 'Inactivo'}</p>
@@ -90,9 +91,7 @@ export function TechnicianDetailPage() {
           </section>
 
           {flow.error ? <ErrorNotice error={flow.error} /> : null}
-          <p role="status" className="text-sm font-medium text-status-completed-foreground">
-            {notice}
-          </p>
+          <Notice tone="success">{notice}</Notice>
 
           <AvailabilityEditor
             key={`availability-${appliedCount}`}
@@ -115,7 +114,7 @@ export function TechnicianDetailPage() {
           ) : null}
 
           <section className="flex flex-col gap-3" aria-labelledby="erase-title">
-            <h2 id="erase-title" className="text-lg font-semibold">
+            <h2 id="erase-title" className="text-base font-semibold">
               Eliminar técnico
             </h2>
             <p className="text-sm text-muted-foreground">

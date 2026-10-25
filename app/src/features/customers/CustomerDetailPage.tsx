@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Notice } from '@/shared/ui/Notice';
 import { Link, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { useBusiness } from '@/features/settings/business-api';
@@ -60,10 +62,8 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
 
   return (
     <>
-      <h2 className="text-lg font-semibold">{customerRecordLabel(customer)}</h2>
-      <p role="status" className="text-sm font-medium text-status-completed-foreground">
-        {notice}
-      </p>
+      <h2 className="text-base font-semibold">{customerRecordLabel(customer)}</h2>
+      <Notice tone="success">{notice}</Notice>
 
       {erased ? (
         <p className="text-sm text-muted-foreground">
@@ -80,13 +80,11 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
           />
 
           <section className="flex flex-col gap-3" aria-labelledby="consent-title">
-            <h2 id="consent-title" className="text-lg font-semibold">
+            <h2 id="consent-title" className="text-base font-semibold">
               Consentimiento
             </h2>
             <p>
-              <span className="rounded-full bg-muted px-2.5 py-1 text-sm font-medium">
-                {status.label}
-              </span>
+              <Badge variant="neutral">{status.label}</Badge>
               {customer.consent_at && timeZone && customer.consent_status !== 'pending'
                 ? ` desde el ${formatDate(customer.consent_at, timeZone)}`
                 : null}
@@ -124,7 +122,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
       ) : null}
 
       <section className="flex flex-col gap-3" aria-labelledby="audit-title">
-        <h2 id="audit-title" className="text-lg font-semibold">
+        <h2 id="audit-title" className="text-base font-semibold">
           Autorizaciones registradas
         </h2>
         {consents.isError ? (
@@ -138,7 +136,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="history-title">
-        <h2 id="history-title" className="text-lg font-semibold">
+        <h2 id="history-title" className="text-base font-semibold">
           Historial de servicios
         </h2>
         {timeZone ? (
@@ -150,7 +148,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
 
       {erased ? null : (
         <section className="flex flex-col gap-3" aria-labelledby="erase-title">
-          <h2 id="erase-title" className="text-lg font-semibold">
+          <h2 id="erase-title" className="text-base font-semibold">
             Eliminar datos personales
           </h2>
           <p className="text-sm text-muted-foreground">

@@ -43,7 +43,7 @@ export function ServiceHistory({
         return (
           <li
             key={appointment.id}
-            className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 text-sm text-card-foreground"
+            className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 shadow-xs text-sm text-card-foreground"
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="font-semibold">
