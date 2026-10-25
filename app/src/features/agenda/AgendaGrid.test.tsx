@@ -131,7 +131,7 @@ describe('AgendaGrid: vista de día', () => {
     // bloques se calculan sobre una columna más ancha que el día.
     expect(screen.getByRole('list')).toHaveClass('grid-cols-[minmax(0,1fr)]');
     for (const item of screen.getAllByRole('listitem')) {
-      expect(item).toHaveClass('min-w-0', 'px-px');
+      expect(item).toHaveClass('min-w-0', 'p-px');
     }
   });
 
@@ -323,7 +323,12 @@ describe('AgendaGrid: tarjetas', () => {
     renderGrid({ appointments: [appointment({ status })] });
 
     const button = screen.getByRole('button', { name: /Ana Pérez/ });
-    expect(within(button).getByText(label)).toBeInTheDocument();
+    // El confirmado es solo un ícono de 12 px con su nombre accesible; los demás llevan insignia.
+    if (status === 'confirmed') {
+      expect(within(button).getByRole('img', { name: label })).toBeInTheDocument();
+    } else {
+      expect(within(button).getByText(label)).toBeInTheDocument();
+    }
     expect(button).toHaveAccessibleName(expect.stringContaining(label));
   });
 
@@ -339,7 +344,7 @@ describe('AgendaGrid: tarjetas', () => {
     renderGrid({ appointments: [appointment()] });
 
     const button = screen.getByRole('button', { name: /Ana Pérez/ });
-    expect(within(button).getByText('08:00 – 09:30')).toBeInTheDocument();
+    expect(within(button).getByText('08:00–09:30')).toBeInTheDocument();
     expect(within(button).getByText('Ana Pérez')).toBeInTheDocument();
     expect(within(button).getByText('Mantenimiento de aire')).toBeInTheDocument();
   });

@@ -1,13 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Clock } from 'lucide-react';
+import { CircleCheck, Clock } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 import { EventBlock, type EventBlockProps } from './EventBlock';
 
 const base: EventBlockProps = {
   label: 'Bloque de prueba',
   colorIndex: 3,
-  time: '08:00 – 09:30',
+  time: '08:00–09:30',
   customer: 'Ana Pérez',
   serviceName: 'Instalación',
   technicianName: 'Carlos Ruiz',
@@ -34,7 +34,11 @@ describe('EventBlock', () => {
   it('muestra hora, estado con ícono y texto, cliente, servicio y técnico (nunca solo color)', () => {
     render(<EventBlock {...base} />);
 
-    expect(screen.getByText('08:00 – 09:30')).toHaveClass('tabular-nums', 'font-semibold');
+    expect(screen.getByText('08:00–09:30')).toHaveClass(
+      'tabular-nums',
+      'font-semibold',
+      'whitespace-nowrap',
+    );
     expect(screen.getByText('Pendiente')).toBeInTheDocument();
     expect(screen.getByText('Ana Pérez')).toHaveClass('font-semibold');
     expect(screen.getByText(/Instalación/)).toBeInTheDocument();
@@ -65,6 +69,61 @@ describe('EventBlock', () => {
 
     rerender(<EventBlock {...base} bodyRows={0} tailRows={2} />);
     expect(screen.queryByText('Ana Pérez')).not.toBeInTheDocument();
+  });
+
+  it('el cliente se trunca en una línea y el servicio y el técnico se ocultan en bloques angostos', () => {
+    const { container } = render(<EventBlock {...base} />);
+
+    expect(screen.getByText('Ana Pérez')).toHaveClass('truncate', 'font-semibold');
+    expect(screen.getByRole('button')).toHaveClass('@container/event');
+    // Bajo ~120 px de ancho del bloque solo quedan hora, estado y cliente.
+    expect(container.querySelector('[data-slot="event-details"]')).toHaveClass(
+      'hidden',
+      '@[120px]/event:flex',
+    );
+  });
+
+  it('muestra el cliente, el servicio y el técnico en un tooltip al pasar el cursor', async () => {
+    render(<EventBlock {...base} />);
+
+    await userEvent.hover(screen.getByRole('button'));
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Ana Pérez');
+    expect(tooltip).toHaveTextContent('Instalación');
+    expect(tooltip).toHaveTextContent('Carlos Ruiz');
+  });
+
+  it('un servicio confirmado muestra solo un ícono de 12 px, sin insignia de ancho completo', () => {
+    render(
+      <EventBlock
+        {...base}
+        iconOnlyStatus
+        status={{ label: 'Confirmado', icon: CircleCheck, variant: 'blue' }}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Confirmado' })).toHaveClass('size-3');
+    expect(screen.queryByText('Confirmado')).not.toBeInTheDocument();
+  });
+
+  it('los demás estados usan una insignia compacta con ícono y texto', () => {
+    render(<EventBlock {...base} />);
+
+    expect(screen.getByText('Pendiente')).toHaveClass(
+      'h-5',
+      'px-1.5',
+      'text-[10px]',
+      'rounded-full',
+    );
+  });
+
+  it('la zona de traslado es secundaria y se explica con un tooltip', () => {
+    const { container } = render(<EventBlock {...base} tailRows={2} />);
+
+    const tail = container.querySelector('[data-slot="event-tail"]');
+    expect(tail).toHaveClass('opacity-60');
+    expect(tail).toHaveAttribute('title', 'Tiempo de traslado');
   });
 
   it('avisa al pulsarlo', async () => {

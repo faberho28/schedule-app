@@ -1,5 +1,6 @@
 import { ArrowLeftRight, FastForward, type LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/shared/lib/utils';
 
 export type EventBlockStatus = {
@@ -22,6 +23,8 @@ export type EventBlockProps = {
   cancelled?: boolean;
   technicianChanged?: boolean;
   closedEarly?: boolean;
+  /** Muestra solo el ícono del estado (sin insignia); el texto queda en el nombre accesible y el tooltip. */
+  iconOnlyStatus?: boolean;
   /** Filas de la grilla que ocupa el servicio; 0 deja solo la cola de traslado. */
   bodyRows: number;
   /** Filas del tiempo de traslado posterior, dibujadas como una franja rayada. */
@@ -46,75 +49,106 @@ export function EventBlock({
   cancelled = false,
   technicianChanged = false,
   closedEarly = false,
+  iconOnlyStatus = false,
   bodyRows,
   tailRows,
   onClick,
 }: EventBlockProps) {
   const StatusIcon = status.icon;
   return (
-    <button
-      type="button"
-      aria-label={label}
-      data-color-index={colorIndex}
-      onClick={onClick}
-      className={cn(
-        'flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md border-l-[3px] text-left text-xs transition-shadow duration-150 outline-none hover:shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring/40 motion-reduce:transition-none',
-        cancelled && 'opacity-70',
-      )}
-      style={{
-        backgroundColor: `var(--tech-${colorIndex}-bg)`,
-        color: `var(--tech-${colorIndex}-text)`,
-        borderLeftColor: `var(--tech-${colorIndex}-border)`,
-      }}
-    >
-      {bodyRows > 0 ? (
-        <span
-          className="flex min-h-0 flex-col gap-0.5 overflow-hidden px-2 py-1"
-          style={{ flex: `${bodyRows} 1 0` }}
-        >
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="text-xs font-semibold tabular-nums">{time}</span>
-            <Badge variant={status.variant} className="rounded-md px-1.5 py-0 text-[11px]">
-              <StatusIcon aria-hidden="true" />
-              {status.label}
-            </Badge>
-          </span>
-          <span className={cn('truncate text-[13px] font-semibold', cancelled && 'line-through')}>
-            {customer}
-          </span>
-          <span className="truncate">{serviceName}</span>
-          <span className="flex min-w-0 items-center gap-1">
-            <span className="shrink-0 rounded bg-card/60 px-1 font-semibold">
-              {technicianInitials}
-            </span>
-            <span className="truncate">{technicianName}</span>
-          </span>
-          {technicianChanged ? (
-            <span className="flex items-center gap-1">
-              <ArrowLeftRight aria-hidden="true" className="size-3.5 shrink-0" />
-              Técnico cambiado
-            </span>
-          ) : null}
-          {closedEarly ? (
-            <span className="flex items-center gap-1">
-              <FastForward aria-hidden="true" className="size-3.5 shrink-0" />
-              Cierre anticipado
-            </span>
-          ) : null}
-        </span>
-      ) : null}
-      {tailRows > 0 ? (
-        <span
-          aria-hidden="true"
-          data-slot="event-tail"
-          className="border-t border-dashed border-current/40"
-          style={{
-            flex: `${tailRows} 1 0`,
-            backgroundImage:
-              'repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, currentColor 22%, transparent) 4px 8px)',
-          }}
-        />
-      ) : null}
-    </button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={label}
+            data-color-index={colorIndex}
+            onClick={onClick}
+            className={cn(
+              '@container/event flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md border-l-[3px] text-left text-xs transition-shadow duration-150 outline-none hover:shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring/40 motion-reduce:transition-none',
+              cancelled && 'opacity-70',
+            )}
+            style={{
+              backgroundColor: `var(--tech-${colorIndex}-bg)`,
+              color: `var(--tech-${colorIndex}-text)`,
+              borderLeftColor: `var(--tech-${colorIndex}-border)`,
+            }}
+          >
+            {bodyRows > 0 ? (
+              <span
+                className="flex min-h-0 flex-col gap-0.5 overflow-hidden px-2 py-1"
+                style={{ flex: `${bodyRows} 1 0` }}
+              >
+                <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  <span className="text-xs font-semibold whitespace-nowrap tabular-nums">
+                    {time}
+                  </span>
+                  {iconOnlyStatus ? (
+                    <StatusIcon role="img" aria-label={status.label} className="size-3 shrink-0" />
+                  ) : (
+                    <Badge
+                      variant={status.variant}
+                      className="h-5 rounded-full px-1.5 py-0 text-[10px]"
+                    >
+                      <StatusIcon aria-hidden="true" />
+                      {status.label}
+                    </Badge>
+                  )}
+                </span>
+                <span
+                  className={cn('truncate text-[13px] font-semibold', cancelled && 'line-through')}
+                >
+                  {customer}
+                </span>
+                {/* Bajo ~120 px de ancho no caben; el tooltip los ofrece al pasar el cursor. */}
+                <span
+                  data-slot="event-details"
+                  className="hidden min-w-0 flex-col gap-0.5 @[120px]/event:flex"
+                >
+                  <span className="truncate">{serviceName}</span>
+                  <span className="flex min-w-0 items-center gap-1">
+                    <span className="shrink-0 rounded bg-card/60 px-1 font-semibold">
+                      {technicianInitials}
+                    </span>
+                    <span className="truncate">{technicianName}</span>
+                  </span>
+                </span>
+                {technicianChanged ? (
+                  <span className="flex items-center gap-1">
+                    <ArrowLeftRight aria-hidden="true" className="size-3.5 shrink-0" />
+                    Técnico cambiado
+                  </span>
+                ) : null}
+                {closedEarly ? (
+                  <span className="flex items-center gap-1">
+                    <FastForward aria-hidden="true" className="size-3.5 shrink-0" />
+                    Cierre anticipado
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+            {tailRows > 0 ? (
+              <span
+                aria-hidden="true"
+                data-slot="event-tail"
+                title="Tiempo de traslado"
+                className="border-t border-dashed border-current/40 opacity-60"
+                style={{
+                  flex: `${tailRows} 1 0`,
+                  backgroundImage:
+                    'repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, currentColor 22%, transparent) 4px 8px)',
+                }}
+              />
+            ) : null}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="flex flex-col gap-0.5">
+          <span className="font-semibold">{customer}</span>
+          <span>{serviceName}</span>
+          <span>{technicianName}</span>
+          <span>{status.label}</span>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

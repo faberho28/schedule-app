@@ -7,6 +7,13 @@ import { installViewport, resetViewport } from './viewport';
 // jsdom no implementa `matchMedia`; el ancho por defecto es móvil (ver `viewport.ts`).
 installViewport();
 
+// jsdom no implementa `ResizeObserver`, que Radix usa al abrir tooltips y popovers.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Con la suite completa en paralelo, la primera carga de una pantalla con varias peticiones en
 // cadena (negocio, técnicos y citas) puede superar el plazo de 1 s por defecto de `findBy*`.
 configure({ asyncUtilTimeout: 4000 });

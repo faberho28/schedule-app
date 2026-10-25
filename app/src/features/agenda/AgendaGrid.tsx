@@ -324,7 +324,7 @@ function DaySection({
         {blocks.map(({ appointment, technician, geometry, position }) => (
           <li
             key={appointment.id}
-            className="z-10 flex min-h-0 min-w-0 px-px"
+            className="z-10 flex min-h-0 min-w-0 p-px"
             style={slotStyle(geometry.startRow, geometry.bodyRows + geometry.tailRows, position)}
           >
             <AppointmentCard
@@ -339,7 +339,7 @@ function DaySection({
         {overflow.map((group) => (
           <li
             key={`overflow-${group.ids[0]}`}
-            className="z-10 flex min-h-0 min-w-0 px-px"
+            className="z-10 flex min-h-0 min-w-0 p-px"
             style={slotStyle(group.fromRow, group.toRow - group.fromRow, group)}
           >
             <button
@@ -387,7 +387,7 @@ function AppointmentCard({
 }: AppointmentCardProps) {
   const style = STATUS_STYLES[appointment.status];
   const cancelled = appointment.status === 'cancelled';
-  const timeRange = `${formatTime(appointment.startsAt, timeZone)} – ${formatTime(appointment.endsAt, timeZone)}`;
+  const timeRange = `${formatTime(appointment.startsAt, timeZone)}–${formatTime(appointment.endsAt, timeZone)}`;
   const bufferMinutes = cancelled
     ? 0
     : Math.round((Date.parse(appointment.occupiedUntil) - Date.parse(appointment.endsAt)) / 60_000);
@@ -411,6 +411,7 @@ function AppointmentCard({
       technicianName={technician.name}
       technicianInitials={technician.initials}
       status={style}
+      iconOnlyStatus={appointment.status === 'confirmed'}
       cancelled={cancelled}
       technicianChanged={appointment.technicianChanged}
       closedEarly={appointment.closedEarly}
