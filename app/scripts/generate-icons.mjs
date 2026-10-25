@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-const PRIMARY = '#2563EB';
+const PRIMARY = '#E31937';
 const outDir = fileURLToPath(new URL('../public/', import.meta.url));
 
 // Calendario con marca de verificación. Cabe en el círculo de zona segura (80 %) de los íconos
