@@ -1,11 +1,10 @@
-import type { ComponentProps } from 'react';
 import { CalendarCheck, ClipboardCheck, Gauge, Users } from 'lucide-react';
 import { Link } from 'react-router';
 import { KpiCard } from '@/components/KpiCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { STATUS_STYLES, type AppointmentStatus } from '@/features/agenda/appointment-status';
+import { STATUS_STYLES } from '@/features/agenda/appointment-status';
 import { serializeAgendaParams, type AgendaParams } from '@/features/agenda/agenda-params';
 import { useBusiness } from '@/features/settings/business-api';
 import type { components } from '@/shared/api/schema';
@@ -22,7 +21,6 @@ import {
 import { ProfileLink } from './ProfileLink';
 
 type Summary = components['schemas']['DashboardSummary'];
-type BadgeVariant = NonNullable<ComponentProps<typeof Badge>['variant']>;
 
 const BASE_PARAMS: AgendaParams = {
   view: 'day',
@@ -132,14 +130,6 @@ function Panel({ summary, timeZone }: { summary: Summary; timeZone: string }) {
   );
 }
 
-const STATUS_VARIANT: Record<AppointmentStatus, BadgeVariant> = {
-  pending: 'amber',
-  confirmed: 'blue',
-  completed: 'green',
-  no_show: 'red',
-  cancelled: 'neutral',
-};
-
 function TodayList({ summary, timeZone }: { summary: Summary; timeZone: string }) {
   const { remaining_today: rows, today } = summary;
   return (
@@ -180,7 +170,7 @@ function TodayList({ summary, timeZone }: { summary: Summary; timeZone: string }
                       {item.service.name} · {technician}
                     </span>
                   </span>
-                  <Badge variant={STATUS_VARIANT[item.status]} className="rounded-full">
+                  <Badge variant={status.variant} className="rounded-full">
                     <StatusIcon aria-hidden="true" />
                     {status.label}
                   </Badge>

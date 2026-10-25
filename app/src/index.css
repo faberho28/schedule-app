@@ -126,6 +126,38 @@
   --tech-10: #f5f5f4;
   --tech-10-foreground: #1c1917;
   --tech-10-accent: #57534e;
+
+  /* Técnicos: fondo pastel, borde y texto del mismo tono (alias semánticos de los tokens anteriores). */
+  --tech-1-bg: #dbeafe;
+  --tech-1-border: #2563eb;
+  --tech-1-text: #1e3a8a;
+  --tech-2-bg: #d1fae5;
+  --tech-2-border: #059669;
+  --tech-2-text: #064e3b;
+  --tech-3-bg: #fef3c7;
+  --tech-3-border: #d97706;
+  --tech-3-text: #78350f;
+  --tech-4-bg: #ffe4e6;
+  --tech-4-border: #e11d48;
+  --tech-4-text: #881337;
+  --tech-5-bg: #ede9fe;
+  --tech-5-border: #7c3aed;
+  --tech-5-text: #4c1d95;
+  --tech-6-bg: #cffafe;
+  --tech-6-border: #0891b2;
+  --tech-6-text: #164e63;
+  --tech-7-bg: #ffedd5;
+  --tech-7-border: #ea580c;
+  --tech-7-text: #7c2d12;
+  --tech-8-bg: #ecfccb;
+  --tech-8-border: #65a30d;
+  --tech-8-text: #365314;
+  --tech-9-bg: #fae8ff;
+  --tech-9-border: #c026d3;
+  --tech-9-text: #701a75;
+  --tech-10-bg: #f5f5f4;
+  --tech-10-border: #57534e;
+  --tech-10-text: #1c1917;
 }
 
 .dark {
@@ -230,6 +262,38 @@
   --tech-10: #0c0a09;
   --tech-10-foreground: #f5f5f4;
   --tech-10-accent: #a8a29e;
+
+  /* Técnicos: fondo pastel, borde y texto del mismo tono (alias semánticos de los tokens anteriores). */
+  --tech-1-bg: #172554;
+  --tech-1-border: #60a5fa;
+  --tech-1-text: #dbeafe;
+  --tech-2-bg: #022c22;
+  --tech-2-border: #34d399;
+  --tech-2-text: #d1fae5;
+  --tech-3-bg: #451a03;
+  --tech-3-border: #fbbf24;
+  --tech-3-text: #fef3c7;
+  --tech-4-bg: #4c0519;
+  --tech-4-border: #fb7185;
+  --tech-4-text: #ffe4e6;
+  --tech-5-bg: #2e1065;
+  --tech-5-border: #a78bfa;
+  --tech-5-text: #ede9fe;
+  --tech-6-bg: #083344;
+  --tech-6-border: #22d3ee;
+  --tech-6-text: #cffafe;
+  --tech-7-bg: #431407;
+  --tech-7-border: #fb923c;
+  --tech-7-text: #ffedd5;
+  --tech-8-bg: #1a2e05;
+  --tech-8-border: #a3e635;
+  --tech-8-text: #ecfccb;
+  --tech-9-bg: #4a044e;
+  --tech-9-border: #e879f9;
+  --tech-9-text: #fae8ff;
+  --tech-10-bg: #0c0a09;
+  --tech-10-border: #a8a29e;
+  --tech-10-text: #f5f5f4;
 }
 
 @theme inline {
@@ -330,6 +394,36 @@
   --color-tech-10: var(--tech-10);
   --color-tech-10-foreground: var(--tech-10-foreground);
   --color-tech-10-accent: var(--tech-10-accent);
+  --color-tech-1-bg: var(--tech-1-bg);
+  --color-tech-1-border: var(--tech-1-border);
+  --color-tech-1-text: var(--tech-1-text);
+  --color-tech-2-bg: var(--tech-2-bg);
+  --color-tech-2-border: var(--tech-2-border);
+  --color-tech-2-text: var(--tech-2-text);
+  --color-tech-3-bg: var(--tech-3-bg);
+  --color-tech-3-border: var(--tech-3-border);
+  --color-tech-3-text: var(--tech-3-text);
+  --color-tech-4-bg: var(--tech-4-bg);
+  --color-tech-4-border: var(--tech-4-border);
+  --color-tech-4-text: var(--tech-4-text);
+  --color-tech-5-bg: var(--tech-5-bg);
+  --color-tech-5-border: var(--tech-5-border);
+  --color-tech-5-text: var(--tech-5-text);
+  --color-tech-6-bg: var(--tech-6-bg);
+  --color-tech-6-border: var(--tech-6-border);
+  --color-tech-6-text: var(--tech-6-text);
+  --color-tech-7-bg: var(--tech-7-bg);
+  --color-tech-7-border: var(--tech-7-border);
+  --color-tech-7-text: var(--tech-7-text);
+  --color-tech-8-bg: var(--tech-8-bg);
+  --color-tech-8-border: var(--tech-8-border);
+  --color-tech-8-text: var(--tech-8-text);
+  --color-tech-9-bg: var(--tech-9-bg);
+  --color-tech-9-border: var(--tech-9-border);
+  --color-tech-9-text: var(--tech-9-text);
+  --color-tech-10-bg: var(--tech-10-bg);
+  --color-tech-10-border: var(--tech-10-border);
+  --color-tech-10-text: var(--tech-10-text);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

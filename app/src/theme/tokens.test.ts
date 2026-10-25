@@ -272,6 +272,21 @@ describe('tokens de color', () => {
       expect(contrast(accent!, tokens['card']!)).toBeGreaterThanOrEqual(3);
     });
 
+    it.each(slots)('tech-%i: fondo pastel, borde y texto (bg + border + text)', (slot) => {
+      const bg = tokens[`tech-${slot}-bg`];
+      const border = tokens[`tech-${slot}-border`];
+      const text = tokens[`tech-${slot}-text`];
+      expect(bg, `falta --tech-${slot}-bg`).toBeDefined();
+      expect(border, `falta --tech-${slot}-border`).toBeDefined();
+      expect(text, `falta --tech-${slot}-text`).toBeDefined();
+      // Los nombres antiguos siguen vigentes: los nuevos no pueden divergir de ellos.
+      expect(bg).toBe(tokens[`tech-${slot}`]);
+      expect(border).toBe(tokens[`tech-${slot}-accent`]);
+      expect(text).toBe(tokens[`tech-${slot}-foreground`]);
+      expect(contrast(text!, bg!)).toBeGreaterThanOrEqual(AA);
+      expect(contrast(border!, tokens['card']!)).toBeGreaterThanOrEqual(3);
+    });
+
     it('los 10 acentos y los 10 fondos son distintos entre sí', () => {
       const accents = slots.map((slot) => tokens[`tech-${slot}-accent`]);
       const backgrounds = slots.map((slot) => tokens[`tech-${slot}`]);
@@ -285,6 +300,9 @@ describe('tokens de color', () => {
       expect(css).toContain(`--color-tech-${slot}: var(--tech-${slot});`);
       expect(css).toContain(`--color-tech-${slot}-foreground: var(--tech-${slot}-foreground);`);
       expect(css).toContain(`--color-tech-${slot}-accent: var(--tech-${slot}-accent);`);
+      for (const part of ['bg', 'border', 'text']) {
+        expect(css).toContain(`--color-tech-${slot}-${part}: var(--tech-${slot}-${part});`);
+      }
     }
     const names = [
       'brand',
