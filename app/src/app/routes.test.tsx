@@ -1,13 +1,28 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { apiUrl, business, customer, technician } from '@/test/api';
+import type { components } from '@/shared/api/schema';
+import { apiUrl, appointment, business, customer, technician } from '@/test/api';
 import { server } from '@/test/server';
 import { setDesktopViewport } from '@/test/viewport';
 import { AppProviders } from './providers';
 import { routes } from './routes';
+
+function summary(
+  overrides: Partial<components['schemas']['DashboardSummary']> = {},
+): components['schemas']['DashboardSummary'] {
+  return {
+    today: '2026-10-24',
+    services_today: 0,
+    active_technicians: { working: 0, total: 0 },
+    efficiency: { rate: null, completed: 0, due: 0, from: '2026-09-25' },
+    pending_to_close: 0,
+    remaining_today: [],
+    ...overrides,
+  };
+}
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -35,6 +50,8 @@ describe('rutas de la aplicación', () => {
         HttpResponse.json({ ...customer(), appointments: [] }),
       ),
       http.get(apiUrl('/customers/:id/consents'), () => HttpResponse.json([])),
+      http.get(apiUrl('/dashboard/summary'), () => HttpResponse.json(summary())),
+      http.get(apiUrl('/agenda/to-close'), () => HttpResponse.json({ items: [], total: 0 })),
     );
   });
 
@@ -71,6 +88,49 @@ describe('rutas de la aplicación', () => {
     expect(profile).toHaveAttribute('href', '/profile');
     expect(screen.getByRole('main')).toContainElement(profile);
     expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
+  });
+
+  it('en móvil: Panel, "Servicios pendientes", la lista "Por cerrar", "Volver" y de nuevo el Panel', async () => {
+    const user = userEvent.setup();
+    const overdue = appointment({ starts_at: '2026-10-20T14:00:00.000Z' });
+    server.use(
+      http.get(apiUrl('/dashboard/summary'), () =>
+        HttpResponse.json(summary({ pending_to_close: 1 })),
+      ),
+      http.get(apiUrl('/agenda/to-close'), () => HttpResponse.json({ items: [overdue], total: 1 })),
+    );
+    const router = renderAt('/');
+
+    await user.click(await screen.findByRole('link', { name: /Servicios pendientes/ }));
+
+    expect(router.state.location.pathname).toBe('/agenda');
+    expect(new URLSearchParams(router.state.location.search).get('toClose')).toBe('1');
+    expect(
+      await screen.findByRole('button', { name: /Ana Pérez, Mantenimiento de aire/ }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Volver' }));
+
+    expect(router.state.location.pathname).toBe('/');
+    expect(screen.getByRole('heading', { level: 1, name: 'Panel de control' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Servicios pendientes/ })).toBeInTheDocument();
+  });
+
+  it('en escritorio "Panel de control" es la primera entrada de la navegación y abre "/"', () => {
+    setDesktopViewport();
+    renderAt('/');
+
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+    const first = within(nav).getAllByRole('link')[0]!;
+    expect(first).toHaveAccessibleName('Panel de control');
+    expect(first).toHaveAttribute('href', '/');
+  });
+
+  it('en móvil "Panel de control" es la primera entrada de la navegación', () => {
+    renderAt('/');
+
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+    expect(within(nav).getAllByRole('link')[0]).toHaveAccessibleName('Panel de control');
   });
 
   it.each([

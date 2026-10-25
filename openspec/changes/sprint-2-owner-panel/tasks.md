@@ -187,14 +187,14 @@ Etiqueta de PR requerida: `size:exception`. Regla de revisión: cada commit debe
 
 ## Fase 12: Panel de control en `/` (commit 12)
 
-- [ ] 12.1 Hook `useDashboardSummary()` sobre `GET /dashboard/summary` con clave `['appointments','summary']`. Área: `app/src/features/dashboard/dashboard-api.ts`. Spec: DB-R8. Verif: RED con MSW; los comandos que invalidan `['appointments']` lo refrescan.
-- [ ] 12.2 Estados de carga y error de `DashboardPage`: sin números mientras carga o tras un error; "No se pudo cargar el panel. Reintenta." y botón "Reintentar" que repite la solicitud. Área: `app/src/features/dashboard/DashboardPage.tsx`, `DashboardPage.test.tsx` (a crear). Spec: DB-R7. Verif: RED con MSW.
-- [ ] 12.3 Tarjetas "Servicios hoy" (0 cuando no hay servicios) y "Técnicos activos X/Y" (`3/5`, `0/0`). Área: `DashboardPage.tsx`. Spec: DB-R2, DB-R3. Verif: RED con MSW.
-- [ ] 12.4 Tarjeta "Eficiencia de servicios": porcentaje entero (6 de 9 muestra 67 %), "Sin datos" cuando `rate` es `null` (nunca 0 % ni 100 %) y "Últimos 30 días, desde el 25/09/2026" a partir de `efficiency.from` en la zona del negocio. Área: `DashboardPage.tsx`, utilidades de fecha. Spec: DB-R4. Verif: RED con MSW.
-- [ ] 12.5 Tarjeta "Servicios pendientes" con enlace a `/agenda?display=list&toClose=1`. Área: `DashboardPage.tsx`. Spec: DB-R5. Verif: RED: muestra el conteo del resumen y el enlace contiene los parámetros; prueba de integración que abre la lista y muestra los mismos servicios.
-- [ ] 12.6 Lista "Servicios de hoy": hora, cliente (`customerLabel`), tipo de servicio y técnico; tocar una fila abre `/agenda?view=day&date=<summary.today>&appointment=<id>`; vacía muestra "No quedan servicios por atender hoy"; usa `today` de la API, no el reloj del navegador. Área: `DashboardPage.tsx`. Spec: DB-R6, AU-R14. Verif: RED con MSW, incluido "Cliente eliminado (bear_1)".
-- [ ] 12.7 `/` abre el Panel en 1280 px y en 390 px, con "Panel de control" primero en las dos navegaciones; ícono de Perfil del encabezado en móvil; flujo móvil Panel, "Servicios pendientes", "Volver", Panel. Área: `DashboardPage.tsx`, `routes.test.tsx`. Spec: AU-R3, PM-R1. Verif: RED de integración con `MemoryRouter` a 390 px.
-- [ ] 12.8 Documentar el Panel y sus definiciones en `app/README.md`. Área: `app/README.md`. Spec: n/a. Verif: manual.
+- [x] 12.1 Hook `useDashboardSummary()` sobre `GET /dashboard/summary` con clave `['appointments','summary']`. Área: `app/src/features/dashboard/dashboard-api.ts`. Spec: DB-R8. Verif: RED con MSW; los comandos que invalidan `['appointments']` lo refrescan.
+- [x] 12.2 Estados de carga y error de `DashboardPage`: sin números mientras carga o tras un error; "No se pudo cargar el panel. Reintenta." y botón "Reintentar" que repite la solicitud. Área: `app/src/features/dashboard/DashboardPage.tsx`, `DashboardPage.test.tsx` (a crear). Spec: DB-R7. Verif: RED con MSW.
+- [x] 12.3 Tarjetas "Servicios hoy" (0 cuando no hay servicios) y "Técnicos activos X/Y" (`3/5`, `0/0`). Área: `DashboardPage.tsx`. Spec: DB-R2, DB-R3. Verif: RED con MSW.
+- [x] 12.4 Tarjeta "Eficiencia de servicios": porcentaje entero (6 de 9 muestra 67 %), "Sin datos" cuando `rate` es `null` (nunca 0 % ni 100 %) y "Últimos 30 días, desde el 25/09/2026" a partir de `efficiency.from` en la zona del negocio. Área: `DashboardPage.tsx`, utilidades de fecha. Spec: DB-R4. Verif: RED con MSW.
+- [x] 12.5 Tarjeta "Servicios pendientes" con enlace a `/agenda?display=list&toClose=1`. Área: `DashboardPage.tsx`. Spec: DB-R5. Verif: RED: muestra el conteo del resumen y el enlace contiene los parámetros; prueba de integración que abre la lista y muestra los mismos servicios.
+- [x] 12.6 Lista "Servicios de hoy": hora, cliente (`customerLabel`), tipo de servicio y técnico; tocar una fila abre `/agenda?view=day&date=<summary.today>&appointment=<id>`; vacía muestra "No quedan servicios por atender hoy"; usa `today` de la API, no el reloj del navegador. Área: `DashboardPage.tsx`. Spec: DB-R6, AU-R14. Verif: RED con MSW, incluido "Cliente eliminado (bear_1)".
+- [x] 12.7 `/` abre el Panel en 1280 px y en 390 px, con "Panel de control" primero en las dos navegaciones; ícono de Perfil del encabezado en móvil; flujo móvil Panel, "Servicios pendientes", "Volver", Panel. Área: `DashboardPage.tsx`, `routes.test.tsx`. Spec: AU-R3, PM-R1. Verif: RED de integración con `MemoryRouter` a 390 px.
+- [x] 12.8 Documentar el Panel y sus definiciones en `app/README.md`. Área: `app/README.md`. Spec: n/a. Verif: manual.
 
 ## Fase 13: Búsqueda global (commit 13)
 

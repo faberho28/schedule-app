@@ -103,6 +103,24 @@ El horario semanal, los días libres, el estado `active` y la eliminación de un
 
 Los límites de un día libre se envían como instantes calculados con `zonedInstant` (`src/shared/lib/dates.ts`) en la zona horaria del negocio.
 
+## Panel de control
+
+Vive en `src/features/dashboard/` y es la pantalla de `/` en escritorio y móvil: cuatro tarjetas y la lista "Servicios de hoy". En móvil el encabezado lleva el ícono de Perfil (`ProfileLink.tsx`) y no "Volver".
+
+- `dashboard-api.ts`: `useDashboardSummary()` hace una sola solicitud, `GET /dashboard/summary`, con la clave `['appointments','summary']`. Como cuelga de `['appointments']`, cerrar, cancelar, mover, reasignar o crear un servicio la refresca con el mismo `invalidateQueries` de la agenda. La zona horaria para las horas sale de `useBusiness()`.
+- `dashboard-format.ts`: funciones puras con tablas de pruebas (`efficiencyPercentText`, `formatCutoffDate`, `formatWorkingOfTotal`, `formatCompletedOfDue`).
+- `DashboardPage.tsx`: la interfaz no calcula nada del negocio; "hoy" es el campo `today` de la API y nunca el reloj del navegador.
+
+  | Tarjeta                 | Campo                | Cómo se muestra                                                                                                                                                                                                     |
+  | ----------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Servicios hoy           | `services_today`     | El número, 0 si no hay servicios. Excluye cancelados.                                                                                                                                                               |
+  | Técnicos activos        | `active_technicians` | `working/total`, por ejemplo `3/5` o `0/0`.                                                                                                                                                                         |
+  | Eficiencia de servicios | `efficiency`         | `rate` (fracción) × 100 redondeado al entero más cercano, por ejemplo `67 %`; "Sin datos" si `rate` es `null`. Siempre `completed de due servicios` y "Últimos 30 días, desde el dd/mm/aaaa" con `efficiency.from`. |
+  | Servicios pendientes    | `pending_to_close`   | El número. Es un enlace a `/agenda?view=day&date=<today>&display=list&toClose=1` (lista "Por cerrar"); su nombre accesible incluye el conteo.                                                                       |
+
+- "Servicios de hoy" usa `remaining_today` en el orden de la API (inicio, técnico, id). Cada fila es un enlace con hora de inicio y fin, cliente (`customerLabel`), tipo de servicio, técnico (`technicianLabel`) y estado con texto, ícono y color. Abre `/agenda?view=day&date=<today>&appointment=<id>`. Vacía muestra "No quedan servicios por atender hoy".
+- Mientras carga solo se ve "Cargando el panel…", sin números. Si falla el resumen o el negocio se muestra "No se pudo cargar el panel. Reintenta." con el botón "Reintentar".
+
 ## Agenda
 
 Vive en `src/features/agenda/`. La ruta `/agenda?view=day|week&date=YYYY-MM-DD` guarda la vista y la fecha en la URL; un valor ausente o inválido se reemplaza por la vista de día y por hoy en la zona horaria del negocio.
