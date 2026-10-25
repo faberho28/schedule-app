@@ -1,8 +1,7 @@
-import { Plus } from 'lucide-react';
 import { useId, useMemo, type CSSProperties } from 'react';
 import { EventBlock } from '@/components/EventBlock';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { SlotLayer } from '@/components/calendar/SlotLayer';
 import { formatDayLabel, formatTime, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -56,8 +55,18 @@ export type AgendaGridProps = {
   onAppointmentSelect(id: string): void;
   /** El dueño pidió ver los servicios ocultos de una franja ("+N más"). */
   onOverflowSelect(day: LocalDate, fromMinute: number, toMinute: number): void;
-  /** Abre el alta de un servicio para ese día; el cupo se elige después con `GET /slots`. */
-  onEmptySlotSelect?(day: LocalDate): void;
+  /**
+   * Clic en un espacio vacío: el día, el inicio del tramo de 30 min (minutos del día) y, en la vista
+   * de día, el técnico de la columna. La grilla solo avisa; el alta del servicio la decide quien la usa.
+   */
+  onSlotClick?(day: LocalDate, startMinute: number, technicianId?: string): void;
+  /** Selección arrastrada sobre un espacio vacío: el día, el rango (a 15 min) y el técnico de la columna. */
+  onSlotSelect?(
+    day: LocalDate,
+    startMinute: number,
+    endMinute: number,
+    technicianId?: string,
+  ): void;
 };
 
 const DEFAULT_ROW_MINUTES = 15;
@@ -101,7 +110,8 @@ export function AgendaGrid({
   maxColumns = MAX_COLUMNS[view],
   onAppointmentSelect,
   onOverflowSelect,
-  onEmptySlotSelect,
+  onSlotClick,
+  onSlotSelect,
 }: AgendaGridProps) {
   const baseId = useId();
   const totalRows = Math.ceil((visibleHours.endMinute - visibleHours.startMinute) / rowMinutes);
@@ -140,7 +150,8 @@ export function AgendaGrid({
             maxColumns={maxColumns}
             onAppointmentSelect={onAppointmentSelect}
             onOverflowSelect={onOverflowSelect}
-            onEmptySlotSelect={onEmptySlotSelect}
+            onSlotClick={onSlotClick}
+            onSlotSelect={onSlotSelect}
           />
         ))}
       </div>
@@ -212,7 +223,8 @@ type DaySectionProps = Pick<
   | 'visibleHours'
   | 'onAppointmentSelect'
   | 'onOverflowSelect'
-  | 'onEmptySlotSelect'
+  | 'onSlotClick'
+  | 'onSlotSelect'
 > & {
   id: string;
   day: LocalDate;
@@ -237,7 +249,8 @@ function DaySection({
   maxColumns,
   onAppointmentSelect,
   onOverflowSelect,
-  onEmptySlotSelect,
+  onSlotClick,
+  onSlotSelect,
 }: DaySectionProps) {
   const dayLabel = formatDayLabel(day);
   const { weekday, number } = dayParts(day);
@@ -310,7 +323,7 @@ function DaySection({
     <section
       aria-labelledby={id}
       className={cn(
-        'group min-w-0 flex-1 border-r last:border-r-0',
+        'min-w-0 flex-1 border-r last:border-r-0',
         view === 'week' ? 'min-w-36' : 'min-w-44',
         isWeekend(day) && 'bg-muted/50',
         isToday && 'bg-today',
@@ -353,61 +366,65 @@ function DaySection({
             </span>
           </h2>
         )}
-        {onEmptySlotSelect && !columnTechnician ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-11 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none"
-            aria-label={`Nuevo servicio el ${dayLabel}`}
-            onClick={() => onEmptySlotSelect(day)}
-          >
-            <Plus aria-hidden="true" />
-          </Button>
-        ) : null}
       </div>
-      <ul
-        className="grid grid-cols-[minmax(0,1fr)]"
-        style={{
-          ...bodyHeight(totalRows, rowMinutes),
-          gridTemplateRows: `repeat(${totalRows}, 1fr)`,
-          backgroundImage: 'linear-gradient(to bottom, var(--border) 1px, transparent 1px)',
-          backgroundSize: `100% ${MINUTES_PER_HOUR * PX_PER_MINUTE}px`,
-        }}
-      >
-        {blocks.map(({ appointment, technician, geometry, position }) => (
-          <li
-            key={appointment.id}
-            className="z-10 flex min-h-0 min-w-0 p-px"
-            style={slotStyle(geometry.startRow, geometry.bodyRows + geometry.tailRows, position)}
-          >
-            <AppointmentCard
-              appointment={appointment}
-              technician={technician}
-              geometry={geometry}
-              rowMinutes={rowMinutes}
-              timeZone={timeZone}
-              onSelect={onAppointmentSelect}
-            />
-          </li>
-        ))}
-        {overflow.map((group) => (
-          <li
-            key={`overflow-${group.ids[0]}`}
-            className="z-10 flex min-h-0 min-w-0 p-px"
-            style={slotStyle(group.fromRow, group.toRow - group.fromRow, group)}
-          >
-            <button
-              type="button"
-              aria-label={`Ver ${group.count} servicios más entre ${formatMinuteOfDay(group.fromMinute)} y ${formatMinuteOfDay(group.toMinute)}`}
-              onClick={() => onOverflowSelect(day, group.fromMinute, group.toMinute)}
-              className="flex min-h-11 w-full justify-center items-center rounded-full bg-muted px-2 text-xs font-semibold text-foreground transition-colors duration-150 outline-none hover:bg-accent motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
+      <div className="relative">
+        <SlotLayer
+          window={visibleHours}
+          onSlotClick={
+            onSlotClick
+              ? (startMinute) => onSlotClick(day, startMinute, columnTechnicianId ?? undefined)
+              : undefined
+          }
+          onSlotSelect={
+            onSlotSelect
+              ? (startMinute, endMinute) =>
+                  onSlotSelect(day, startMinute, endMinute, columnTechnicianId ?? undefined)
+              : undefined
+          }
+        />
+        <ul
+          className="grid grid-cols-[minmax(0,1fr)]"
+          style={{
+            ...bodyHeight(totalRows, rowMinutes),
+            gridTemplateRows: `repeat(${totalRows}, 1fr)`,
+            backgroundImage: 'linear-gradient(to bottom, var(--border) 1px, transparent 1px)',
+            backgroundSize: `100% ${MINUTES_PER_HOUR * PX_PER_MINUTE}px`,
+          }}
+        >
+          {blocks.map(({ appointment, technician, geometry, position }) => (
+            <li
+              key={appointment.id}
+              className="z-10 flex min-h-0 min-w-0 p-px"
+              style={slotStyle(geometry.startRow, geometry.bodyRows + geometry.tailRows, position)}
             >
-              +{group.count} más
-            </button>
-          </li>
-        ))}
-      </ul>
+              <AppointmentCard
+                appointment={appointment}
+                technician={technician}
+                geometry={geometry}
+                rowMinutes={rowMinutes}
+                timeZone={timeZone}
+                onSelect={onAppointmentSelect}
+              />
+            </li>
+          ))}
+          {overflow.map((group) => (
+            <li
+              key={`overflow-${group.ids[0]}`}
+              className="z-10 flex min-h-0 min-w-0 p-px"
+              style={slotStyle(group.fromRow, group.toRow - group.fromRow, group)}
+            >
+              <button
+                type="button"
+                aria-label={`Ver ${group.count} servicios más entre ${formatMinuteOfDay(group.fromMinute)} y ${formatMinuteOfDay(group.toMinute)}`}
+                onClick={() => onOverflowSelect(day, group.fromMinute, group.toMinute)}
+                className="flex min-h-11 w-full justify-center items-center rounded-full bg-muted px-2 text-xs font-semibold text-foreground transition-colors duration-150 outline-none hover:bg-accent motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
+              >
+                +{group.count} más
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

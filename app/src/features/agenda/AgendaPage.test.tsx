@@ -1008,7 +1008,10 @@ describe('AgendaPage: acciones', () => {
     renderAgenda('/agenda?view=week&date=2026-11-06', { onAppointmentSelect, onEmptySlotSelect });
 
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
-    await user.click(screen.getByRole('button', { name: 'Nuevo servicio el vie 6 nov' }));
+    // El viernes es la quinta columna de la semana; 100 px son las 08:20, del tramo de las 08:00.
+    const friday = document.querySelectorAll<HTMLElement>('[data-slot="slot-layer"]')[4]!;
+    fireEvent.pointerDown(friday, { clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(friday, { clientY: 100, pointerId: 1 });
 
     expect(onAppointmentSelect).toHaveBeenCalledExactlyOnceWith(IDS.apt1);
     expect(onEmptySlotSelect).toHaveBeenCalledExactlyOnceWith('2026-11-06');

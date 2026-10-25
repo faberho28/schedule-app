@@ -372,14 +372,15 @@ describe('AgendaGrid: encabezado del día', () => {
     }
   });
 
-  it('el botón "+" de cada día solo se ve al pasar el cursor o al enfocarlo', () => {
-    renderGrid({ view: 'week', days: WEEK, onEmptySlotSelect: vi.fn() });
+  it('los encabezados no tienen botones "+": crear se hace desde un espacio vacío', () => {
+    renderGrid({
+      view: 'week',
+      days: WEEK,
+      onSlotClick: vi.fn(),
+      onSlotSelect: vi.fn(),
+    });
 
-    const section = screen.getByRole('region', { name: 'vie 6 nov' });
-    expect(section).toHaveClass('group');
-    expect(
-      within(section).getByRole('button', { name: 'Nuevo servicio el vie 6 nov' }),
-    ).toHaveClass('opacity-0', 'group-hover:opacity-100', 'focus-visible:opacity-100');
+    expect(screen.queryByRole('button', { name: /^Nuevo servicio/ })).not.toBeInTheDocument();
   });
 });
 
@@ -770,27 +771,83 @@ describe('AgendaGrid: selección', () => {
     expect(props.onAppointmentSelect).toHaveBeenCalledExactlyOnceWith('apt-1');
   });
 
-  it('en la semana el servicio nuevo lleva el día de la columna', async () => {
-    const onEmptySlotSelect = vi.fn();
-    renderGrid({ view: 'week', days: WEEK, onEmptySlotSelect });
+  describe('espacios vacíos', () => {
+    const layers = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('[data-slot="slot-layer"]'));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo servicio el mar 3 nov' }));
+    function click(layer: HTMLElement, y: number) {
+      fireEvent.pointerDown(layer, { clientY: y, pointerId: 1, button: 0 });
+      fireEvent.pointerUp(layer, { clientY: y, pointerId: 1 });
+    }
 
-    expect(onEmptySlotSelect).toHaveBeenCalledExactlyOnceWith('2026-11-03');
-    expect(screen.getAllByRole('button', { name: /^Nuevo servicio el / })).toHaveLength(7);
-  });
+    it('en el día, el clic avisa el día, el tramo y el técnico de la columna', () => {
+      const onSlotClick = vi.fn();
+      renderGrid({ onSlotClick });
 
-  it('sin manejador no muestra botones de servicio nuevo', () => {
-    renderGrid();
+      // La segunda columna es la de Marta; 100 px son las 08:20, del tramo que empieza a las 08:00.
+      expect(layers()).toHaveLength(2);
+      click(layers()[1]!, 100);
 
-    expect(screen.queryByRole('button', { name: /Nuevo servicio/ })).not.toBeInTheDocument();
+      expect(onSlotClick).toHaveBeenCalledExactlyOnceWith('2026-11-06', 8 * 60, MARTA);
+    });
+
+    it('en la semana, el clic avisa el día de la columna y ningún técnico', () => {
+      const onSlotClick = vi.fn();
+      renderGrid({ view: 'week', days: WEEK, onSlotClick });
+
+      expect(layers()).toHaveLength(7);
+      click(layers()[1]!, 100);
+
+      expect(onSlotClick).toHaveBeenCalledExactlyOnceWith('2026-11-03', 8 * 60, undefined);
+    });
+
+    it('arrastrar una selección avisa el día, el rango y el técnico', () => {
+      const onSlotSelect = vi.fn();
+      renderGrid({ onSlotSelect });
+
+      const layer = layers()[0]!;
+      fireEvent.pointerDown(layer, { clientY: 100, pointerId: 1, button: 0 });
+      fireEvent.pointerMove(layer, { clientY: 200, pointerId: 1 });
+      fireEvent.pointerUp(layer, { clientY: 200, pointerId: 1 });
+
+      expect(onSlotSelect).toHaveBeenCalledExactlyOnceWith(
+        '2026-11-06',
+        8 * 60 + 15,
+        9 * 60 + 45,
+        CARLOS,
+      );
+    });
+
+    it('la capa mide lo que la grilla y queda por debajo de los servicios', () => {
+      renderGrid({ onSlotClick: vi.fn(), appointments: [appointment()] });
+
+      const layer = layers()[0]!;
+      expect(layer.parentElement).toHaveClass('relative');
+      expect(screen.getByRole('listitem')).toHaveClass('z-10');
+    });
+
+    it('tocar un servicio no cuenta como clic en un espacio vacío', async () => {
+      const onSlotClick = vi.fn();
+      const props = renderGrid({ onSlotClick, appointments: [appointment()] });
+
+      await userEvent.click(screen.getByRole('button', { name: /Ana Pérez/ }));
+
+      expect(props.onAppointmentSelect).toHaveBeenCalledOnce();
+      expect(onSlotClick).not.toHaveBeenCalled();
+    });
+
+    it('sin manejadores no dibuja capas', () => {
+      renderGrid();
+
+      expect(layers()).toHaveLength(0);
+    });
   });
 });
 
 describe('AgendaGrid: lo que no existe', () => {
   it('arrastrar un servicio no dispara callbacks ni lo mueve', async () => {
-    const onEmptySlotSelect = vi.fn();
-    const props = renderGrid({ appointments: [appointment()], onEmptySlotSelect });
+    const onSlotClick = vi.fn();
+    const props = renderGrid({ appointments: [appointment()], onSlotClick });
     const button = screen.getByRole('button', { name: /Ana Pérez/ });
     const list = within(screen.getByRole('region', { name: 'Carlos' })).getByRole('list');
 
@@ -810,7 +867,7 @@ describe('AgendaGrid: lo que no existe', () => {
 
     expect(props.onAppointmentSelect).not.toHaveBeenCalled();
     expect(props.onOverflowSelect).not.toHaveBeenCalled();
-    expect(onEmptySlotSelect).not.toHaveBeenCalled();
+    expect(onSlotClick).not.toHaveBeenCalled();
     expect(within(list).getByRole('button', { name: /Ana Pérez/ })).toBe(button);
   });
 

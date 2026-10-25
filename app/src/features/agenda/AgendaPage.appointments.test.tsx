@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -211,12 +211,16 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     ).toBeInTheDocument();
   });
 
-  it('crea un servicio desde el botón del día y la agenda lo muestra', async () => {
+  it('crea un servicio desde un espacio vacío del día y la agenda lo muestra', async () => {
     const user = userEvent.setup();
     const state = serve([]);
     renderAgenda('/agenda?view=week&date=2026-11-06');
 
-    await user.click(await screen.findByRole('button', { name: 'Nuevo servicio el vie 6 nov' }));
+    await screen.findByRole('region', { name: 'Agenda de la semana' });
+    // Clic en un espacio vacío del viernes (quinta columna de la semana).
+    const friday = document.querySelectorAll<HTMLElement>('[data-slot="slot-layer"]')[4]!;
+    fireEvent.pointerDown(friday, { clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(friday, { clientY: 100, pointerId: 1 });
     await user.type(await screen.findByLabelText('Buscar cliente'), 'Ana');
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
     const select = screen.getByLabelText('Tipo de servicio');

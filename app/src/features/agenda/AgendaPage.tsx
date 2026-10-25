@@ -297,7 +297,7 @@ function AgendaScreen({
           onSelectAllTechnicians={selectAllTechnicians}
           onAppointmentSelect={onAppointmentSelect ?? ((id) => open({ kind: 'detail', id }))}
           onOverflowSelect={openOverflow}
-          onEmptySlotSelect={onEmptySlotSelect ?? ((day) => open({ kind: 'create', day }))}
+          onCreateOnDay={onEmptySlotSelect ?? ((day) => open({ kind: 'create', day }))}
         />
       ) : null}
 
@@ -427,7 +427,11 @@ type GridContentProps = {
   onSelectAllTechnicians(): void;
   onAppointmentSelect(id: string): void;
   onOverflowSelect(day: LocalDate, fromMinute: number, toMinute: number): void;
-  onEmptySlotSelect(day: LocalDate): void;
+  /**
+   * Abre el alta de un servicio para ese día (clic o selección en un espacio vacío). El flujo de alta
+   * aún no recibe la hora ni el técnico elegidos: el cupo se escoge después con `GET /slots`.
+   */
+  onCreateOnDay(day: LocalDate): void;
 };
 
 /** Grilla de escritorio con los técnicos elegidos, o el aviso de por qué no hay nada que mostrar. */
@@ -444,7 +448,7 @@ function GridContent({
   onSelectAllTechnicians,
   onAppointmentSelect,
   onOverflowSelect,
-  onEmptySlotSelect,
+  onCreateOnDay,
 }: GridContentProps) {
   const gridTechnicians = useMemo<GridTechnician[]>(
     () =>
@@ -493,7 +497,8 @@ function GridContent({
         visibleHours={visibleHours}
         onAppointmentSelect={onAppointmentSelect}
         onOverflowSelect={onOverflowSelect}
-        onEmptySlotSelect={onEmptySlotSelect}
+        onSlotClick={(day) => onCreateOnDay(day)}
+        onSlotSelect={(day) => onCreateOnDay(day)}
       />
     </>
   );
