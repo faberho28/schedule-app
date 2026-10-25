@@ -826,17 +826,37 @@ describe('AgendaPage: navegación', () => {
     expect(router.state.location.search).toBe('?view=day&date=2026-10-22');
   });
 
-  it('sin parámetros abre el día de hoy en la vista de día', async () => {
+  it('sin parámetros abre la semana de hoy en escritorio', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-22T15:00:00Z'));
     const requests = serve();
 
     renderAgenda('/agenda');
 
-    expect(
-      await screen.findByRole('heading', { level: 2, name: 'jue 22 oct' }),
-    ).toBeInTheDocument();
-    expect(requests.appointments).toEqual(['?from=2026-10-22&to=2026-10-22']);
+    expect(await screen.findByRole('region', { name: 'Agenda de la semana' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Semana' })).toHaveAttribute('aria-pressed', 'true');
+    expect(requests.appointments).toEqual(['?from=2026-10-19&to=2026-10-25']);
+  });
+
+  it('con view=day explícito abre la vista de día en escritorio', async () => {
+    serve();
+
+    renderAgenda('/agenda?view=day&date=2026-11-06');
+
+    expect(await screen.findByRole('region', { name: 'Agenda del día' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Día' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('elegir Día desde la semana por defecto escribe view=day en la URL', async () => {
+    const user = userEvent.setup();
+    serve();
+    const { router } = renderAgenda('/agenda?date=2026-11-06');
+    await screen.findByRole('region', { name: 'Agenda de la semana' });
+
+    await user.click(screen.getByRole('button', { name: 'Día' }));
+
+    await screen.findByRole('region', { name: 'Agenda del día' });
+    expect(router.state.location.search).toBe('?view=day&date=2026-11-06');
   });
 
   it('ignora parámetros inválidos y usa los valores por defecto', async () => {
@@ -846,9 +866,7 @@ describe('AgendaPage: navegación', () => {
 
     renderAgenda('/agenda?view=month&date=nope');
 
-    expect(
-      await screen.findByRole('heading', { level: 2, name: 'jue 22 oct' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('lun 19 oct – dom 25 oct')).toBeInTheDocument();
   });
 
   it('permite elegir una fecha con el selector', async () => {

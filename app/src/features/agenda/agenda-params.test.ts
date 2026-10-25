@@ -18,16 +18,21 @@ describe('parseAgendaParams: vista y fecha', () => {
   it.each([
     ['view=week&date=2026-11-06', { view: 'week', date: '2026-11-06' }],
     ['view=day&date=2026-02-28', { view: 'day', date: '2026-02-28' }],
-    ['', { view: 'day', date: TODAY }],
+    ['', { view: 'week', date: TODAY }],
     ['view=week', { view: 'week', date: TODAY }],
-    ['date=2026-11-06', { view: 'day', date: '2026-11-06' }],
-    ['view=month&date=2026-11-06', { view: 'day', date: '2026-11-06' }],
+    ['view=day', { view: 'day', date: TODAY }],
+    ['date=2026-11-06', { view: 'week', date: '2026-11-06' }],
+    ['view=month&date=2026-11-06', { view: 'week', date: '2026-11-06' }],
     ['view=week&date=nope', { view: 'week', date: TODAY }],
     ['view=day&date=2026-13-01', { view: 'day', date: TODAY }],
     ['view=day&date=2026-02-30', { view: 'day', date: TODAY }],
     ['view=day&date=2026-1-5', { view: 'day', date: TODAY }],
   ])('"%s" se interpreta como %j', (search, expected) => {
     expect(parse(search)).toMatchObject(expected);
+  });
+
+  it.each(['', 'view=day', 'view=month'])('"%s" en móvil da day', (search) => {
+    expect(parse(search, false)).toMatchObject({ view: 'day' });
   });
 
   it('view=week abierto en móvil da day', () => {
@@ -41,7 +46,7 @@ describe('parseAgendaParams: vista y fecha', () => {
 describe('parseAgendaParams: parámetros de la agenda', () => {
   it('sin parámetros usa los valores por defecto', () => {
     expect(parse('')).toEqual({
-      view: 'day',
+      view: 'week',
       date: TODAY,
       display: 'grid',
       from: null,
@@ -101,7 +106,7 @@ describe('parseAgendaParams: parámetros de la agenda', () => {
 
 describe('serializeAgendaParams', () => {
   it('omite los valores por defecto y solo conserva vista y fecha', () => {
-    expect(serializeAgendaParams(parse('')).toString()).toBe(`view=day&date=${TODAY}`);
+    expect(serializeAgendaParams(parse('')).toString()).toBe(`view=week&date=${TODAY}`);
   });
 
   it.each([

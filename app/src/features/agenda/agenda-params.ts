@@ -52,8 +52,9 @@ function timeOf(params: URLSearchParams, name: string): string | null {
 
 /**
  * Parámetros de la agenda a partir de la URL. Un valor ausente o inválido se reemplaza por su valor
- * por defecto (vista de día, fecha de hoy, sin filtros). Por debajo del ancho de escritorio la vista
- * es siempre `day`, aunque la URL pida `week`. `status=cancelled` implica mostrar cancelados.
+ * por defecto (vista de semana en escritorio, fecha de hoy, sin filtros). Solo `view=day` explícito
+ * abre el día en escritorio. Por debajo del ancho de escritorio la vista es siempre `day`, aunque la
+ * URL pida `week`. `status=cancelled` implica mostrar cancelados.
  */
 export function parseAgendaParams(
   params: URLSearchParams,
@@ -65,7 +66,7 @@ export function parseAgendaParams(
     (STATUSES as readonly string[]).includes(value),
   );
   return {
-    view: isDesktop && params.get('view') === 'week' ? 'week' : 'day',
+    view: isDesktop && params.get('view') !== 'day' ? 'week' : 'day',
     date: date !== null && isRealDate(date) ? date : today,
     display: params.get('display') === 'list' ? 'list' : 'grid',
     from: timeOf(params, 'from'),
