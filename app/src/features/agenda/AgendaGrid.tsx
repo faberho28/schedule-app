@@ -1,7 +1,8 @@
-import { ArrowLeftRight, FastForward, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useId, useMemo, type CSSProperties } from 'react';
+import { EventBlock } from '@/components/EventBlock';
 import { Button } from '@/components/ui/button';
-import { formatDayLabel, formatTime, type LocalDate } from '@/shared/lib/dates';
+import { formatDayLabel, formatTime, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { cn } from '@/shared/lib/utils';
 import {
   blockGeometry,
@@ -62,7 +63,22 @@ const DEFAULT_ROW_MINUTES = 15;
 const MINUTES_PER_HOUR = 60;
 const PX_PER_MINUTE = 1.25;
 const MAX_COLUMNS = { day: 6, week: 2 } as const;
-const DAY_HEADER = 'flex h-11 items-center justify-between gap-1 border-b px-2 text-sm';
+const DAY_HEADER = 'flex h-14 items-center justify-between gap-1 border-b px-2 text-sm';
+
+/** Sábado o domingo de una fecha local `YYYY-MM-DD` (sin depender de la zona horaria). */
+function isWeekend(day: LocalDate): boolean {
+  const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
+/** Día de la semana abreviado y número del día, para el encabezado de cada columna. */
+function dayParts(day: LocalDate): { weekday: string; number: number } {
+  const date = new Date(`${day}T00:00:00Z`);
+  const weekday = new Intl.DateTimeFormat('es', { weekday: 'short', timeZone: 'UTC' })
+    .format(date)
+    .replace('.', '');
+  return { weekday, number: date.getUTCDate() };
+}
 
 /**
  * Agenda de escritorio con CSS Grid propio: un eje de tiempo común y una columna por día (una en la
@@ -91,7 +107,7 @@ export function AgendaGrid({
       role="region"
       aria-label={view === 'day' ? 'Agenda del día' : 'Agenda de la semana'}
       tabIndex={0}
-      className="overflow-x-auto rounded-lg border bg-card text-card-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="overflow-x-auto rounded-xl border bg-card text-card-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <div className="flex">
         <TimeAxis visibleHours={visibleHours} totalRows={totalRows} rowMinutes={rowMinutes} />
@@ -144,7 +160,7 @@ function TimeAxis({
         {hours.map((minute) => (
           <span
             key={minute}
-            className="absolute right-1.5 -translate-y-1/2 text-xs text-muted-foreground"
+            className="absolute right-2 -translate-y-1/2 text-[11px] text-muted-foreground tabular-nums"
             style={{ top: (minute - visibleHours.startMinute) * PX_PER_MINUTE }}
           >
             {formatMinuteOfDay(minute)}
@@ -203,6 +219,8 @@ function DaySection({
   onEmptySlotSelect,
 }: DaySectionProps) {
   const dayLabel = formatDayLabel(day);
+  const { weekday, number } = dayParts(day);
+  const isToday = day === localDateOf(new Date().toISOString(), timeZone);
   const { blocks, overflow } = useMemo<DayEntries>(() => {
     const byId = new Map(technicians.map((technician) => [technician.id, technician]));
     const timed = appointments
@@ -256,11 +274,25 @@ function DaySection({
   return (
     <section
       aria-labelledby={id}
-      className={cn('min-w-0 flex-1 border-r last:border-r-0', view === 'week' && 'min-w-36')}
+      className={cn(
+        'min-w-0 flex-1 border-r last:border-r-0',
+        view === 'week' && 'min-w-36',
+        isWeekend(day) && 'bg-muted/50',
+        isToday && 'bg-today',
+      )}
     >
       <div className={DAY_HEADER}>
-        <h2 id={id} className="font-semibold">
-          {dayLabel}
+        <h2 id={id} className="flex flex-col items-start leading-none">
+          <span className="sr-only">{dayLabel}</span>
+          <span
+            aria-hidden="true"
+            className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+          >
+            {weekday}
+          </span>
+          <span aria-hidden="true" className="mt-1 text-[22px] font-semibold tabular-nums">
+            {number}
+          </span>
         </h2>
         {onEmptySlotSelect ? (
           <Button
@@ -309,7 +341,7 @@ function DaySection({
               type="button"
               aria-label={`Ver ${group.count} servicios más entre ${formatMinuteOfDay(group.fromMinute)} y ${formatMinuteOfDay(group.toMinute)}`}
               onClick={() => onOverflowSelect(day, group.fromMinute, group.toMinute)}
-              className="flex min-h-11 w-full items-start justify-center rounded-md border border-dashed bg-muted p-1.5 text-xs font-semibold text-foreground outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring"
+              className="flex min-h-11 w-full justify-center items-center rounded-full bg-muted px-2 text-xs font-semibold text-foreground transition-colors duration-150 outline-none hover:bg-accent motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
             >
               +{group.count} más
             </button>
@@ -349,7 +381,6 @@ function AppointmentCard({
   onSelect,
 }: AppointmentCardProps) {
   const style = STATUS_STYLES[appointment.status];
-  const StatusIcon = style.icon;
   const cancelled = appointment.status === 'cancelled';
   const timeRange = `${formatTime(appointment.startsAt, timeZone)} – ${formatTime(appointment.endsAt, timeZone)}`;
   const bufferMinutes = cancelled
@@ -365,74 +396,22 @@ function AppointmentCard({
     ...(appointment.closedEarly ? ['cierre anticipado'] : []),
     ...(bufferMinutes > 0 ? [`incluye ${bufferMinutes} min de traslado`] : []),
   ].join(', ');
-  const color = technician.colorIndex;
-
   return (
-    <button
-      type="button"
-      aria-label={name}
-      data-color-index={color}
+    <EventBlock
+      label={name}
+      colorIndex={technician.colorIndex}
+      time={timeRange}
+      customer={appointment.customerName}
+      serviceName={appointment.serviceName}
+      technicianName={technician.name}
+      technicianInitials={technician.initials}
+      status={style}
+      cancelled={cancelled}
+      technicianChanged={appointment.technicianChanged}
+      closedEarly={appointment.closedEarly}
+      bodyRows={geometry.bodyRows}
+      tailRows={geometry.tailRows}
       onClick={() => onSelect(appointment.id)}
-      className={cn(
-        'flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md border border-l-4 text-left text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring',
-        cancelled && 'opacity-70',
-      )}
-      style={{
-        backgroundColor: `var(--tech-${color})`,
-        color: `var(--tech-${color}-foreground)`,
-        borderColor: `var(--tech-${color}-accent)`,
-      }}
-    >
-      {geometry.bodyRows > 0 ? (
-        <span
-          className="flex min-h-0 flex-col gap-0.5 overflow-hidden p-1.5"
-          style={{ flex: `${geometry.bodyRows} 1 0` }}
-        >
-          <span className="font-semibold">{timeRange}</span>
-          <span className={cn('truncate', cancelled && 'line-through')}>
-            {appointment.customerName}
-          </span>
-          <span className="truncate">{appointment.serviceName}</span>
-          <span className="flex min-w-0 items-center gap-1">
-            <span className="shrink-0 rounded bg-background/60 px-1 font-semibold">
-              {technician.initials}
-            </span>
-            <span className="truncate">{technician.name}</span>
-          </span>
-          <span
-            className={cn(
-              'flex w-fit items-center gap-1 rounded px-1 font-medium',
-              style.className,
-            )}
-          >
-            <StatusIcon aria-hidden="true" className="size-3.5 shrink-0" />
-            {style.label}
-          </span>
-          {appointment.technicianChanged ? (
-            <span className="flex items-center gap-1">
-              <ArrowLeftRight aria-hidden="true" className="size-3.5 shrink-0" />
-              Técnico cambiado
-            </span>
-          ) : null}
-          {appointment.closedEarly ? (
-            <span className="flex items-center gap-1">
-              <FastForward aria-hidden="true" className="size-3.5 shrink-0" />
-              Cierre anticipado
-            </span>
-          ) : null}
-        </span>
-      ) : null}
-      {geometry.tailRows > 0 ? (
-        <span
-          aria-hidden="true"
-          className="border-t border-dashed border-current/40"
-          style={{
-            flex: `${geometry.tailRows} 1 0`,
-            backgroundImage:
-              'repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, currentColor 22%, transparent) 4px 8px)',
-          }}
-        />
-      ) : null}
-    </button>
+    />
   );
 }

@@ -160,7 +160,7 @@ export function ClosureDialog({
                 </ChoiceRadio>
               ))}
               {errors.outcome ? (
-                <p id={outcomeErrorId} className="text-sm font-medium text-destructive">
+                <p id={outcomeErrorId} className="text-xs font-medium text-event-red-text">
                   {errors.outcome}
                 </p>
               ) : null}

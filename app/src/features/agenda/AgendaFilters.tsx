@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import type { AgendaParams } from './agenda-params';
@@ -137,7 +138,7 @@ export function CancelledSwitch({
             : { cancelled: true },
         )
       }
-      className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
     >
       <span
         aria-hidden="true"
@@ -184,10 +185,11 @@ function Chip({
       aria-pressed={pressed}
       onClick={onClick}
       className={cn(
-        'inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-        pressed ? 'border-primary bg-primary text-primary-foreground' : 'bg-background',
+        'inline-flex min-h-11 items-center gap-1.5 rounded-lg border bg-card px-3.5 text-sm font-medium transition-colors duration-150 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none motion-reduce:transition-none',
+        pressed && 'border-primary bg-accent text-accent-foreground hover:bg-accent',
       )}
     >
+      {pressed ? <Check aria-hidden="true" className="size-4" /> : null}
       {children}
     </button>
   );

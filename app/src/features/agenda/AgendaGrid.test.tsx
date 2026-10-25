@@ -203,7 +203,8 @@ describe('AgendaGrid: vista de semana', () => {
     });
 
     const headings = screen.getAllByRole('heading', { level: 2 });
-    expect(headings.map((heading) => heading.textContent)).toEqual([
+    // El encabezado visual (día abreviado y número) es decorativo; el nombre accesible es el texto completo.
+    expect(headings.map((heading) => heading.querySelector('.sr-only')?.textContent)).toEqual([
       'lun 2 nov',
       'mar 3 nov',
       'mié 4 nov',
@@ -236,6 +237,29 @@ describe('AgendaGrid: vista de semana', () => {
     const [first, second] = within(friday).getAllByRole('listitem');
     expect(first).toHaveStyle({ width: '50%', marginLeft: '0%' });
     expect(second).toHaveStyle({ width: '50%', marginLeft: '50%' });
+  });
+});
+
+describe('AgendaGrid: fondos de columna', () => {
+  it('sombrea sábado y domingo y deja los días hábiles sin fondo', () => {
+    renderGrid({ view: 'week', days: WEEK });
+
+    expect(screen.getByRole('region', { name: 'sáb 7 nov' })).toHaveClass('bg-muted/50');
+    expect(screen.getByRole('region', { name: 'dom 8 nov' })).toHaveClass('bg-muted/50');
+    expect(screen.getByRole('region', { name: 'lun 2 nov' })).not.toHaveClass('bg-muted/50');
+  });
+
+  it('tiñe con --today la columna del día actual', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-04T15:00:00Z'));
+    try {
+      renderGrid({ view: 'week', days: WEEK });
+
+      expect(screen.getByRole('region', { name: 'mié 4 nov' })).toHaveClass('bg-today');
+      expect(screen.getByRole('region', { name: 'jue 5 nov' })).not.toHaveClass('bg-today');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

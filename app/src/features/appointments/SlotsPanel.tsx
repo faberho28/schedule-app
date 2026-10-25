@@ -92,12 +92,14 @@ export function SlotsPanel({
         >
           {groupSlotsByDay(slots.data.slots, timeZone).map(({ day, slots: daySlots }) => (
             <div key={day} className="flex flex-col gap-1.5">
-              <h3 className="text-sm font-semibold">{formatDayLabel(day)}</h3>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase">
+                {formatDayLabel(day)}
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {daySlots.map((slot) => (
                   <label
                     key={slot.starts_at}
-                    className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-input bg-card px-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
+                    className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm transition-colors duration-150 motion-reduce:transition-none has-[:checked]:border-brand has-[:checked]:bg-brand has-[:checked]:text-brand-foreground has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-primary/30"
                   >
                     <input
                       type="radio"
@@ -116,7 +118,7 @@ export function SlotsPanel({
         </div>
       ) : null}
       {error ? (
-        <p id={errorId} className="text-sm font-medium text-destructive">
+        <p id={errorId} className="text-xs font-medium text-event-red-text">
           {error}
         </p>
       ) : null}

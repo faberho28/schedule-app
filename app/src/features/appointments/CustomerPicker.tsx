@@ -39,7 +39,7 @@ export function CustomerPicker({ value, onChange, error }: CustomerPickerProps) 
 
   if (value) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-card p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-3">
         <p className="text-sm">
           Cliente: {customerLabel(value)}{' '}
           <span className="text-muted-foreground">{value.phone}</span>
@@ -156,7 +156,7 @@ function NewCustomerForm({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border bg-card p-3">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3">
       <FormField label="Nombre" error={errors.name}>
         {(control) => (
           <Input

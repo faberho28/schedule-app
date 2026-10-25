@@ -1,4 +1,6 @@
 import { useId, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Notice } from '@/shared/ui/Notice';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,9 +31,7 @@ export function CustomersPage() {
         actions={<Button onClick={() => setCreating(true)}>Nuevo cliente</Button>}
       />
 
-      <p role="status" className="text-sm font-medium text-status-completed-foreground">
-        {notice}
-      </p>
+      <Notice tone="success">{notice}</Notice>
 
       <FormField label="Buscar cliente">
         {(control) => (
@@ -92,16 +92,16 @@ function CustomerCard({ customer }: { customer: Customer }) {
   return (
     <article
       aria-labelledby={titleId}
-      className="flex flex-col gap-2 rounded-lg border bg-card p-4 text-card-foreground"
+      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs text-card-foreground"
     >
       <div className="flex items-start justify-between gap-3">
         <h2 id={titleId} className="text-base font-semibold">
           {label}
         </h2>
         {erased ? null : (
-          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          <Badge variant="neutral">
             Consentimiento: {CONSENT_STATUS_INFO[customer.consent_status].label}
-          </span>
+          </Badge>
         )}
       </div>
       {erased ? null : <p className="text-sm text-muted-foreground">{customer.phone}</p>}

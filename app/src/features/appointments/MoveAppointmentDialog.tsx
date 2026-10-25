@@ -102,7 +102,10 @@ export function MoveAppointmentDialog({
           />
 
           {slot ? (
-            <p role="status" className="rounded-md border bg-card p-3 text-sm">
+            <p
+              role="status"
+              className="rounded-lg border-l-[3px] border-event-blue-border bg-event-blue-bg px-3 py-2.5 text-sm text-event-blue-text"
+            >
               {slot.technician_id === appointment.technician.id ? (
                 <>Se mantiene el técnico: {currentName}.</>
               ) : (

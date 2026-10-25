@@ -1,13 +1,15 @@
-import type { ReactNode } from 'react';
+import { CalendarCheck, ClipboardCheck, Gauge, Users } from 'lucide-react';
 import { Link } from 'react-router';
+import { KpiCard } from '@/components/KpiCard';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { STATUS_STYLES } from '@/features/agenda/appointment-status';
 import { serializeAgendaParams, type AgendaParams } from '@/features/agenda/agenda-params';
 import { useBusiness } from '@/features/settings/business-api';
 import type { components } from '@/shared/api/schema';
 import { formatTime } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
-import { cn } from '@/shared/lib/utils';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { useDashboardSummary } from './dashboard-api';
 import {
@@ -48,7 +50,7 @@ export function DashboardPage() {
   const ready = summary.data !== undefined && business.data !== undefined;
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-4 sm:gap-6">
       <PageHeader title="Panel de control" actions={<ProfileLink />} />
       {failed ? (
         <div
@@ -80,67 +82,70 @@ export function DashboardPage() {
 
 function Panel({ summary, timeZone }: { summary: Summary; timeZone: string }) {
   const { efficiency, pending_to_close: pending } = summary;
+  const rate = efficiency.rate;
   return (
     <>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card label="Servicios hoy">
-          <Value>{summary.services_today}</Value>
-        </Card>
-        <Card label="Técnicos activos">
-          <Value>{formatWorkingOfTotal(summary.active_technicians)}</Value>
-        </Card>
-        <Card label="Eficiencia de servicios">
-          <Value>{efficiencyPercentText(efficiency.rate)}</Value>
-          <Detail>{formatCompletedOfDue(efficiency)}</Detail>
-          <Detail>{`Últimos 30 días, desde el ${formatCutoffDate(efficiency.from)}`}</Detail>
-        </Card>
-        <Link
-          to={agendaHref({ date: summary.today, display: 'list', toClose: true })}
-          className={cn(
-            CARD_CLASS,
-            'hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-          )}
-        >
-          <span className="text-sm font-medium text-muted-foreground">Servicios pendientes</span>
-          <Value>{pending}</Value>
-          <Detail>Ver los servicios por cerrar</Detail>
-        </Link>
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <KpiCard label="Servicios hoy" value={summary.services_today} icon={<CalendarCheck />} />
+        <KpiCard
+          label="Técnicos activos"
+          value={formatWorkingOfTotal(summary.active_technicians)}
+          icon={<Users />}
+        />
+        <KpiCard
+          label="Eficiencia de servicios"
+          value={efficiencyPercentText(rate)}
+          icon={<Gauge />}
+          secondary={
+            <>
+              <span>{formatCompletedOfDue(efficiency)}</span>
+              <span>{`Últimos 30 días, desde el ${formatCutoffDate(efficiency.from)}`}</span>
+            </>
+          }
+          footer={
+            rate === null ? null : (
+              <div
+                aria-hidden="true"
+                className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-accent"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-150 motion-reduce:transition-none"
+                  style={{ width: `${Math.round(Math.min(Math.max(rate, 0), 1) * 100)}%` }}
+                />
+              </div>
+            )
+          }
+        />
+        <KpiCard
+          label="Servicios pendientes"
+          value={pending}
+          icon={<ClipboardCheck />}
+          secondary="Ver los servicios por cerrar"
+          tone={pending > 0 ? 'attention' : 'default'}
+          href={agendaHref({ date: summary.today, display: 'list', toClose: true })}
+        />
       </div>
       <TodayList summary={summary} timeZone={timeZone} />
     </>
   );
 }
 
-const CARD_CLASS = 'flex min-h-11 flex-col gap-1 rounded-lg border bg-card p-4';
-
-function Card({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div role="group" aria-label={label} className={CARD_CLASS}>
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function Value({ children }: { children: ReactNode }) {
-  return <span className="text-3xl font-semibold">{children}</span>;
-}
-
-function Detail({ children }: { children: ReactNode }) {
-  return <span className="text-sm text-muted-foreground">{children}</span>;
-}
-
 function TodayList({ summary, timeZone }: { summary: Summary; timeZone: string }) {
   const { remaining_today: rows, today } = summary;
   return (
-    <section className="flex flex-col gap-2">
-      <h2 id="today-services" className="text-lg font-semibold">
-        Servicios de hoy
-      </h2>
+    <Card className="gap-0 py-0">
+      <div className="flex items-center justify-between gap-2 px-5 py-4">
+        <h2 id="today-services" className="text-base font-semibold text-foreground">
+          Servicios de hoy
+        </h2>
+        <span className="text-xs text-muted-foreground">{rows.length}</span>
+      </div>
       {rows.length === 0 ? (
-        <p>No quedan servicios por atender hoy</p>
+        <p className="border-t border-border px-5 py-4 text-sm text-muted-foreground">
+          No quedan servicios por atender hoy
+        </p>
       ) : (
-        <ul aria-labelledby="today-services" className="flex flex-col gap-2">
+        <ul aria-labelledby="today-services" className="flex flex-col border-t border-border">
           {rows.map((item) => {
             const time = `${formatTime(item.starts_at, timeZone)}-${formatTime(item.ends_at, timeZone)}`;
             const customer = customerLabel(item.customer);
@@ -148,34 +153,33 @@ function TodayList({ summary, timeZone }: { summary: Summary; timeZone: string }
             const status = STATUS_STYLES[item.status];
             const StatusIcon = status.icon;
             return (
-              <li key={item.id}>
+              <li key={item.id} className="border-b border-border last:border-b-0">
                 <Link
                   to={agendaHref({ date: today, appointment: item.id })}
                   aria-label={`${time}, ${customer}, ${item.service.name}, ${technician}, ${status.label}`}
-                  className="flex min-h-11 w-full flex-col gap-1 rounded-md border bg-card px-3 py-2 text-left text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  className="flex min-h-11 w-full items-center gap-4 px-5 py-3 text-left transition-colors duration-150 first:rounded-t-none last:rounded-b-xl hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-inset motion-reduce:transition-none"
                 >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{time}</span>
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                        status.className,
-                      )}
-                    >
-                      <StatusIcon aria-hidden="true" className="size-3.5" />
-                      {status.label}
+                  <span className="w-24 shrink-0 text-[13px] font-medium text-muted-foreground tabular-nums">
+                    {time}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-semibold text-foreground">
+                      {customer}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {item.service.name} · {technician}
                     </span>
                   </span>
-                  <span className="font-medium">{customer}</span>
-                  <span className="text-muted-foreground">
-                    {item.service.name} · {technician}
-                  </span>
+                  <Badge variant={status.variant} className="rounded-full">
+                    <StatusIcon aria-hidden="true" />
+                    {status.label}
+                  </Badge>
                 </Link>
               </li>
             );
           })}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }

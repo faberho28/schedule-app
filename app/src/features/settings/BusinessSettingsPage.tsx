@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Notice } from '@/shared/ui/Notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { components } from '@/shared/api/schema';
@@ -69,7 +70,7 @@ function BusinessForm({ business }: { business: Business }) {
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">Zona horaria</span>
-        <p className="flex min-h-11 items-center rounded-md border bg-muted px-3">
+        <p className="flex min-h-11 items-center rounded-xl border border-border bg-muted px-3">
           {business.timezone}
         </p>
         <p className="text-sm text-muted-foreground">
@@ -116,9 +117,7 @@ function BusinessForm({ business }: { business: Business }) {
       <Button type="submit" disabled={update.isPending}>
         Guardar cambios
       </Button>
-      <p role="status" className="text-sm font-medium text-status-completed-foreground">
-        {saved ? 'Cambios guardados' : null}
-      </p>
+      <Notice tone="success">{saved ? 'Cambios guardados' : null}</Notice>
     </form>
   );
 }

@@ -99,7 +99,7 @@ export function ReassignDialog({
               {candidates.map((technician) => (
                 <label
                   key={technician.id}
-                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm"
+                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-border px-3 text-sm transition-colors duration-150 has-[:checked]:border-primary has-[:checked]:bg-accent motion-reduce:transition-none"
                 >
                   <input
                     type="radio"
@@ -116,7 +116,7 @@ export function ReassignDialog({
                 </label>
               ))}
               {error ? (
-                <p id={errorId} className="text-sm font-medium text-destructive">
+                <p id={errorId} className="text-xs font-medium text-event-red-text">
                   {error}
                 </p>
               ) : null}

@@ -14,10 +14,10 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/50" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-[1px]" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col gap-4 overflow-y-auto rounded-t-xl border bg-card p-4 text-card-foreground shadow-lg outline-none sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl',
+          'fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col gap-4 overflow-y-auto rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-xl outline-none sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl',
           className,
         )}
         {...props}
@@ -25,7 +25,7 @@ function DialogContent({
         {children}
         <DialogPrimitive.Close
           aria-label="Cerrar"
-          className="absolute top-2 right-2 inline-flex size-11 items-center justify-center rounded-md hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="absolute top-2 right-2 inline-flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-muted motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-primary/30 focus-visible:outline-none"
         >
           <X aria-hidden="true" className="size-5" />
         </DialogPrimitive.Close>
@@ -35,20 +35,28 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col gap-1 pr-10', className)} {...props} />;
+  return (
+    <div
+      className={cn('flex flex-col gap-1 border-b border-border pb-3 pr-10', className)}
+      {...props}
+    />
+  );
 }
 
 function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
+      className={cn(
+        'flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end',
+        className,
+      )}
       {...props}
     />
   );
 }
 
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className={cn('text-lg font-semibold', className)} {...props} />;
+  return <DialogPrimitive.Title className={cn('text-lg font-bold', className)} {...props} />;
 }
 
 function DialogDescription({

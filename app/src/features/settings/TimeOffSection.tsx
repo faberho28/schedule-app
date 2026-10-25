@@ -40,7 +40,7 @@ export function TimeOffSection({ technicianId, timeZone, busy, onChange }: TimeO
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="time-off-title">
-      <h2 id="time-off-title" className="text-lg font-semibold">
+      <h2 id="time-off-title" className="text-base font-semibold">
         Días libres
       </h2>
 
@@ -56,7 +56,7 @@ export function TimeOffSection({ technicianId, timeZone, busy, onChange }: TimeO
             return (
               <li
                 key={item.id}
-                className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3"
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-xs"
               >
                 <div className="flex flex-col text-sm">
                   <span className="font-medium">{period}</span>

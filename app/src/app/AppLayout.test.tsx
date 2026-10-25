@@ -68,6 +68,29 @@ describe('AppLayout', () => {
     expect(screen.getByRole('main')).toBeInTheDocument();
   });
 
+  it('entre 1024 y 1279 px contrae la barra lateral a íconos y desde 1280 px la expande', () => {
+    setDesktopViewport(1100);
+    renderLayout('/agenda');
+    const sidebar = () => document.querySelector('[data-slot="sidebar"]');
+
+    expect(sidebar()).toHaveAttribute('data-state', 'collapsed');
+    expect(screen.getByRole('link', { name: 'Agenda' })).toBeInTheDocument();
+
+    act(() => setDesktopViewport(1280));
+
+    expect(sidebar()).toHaveAttribute('data-state', 'expanded');
+  });
+
+  it('en móvil muestra el nombre del producto en la barra superior y la activa en la inferior', () => {
+    renderLayout('/agenda');
+
+    expect(screen.getByRole('banner')).toHaveTextContent('Schedule App');
+    expect(screen.getByRole('link', { name: 'Agenda' })).toHaveClass(
+      'bg-accent',
+      'text-accent-foreground',
+    );
+  });
+
   it('cambia de barra lateral a barra inferior al estrechar la ventana', () => {
     setDesktopViewport();
     renderLayout('/agenda');

@@ -55,7 +55,7 @@ export function CustomerEditForm({ customer, onSaved, onEdit }: CustomerEditForm
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">Datos</h2>
+      <h2 className="text-base font-semibold">Datos</h2>
       <CustomerDataFields values={values} errors={errors} onChange={edit} />
       {showGeneral ? <ErrorNotice error={update.error} /> : null}
       <Button type="submit" disabled={update.isPending} className="self-start">

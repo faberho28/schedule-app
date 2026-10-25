@@ -71,7 +71,10 @@ export function EraseCustomerDialog({
               {blocking.map((appointment) => {
                 const status = STATUS_STYLES[appointment.status];
                 return (
-                  <li key={appointment.id} className="flex flex-col gap-1 rounded-md border p-3">
+                  <li
+                    key={appointment.id}
+                    className="flex flex-col gap-1 rounded-xl border border-border p-3"
+                  >
                     <span className="font-medium">
                       {formatDateTime(appointment.starts_at, timeZone)}
                     </span>

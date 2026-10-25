@@ -1,18 +1,31 @@
 import { render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { setDesktopViewport } from '@/test/viewport';
 import { Sidebar } from './Sidebar';
 
-function renderSidebar(path: string) {
-  const router = createMemoryRouter([{ path: '*', element: <Sidebar /> }], {
-    initialEntries: [path],
-  });
+/** La barra lateral solo se monta desde 1024 px; por debajo, `useIsMobile` la convertiría en cajón. */
+function renderSidebar(path: string, open = true) {
+  setDesktopViewport();
+  const router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <SidebarProvider open={open}>
+            <Sidebar />
+          </SidebarProvider>
+        ),
+      },
+    ],
+    { initialEntries: [path] },
+  );
   render(<RouterProvider router={router} />);
 }
 
 describe('Sidebar', () => {
-  it('lista las siete secciones en orden, con Perfil al pie', () => {
+  it('lista las siete secciones en orden, con Configuración y Perfil en el grupo "Cuenta" al pie', () => {
     setDesktopViewport();
     renderSidebar('/agenda');
 
@@ -37,9 +50,12 @@ describe('Sidebar', () => {
       '/settings/business',
       '/profile',
     ]);
-    expect(within(screen.getByTestId('sidebar-footer')).getByRole('link')).toHaveTextContent(
+    const footer = within(screen.getByTestId('sidebar-footer'));
+    expect(footer.getByText('Cuenta')).toBeInTheDocument();
+    expect(footer.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Configuración',
       'Perfil',
-    );
+    ]);
   });
 
   it('no ofrece secciones fuera del alcance', () => {
@@ -50,14 +66,33 @@ describe('Sidebar', () => {
     }
   });
 
-  it('cada enlace conserva su nombre accesible al contraer a íconos', () => {
-    renderSidebar('/agenda');
+  it('contraída a íconos, cada enlace conserva su nombre accesible y su objetivo de 44 px', () => {
+    renderSidebar('/agenda', false);
 
+    expect(document.querySelector('[data-slot="sidebar"]')).toHaveAttribute(
+      'data-state',
+      'collapsed',
+    );
     for (const name of ['Panel de control', 'Agenda', 'Clientes', 'Técnicos', 'Perfil']) {
       const link = screen.getByRole('link', { name });
-      expect(link.querySelector('span')).toHaveClass('sr-only', 'xl:not-sr-only');
-      expect(link).toHaveClass('min-h-11');
+      expect(link.querySelector('span')).toHaveClass('group-data-[collapsible=icon]:sr-only');
+      expect(link.closest('[data-sidebar="menu-button"]')).toHaveClass('min-h-11');
     }
+  });
+
+  it('expandida muestra las etiquetas', () => {
+    renderSidebar('/agenda');
+
+    expect(document.querySelector('[data-slot="sidebar"]')).toHaveAttribute(
+      'data-state',
+      'expanded',
+    );
+  });
+
+  it('muestra el logo de la plataforma en el color de marca', () => {
+    renderSidebar('/');
+
+    expect(screen.getByText('Schedule App').closest('p')).toHaveClass('text-brand');
   });
 
   it('marca la sección activa con aria-current y solo esa', () => {
@@ -76,11 +111,13 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Técnicos' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('usa los tokens oscuros de la barra lateral', () => {
+  it('resalta el ítem activo con el fondo suave del acento', () => {
     renderSidebar('/');
 
-    expect(screen.getByRole('navigation', { name: 'Navegación principal' }).className).toContain(
-      'bg-sidebar',
+    expect(document.querySelector('[data-slot="sidebar-inner"]')).toHaveClass('bg-sidebar');
+    expect(screen.getByRole('link', { name: 'Panel de control' })).toHaveAttribute(
+      'data-active',
+      'true',
     );
     expect(screen.getByRole('link', { name: 'Panel de control' })).toHaveAttribute(
       'aria-current',

@@ -236,7 +236,7 @@ function AgendaScreen({
       </p>
 
       {toCloseMode ? null : (
-        <p aria-live="polite" className="text-sm font-medium text-muted-foreground">
+        <p aria-live="polite" className="text-sm font-medium text-foreground">
           {view === 'day'
             ? formatDayLabel(from)
             : `${formatDayLabel(from)} – ${formatDayLabel(to)}`}
@@ -375,14 +375,14 @@ function ListContent({
       {range !== null || (isDesktop && params.display === 'list') ? (
         <div className="flex flex-wrap items-center gap-3 text-sm">
           {range !== null ? (
-            <p className="font-medium">
+            <p className="font-medium text-muted-foreground">
               Franja <span>{range}</span>
             </p>
           ) : null}
           {isDesktop && params.display === 'list' ? (
             <Link
               to={{ search: backToGrid.toString() }}
-              className="inline-flex min-h-11 items-center font-medium underline underline-offset-4"
+              className="inline-flex min-h-11 items-center rounded-full bg-muted px-4 font-medium transition-colors duration-150 hover:bg-accent motion-reduce:transition-none"
             >
               Volver a la grilla
             </Link>
@@ -390,7 +390,7 @@ function ListContent({
         </div>
       ) : null}
       {total !== null && total > shown ? (
-        <p role="status" className="text-sm font-medium">
+        <p role="status" className="text-sm text-muted-foreground">
           Mostrando {shown} de {total}
         </p>
       ) : null}

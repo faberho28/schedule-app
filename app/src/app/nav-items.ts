@@ -42,16 +42,16 @@ export const SETTINGS_ITEM: NavItem = {
 };
 export const PROFILE_ITEM: NavItem = { to: '/profile', label: 'Perfil', icon: UserCircle };
 
-/** Barra lateral (desde 1024 px), en orden. Perfil va al pie, aparte. */
+/** Barra lateral (desde 1024 px), grupo principal, en orden. */
 export const SIDEBAR_ITEMS: NavItem[] = [
   DASHBOARD_ITEM,
   AGENDA_ITEM,
   CUSTOMERS_ITEM,
   TECHNICIANS_ITEM,
   SERVICE_TYPES_ITEM,
-  SETTINGS_ITEM,
 ];
-export const SIDEBAR_FOOTER_ITEMS: NavItem[] = [PROFILE_ITEM];
+/** Grupo secundario "Cuenta", al pie de la barra lateral: Configuración y, al final, Perfil. */
+export const SIDEBAR_ACCOUNT_ITEMS: NavItem[] = [SETTINGS_ITEM, PROFILE_ITEM];
 
 /** Barra inferior (< 1024 px): entradas directas. Perfil no está; se llega desde el Panel. */
 export const BOTTOM_NAV_ITEMS: NavItem[] = [

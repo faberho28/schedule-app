@@ -23,7 +23,7 @@ export function FormField({ label, error, hint, children }: FormFieldProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium">
+      <label htmlFor={id} className="text-[13px] font-medium">
         {label}
       </label>
       {children({
@@ -32,12 +32,12 @@ export function FormField({ label, error, hint, children }: FormFieldProps) {
         ...(describedBy ? { 'aria-describedby': describedBy } : {}),
       })}
       {hint ? (
-        <p id={hintId} className="text-sm text-muted-foreground">
+        <p id={hintId} className="text-xs text-muted-foreground">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="text-sm font-medium text-destructive">
+        <p id={errorId} className="text-xs font-medium text-event-red-text">
           {error}
         </p>
       ) : null}

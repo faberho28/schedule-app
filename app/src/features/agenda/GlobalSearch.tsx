@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react';
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { localDateOf, formatDateTime } from '@/shared/lib/dates';
 import { customerLabel, technicianLabel } from '@/shared/lib/people';
@@ -144,7 +145,7 @@ export function GlobalSearch({ timeZone }: { timeZone: string }) {
             role="combobox"
             type="text"
             autoComplete="off"
-            className="min-h-11 pl-9"
+            className="min-h-11 rounded-lg border-transparent bg-muted pl-9"
             placeholder="Buscar servicio o cliente"
             maxLength={SEARCH_MAX_LENGTH}
             value={term}
@@ -166,7 +167,9 @@ export function GlobalSearch({ timeZone }: { timeZone: string }) {
       <div
         role="status"
         className={cn(
-          message ? 'mt-1 rounded-md border bg-card p-3 text-sm shadow-md' : 'sr-only',
+          message
+            ? 'mt-1 rounded-xl border bg-popover p-3 text-sm text-muted-foreground shadow-xs'
+            : 'sr-only',
           message && 'absolute left-0 right-0 z-20',
         )}
       >
@@ -184,11 +187,14 @@ export function GlobalSearch({ timeZone }: { timeZone: string }) {
           id={listboxId}
           role="listbox"
           aria-label="Resultados de la búsqueda"
-          className="absolute left-0 right-0 z-20 mt-1 max-h-96 overflow-y-auto rounded-md border bg-card p-2 shadow-md"
+          className="absolute left-0 right-0 z-20 mt-1 max-h-96 overflow-y-auto rounded-xl border bg-popover p-2 shadow-xs"
         >
           {customers.length > 0 ? (
             <div role="group" aria-labelledby={customersLabelId} className="flex flex-col gap-1">
-              <p id={customersLabelId} className="px-2 pt-1 text-xs font-semibold uppercase">
+              <p
+                id={customersLabelId}
+                className="px-2 pt-1 text-xs font-medium text-muted-foreground"
+              >
                 Clientes
               </p>
               {options
@@ -210,7 +216,10 @@ export function GlobalSearch({ timeZone }: { timeZone: string }) {
           ) : null}
           {services.length > 0 ? (
             <div role="group" aria-labelledby={servicesLabelId} className="flex flex-col gap-1">
-              <p id={servicesLabelId} className="px-2 pt-2 text-xs font-semibold uppercase">
+              <p
+                id={servicesLabelId}
+                className="px-2 pt-2 text-xs font-medium text-muted-foreground"
+              >
                 Servicios
               </p>
               {options
@@ -253,8 +262,8 @@ function OptionRow({
       onMouseDown={(event) => event.preventDefault()}
       onClick={onChoose}
       className={cn(
-        'flex min-h-11 cursor-pointer flex-col justify-center gap-0.5 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-        selected && 'bg-accent text-accent-foreground',
+        'flex min-h-11 cursor-pointer flex-col justify-center gap-0.5 rounded-lg px-2 py-1.5 text-sm transition-colors duration-150 hover:bg-muted motion-reduce:transition-none',
+        selected && 'bg-accent text-accent-foreground hover:bg-accent',
       )}
     >
       {children}
@@ -283,15 +292,10 @@ function ServiceRow({
         <span className="font-medium">
           {formatDateTime(hit.starts_at, timeZone)} · {hit.service.name}
         </span>
-        <span
-          className={cn(
-            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-            status.className,
-          )}
-        >
-          <StatusIcon aria-hidden="true" className="size-3.5" />
+        <Badge variant={status.variant} className="rounded-full">
+          <StatusIcon aria-hidden="true" />
           {status.label}
-        </span>
+        </Badge>
       </span>
       <span className="text-muted-foreground">
         {customerLabel(hit.customer)} · {technicianLabel(hit.technician)}

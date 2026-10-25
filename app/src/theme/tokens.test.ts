@@ -29,29 +29,187 @@ function contrast(a: string, b: string): number {
 }
 
 const STATES = ['pending', 'confirmed', 'completed', 'no-show', 'cancelled'] as const;
+const EVENT_COLORS = ['blue', 'purple', 'amber', 'red', 'green'] as const;
+const AA = 4.5;
+
+type Exception = {
+  /** Tema (`:root` o `.dark`), token de texto y token de fondo. */
+  theme: string;
+  foreground: string;
+  background: string;
+  /** Relación medida: el par no puede empeorar por debajo de este valor. */
+  ratio: number;
+  reason: string;
+};
+
+const BRIEF = 'aceptado por el brief de diseño del usuario';
+
+/**
+ * Pares texto/fondo que NO alcanzan AA (4,5:1) y se aceptan de forma explícita porque la paleta
+ * del brief se usa tal cual. Un par no declarado que falle rompe el test; un par declarado que
+ * empeore también; y uno que ya pase debe salir de la lista.
+ */
+export const ACCEPTED_AA_EXCEPTIONS: Exception[] = [
+  {
+    theme: ':root',
+    foreground: 'primary-foreground',
+    background: 'primary',
+    ratio: 3.78,
+    reason: BRIEF,
+  },
+  {
+    theme: ':root',
+    foreground: 'sidebar-primary-foreground',
+    background: 'sidebar-primary',
+    ratio: 3.78,
+    reason: BRIEF,
+  },
+  {
+    theme: ':root',
+    foreground: 'destructive-foreground',
+    background: 'destructive',
+    ratio: 3.76,
+    reason: BRIEF,
+  },
+  {
+    theme: ':root',
+    foreground: 'muted-foreground',
+    background: 'muted',
+    ratio: 4.39,
+    reason: BRIEF,
+  },
+  { theme: ':root', foreground: 'text-subtle', background: 'card', ratio: 2.54, reason: BRIEF },
+  {
+    theme: ':root',
+    foreground: 'text-subtle',
+    background: 'background',
+    ratio: 2.43,
+    reason: BRIEF,
+  },
+  {
+    theme: ':root',
+    foreground: 'accent-foreground',
+    background: 'accent',
+    ratio: 4.05,
+    reason: BRIEF,
+  },
+  {
+    theme: ':root',
+    foreground: 'sidebar-accent-foreground',
+    background: 'sidebar-accent',
+    ratio: 4.05,
+    reason: BRIEF,
+  },
+  {
+    theme: ':root',
+    foreground: 'event-green-text',
+    background: 'event-green-bg',
+    ratio: 4.49,
+    reason: BRIEF,
+  },
+];
+
+function pairsOf(): [string, string][] {
+  return [
+    ['foreground', 'background'],
+    ['foreground', 'card'],
+    ['card-foreground', 'card'],
+    ['popover-foreground', 'popover'],
+    ['primary-foreground', 'primary'],
+    ['secondary-foreground', 'secondary'],
+    ['destructive-foreground', 'destructive'],
+    ['muted-foreground', 'background'],
+    ['muted-foreground', 'card'],
+    ['muted-foreground', 'muted'],
+    ['text-subtle', 'card'],
+    ['text-subtle', 'background'],
+    ['brand-foreground', 'brand'],
+    ['accent-foreground', 'accent'],
+    ['sidebar-foreground', 'sidebar'],
+    ['sidebar-primary-foreground', 'sidebar-primary'],
+    ['sidebar-accent-foreground', 'sidebar-accent'],
+    ['event-red-text', 'card'],
+    ...STATES.map((state): [string, string] => [`status-${state}-foreground`, `status-${state}`]),
+    ...EVENT_COLORS.map((c): [string, string] => [`event-${c}-text`, `event-${c}-bg`]),
+  ];
+}
 
 describe('tokens de color', () => {
   it('calcula el contraste WCAG con valores conocidos', () => {
     expect(contrast('#ffffff', '#000000')).toBeCloseTo(21, 1);
-    expect(contrast('#ffffff', '#2563eb')).toBeCloseTo(5.17, 1);
+    expect(contrast('#ffffff', '#4f7cf7')).toBeCloseTo(3.8, 1);
   });
 
-  it('usa la paleta azul y neutros slate definidos en el diseño (tema claro)', () => {
-    const light = tokensOf(':root');
-
-    expect(light).toMatchObject({
-      primary: '#2563eb',
+  it('usa los valores del brief de diseño en el tema claro', () => {
+    expect(tokensOf(':root')).toMatchObject({
+      background: '#f9fafb',
+      foreground: '#111827',
+      card: '#ffffff',
+      'card-foreground': '#111827',
+      popover: '#ffffff',
+      primary: '#4f7cf7',
       'primary-foreground': '#ffffff',
-      foreground: '#0f172a',
-      background: '#f8fafc',
-      border: '#e2e8f0',
-      'muted-foreground': '#64748b',
+      secondary: '#f3f4f6',
+      muted: '#f3f4f6',
+      'muted-foreground': '#6b7280',
+      accent: '#eaf0fe',
+      'accent-foreground': '#3b6fe0',
+      destructive: '#ef4444',
+      border: '#ecedef',
+      input: '#ecedef',
+      ring: '#4f7cf7',
+      brand: '#e31937',
+      'brand-foreground': '#ffffff',
+      'app-bg': '#f3f4f6',
+      'text-subtle': '#9ca3af',
+      success: '#22c55e',
+      'success-soft': '#dcfce7',
+      'warning-from': '#ff9a3d',
+      'warning-to': '#f2545b',
+      'warning-soft': '#fde4e1',
+      today: '#eef5ff',
+      sidebar: '#ffffff',
+      'sidebar-foreground': '#111827',
+      'sidebar-primary': '#4f7cf7',
+      'sidebar-accent': '#eaf0fe',
+      'sidebar-accent-foreground': '#3b6fe0',
+      'sidebar-border': '#ecedef',
+      'sidebar-ring': '#4f7cf7',
+      'chart-1': '#4f7cf7',
+      'chart-5': '#ef4444',
+      'event-blue-bg': '#e6f4fc',
+      'event-blue-border': '#29a8e0',
+      'event-blue-text': '#0b6e99',
+      'event-purple-bg': '#efe9fd',
+      'event-purple-border': '#8b5cf6',
+      'event-purple-text': '#6d28d9',
+      'event-amber-bg': '#fef3e2',
+      'event-amber-border': '#f59e0b',
+      'event-amber-text': '#b45309',
+      'event-red-bg': '#fde2e4',
+      'event-red-border': '#ef4444',
+      'event-red-text': '#be123c',
+      'event-green-bg': '#e7f6ec',
+      'event-green-border': '#22a55a',
+      'event-green-text': '#15803d',
+    });
+    expect(css).toContain('--radius: 0.75rem;');
+  });
+
+  it('define el tema oscuro con los mismos nombres que el claro', () => {
+    const light = Object.keys(tokensOf(':root')).filter((n) => !n.startsWith('--'));
+    const dark = tokensOf('.dark');
+    const missing = light.filter((name) => !(name in dark));
+    expect(missing).toEqual([]);
+    expect(dark).toMatchObject({
+      'app-bg': '#0b0f17',
+      brand: '#e31937',
+      'brand-foreground': '#ffffff',
     });
   });
 
-  it('usa los colores de estado del diseño en el tema claro', () => {
+  it('conserva los colores de estado en el tema claro', () => {
     const light = tokensOf(':root');
-
     expect([light['status-pending'], light['status-pending-foreground']]).toEqual([
       '#fef3c7',
       '#92400e',
@@ -60,39 +218,41 @@ describe('tokens de color', () => {
       '#dbeafe',
       '#1e40af',
     ]);
-    expect([light['status-completed'], light['status-completed-foreground']]).toEqual([
-      '#dcfce7',
-      '#166534',
-    ]);
-    expect([light['status-no-show'], light['status-no-show-foreground']]).toEqual([
-      '#fee2e2',
-      '#991b1b',
-    ]);
-    expect([light['status-cancelled'], light['status-cancelled-foreground']]).toEqual([
-      '#f1f5f9',
-      '#475569',
-    ]);
   });
 
   describe.each([[':root'], ['.dark']])('contraste AA (4,5:1) en %s', (selector) => {
     const tokens = tokensOf(selector);
-    const pairs: [string, string][] = [
-      ['foreground', 'background'],
-      ['card-foreground', 'card'],
-      ['primary-foreground', 'primary'],
-      ['secondary-foreground', 'secondary'],
-      ['destructive-foreground', 'destructive'],
-      ['muted-foreground', 'background'],
-      ...STATES.map((state): [string, string] => [`status-${state}-foreground`, `status-${state}`]),
-    ];
 
-    it.each(pairs)('%s sobre %s', (foreground, background) => {
+    it.each(pairsOf())('%s sobre %s', (foreground, background) => {
       const fg = tokens[foreground];
       const bg = tokens[background];
       expect(fg, `falta --${foreground}`).toBeDefined();
       expect(bg, `falta --${background}`).toBeDefined();
-      expect(contrast(fg!, bg!)).toBeGreaterThanOrEqual(4.5);
+      const ratio = contrast(fg!, bg!);
+      const exception = ACCEPTED_AA_EXCEPTIONS.find(
+        (e) => e.theme === selector && e.foreground === foreground && e.background === background,
+      );
+      if (exception) {
+        // Excepción declarada: no puede empeorar y, si ya pasa AA, debe salir de la lista.
+        expect(ratio, `${foreground}/${background} empeoró`).toBeGreaterThanOrEqual(
+          exception.ratio - 0.05,
+        );
+        expect(ratio, `${foreground}/${background} ya cumple AA: quita la excepción`).toBeLessThan(
+          AA,
+        );
+      } else {
+        expect(ratio, `${foreground}/${background} sin excepción declarada`).toBeGreaterThanOrEqual(
+          AA,
+        );
+      }
     });
+  });
+
+  it('cada excepción de AA documenta su motivo', () => {
+    for (const e of ACCEPTED_AA_EXCEPTIONS) {
+      expect(e.reason).toContain('brief');
+      expect(e.ratio).toBeLessThan(AA);
+    }
   });
 
   describe.each([[':root'], ['.dark']])('paleta de técnicos en %s', (selector) => {
@@ -113,6 +273,21 @@ describe('tokens de color', () => {
       expect(contrast(accent!, tokens['card']!)).toBeGreaterThanOrEqual(3);
     });
 
+    it.each(slots)('tech-%i: fondo pastel, borde y texto (bg + border + text)', (slot) => {
+      const bg = tokens[`tech-${slot}-bg`];
+      const border = tokens[`tech-${slot}-border`];
+      const text = tokens[`tech-${slot}-text`];
+      expect(bg, `falta --tech-${slot}-bg`).toBeDefined();
+      expect(border, `falta --tech-${slot}-border`).toBeDefined();
+      expect(text, `falta --tech-${slot}-text`).toBeDefined();
+      // Los nombres antiguos siguen vigentes: los nuevos no pueden divergir de ellos.
+      expect(bg).toBe(tokens[`tech-${slot}`]);
+      expect(border).toBe(tokens[`tech-${slot}-accent`]);
+      expect(text).toBe(tokens[`tech-${slot}-foreground`]);
+      expect(contrast(text!, bg!)).toBeGreaterThanOrEqual(AA);
+      expect(contrast(border!, tokens['card']!)).toBeGreaterThanOrEqual(3);
+    });
+
     it('los 10 acentos y los 10 fondos son distintos entre sí', () => {
       const accents = slots.map((slot) => tokens[`tech-${slot}-accent`]);
       const backgrounds = slots.map((slot) => tokens[`tech-${slot}`]);
@@ -121,62 +296,43 @@ describe('tokens de color', () => {
     });
   });
 
-  describe.each([[':root'], ['.dark']])('barra lateral en %s', (selector) => {
-    const tokens = tokensOf(selector);
-    const pairs: [string, string][] = [
-      ['sidebar-foreground', 'sidebar'],
-      ['sidebar-muted-foreground', 'sidebar'],
-      ['sidebar-accent-foreground', 'sidebar-accent'],
-      ['sidebar-foreground', 'sidebar-hover'],
-      ['sidebar-muted-foreground', 'sidebar-hover'],
-    ];
-
-    it.each(pairs)('%s sobre %s', (foreground, background) => {
-      const fg = tokens[foreground];
-      const bg = tokens[background];
-      expect(fg, `falta --${foreground}`).toBeDefined();
-      expect(bg, `falta --${background}`).toBeDefined();
-      expect(contrast(fg!, bg!)).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('define el borde de la barra lateral', () => {
-      expect(tokens['sidebar-border']).toBeDefined();
-    });
-
-    it('la barra lateral es oscura y sale de la escala slate existente', () => {
-      expect(luminance(tokens['sidebar']!)).toBeLessThan(0.05);
-      const slate = ['#0f172a', '#1e293b', '#020617', '#334155', '#94a3b8', '#f8fafc'];
-      expect(slate).toContain(tokens['sidebar']);
-      expect(slate).toContain(tokens['sidebar-hover']);
-    });
-  });
-
-  it('expone los tokens de técnicos y barra lateral en @theme inline', () => {
+  it('registra los tokens en @theme inline', () => {
     for (let slot = 1; slot <= 10; slot += 1) {
       expect(css).toContain(`--color-tech-${slot}: var(--tech-${slot});`);
       expect(css).toContain(`--color-tech-${slot}-foreground: var(--tech-${slot}-foreground);`);
       expect(css).toContain(`--color-tech-${slot}-accent: var(--tech-${slot}-accent);`);
+      for (const part of ['bg', 'border', 'text']) {
+        expect(css).toContain(`--color-tech-${slot}-${part}: var(--tech-${slot}-${part});`);
+      }
     }
-    for (const name of [
+    const names = [
+      'brand',
+      'brand-foreground',
+      'app-bg',
+      'text-subtle',
+      'success',
+      'success-soft',
+      'warning-soft',
+      'today',
       'sidebar',
       'sidebar-foreground',
-      'sidebar-muted-foreground',
+      'sidebar-primary',
+      'sidebar-primary-foreground',
       'sidebar-accent',
       'sidebar-accent-foreground',
-      'sidebar-hover',
       'sidebar-border',
-    ]) {
+      'sidebar-ring',
+      ...EVENT_COLORS.flatMap((c) => [`event-${c}-bg`, `event-${c}-border`, `event-${c}-text`]),
+    ];
+    for (const name of names) {
       expect(css).toContain(`--color-${name}: var(--${name});`);
     }
+    expect(css).toContain("--font-sans: 'Inter Variable'");
   });
 
-  it('mantiene la identidad: primario azul de la familia #2563EB en ambos temas', () => {
-    expect(tokensOf(':root')['primary']).toBe('#2563eb');
-    expect(tokensOf('.dark')['primary']).toBe('#60a5fa');
-    // La barra lateral usa el azul primario para el elemento activo.
-    expect(tokensOf(':root')['sidebar-accent']).toBe('#2563eb');
-    // La escala slate sigue presente en los neutros.
-    expect(tokensOf(':root')['foreground']).toBe('#0f172a');
-    expect(tokensOf('.dark')['card']).toBe('#1e293b');
+  it('usa el rojo de marca en ambos temas y el azul del brief como primario claro', () => {
+    expect(tokensOf(':root')['brand']).toBe('#e31937');
+    expect(tokensOf('.dark')['brand']).toBe('#e31937');
+    expect(tokensOf(':root')['primary']).toBe('#4f7cf7');
   });
 });

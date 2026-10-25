@@ -1,4 +1,6 @@
 import { useId, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Notice } from '@/shared/ui/Notice';
 import { Button } from '@/components/ui/button';
 import type { components } from '@/shared/api/schema';
 import { formatDuration, formatPrice } from '@/shared/lib/format';
@@ -33,9 +35,7 @@ export function ServicesSettingsPage() {
         }
       />
 
-      <p role="status" className="text-sm font-medium text-status-pending-foreground">
-        {notice}
-      </p>
+      <Notice tone="warning">{notice}</Notice>
 
       {services.isPending ? <p>Cargando…</p> : null}
       {services.isError ? (
@@ -91,21 +91,15 @@ function ServiceCard({ service, busy, onEdit, onToggle }: ServiceCardProps) {
   return (
     <article
       aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground"
+      className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-xs text-card-foreground"
     >
       <div className="flex items-start justify-between gap-3">
         <h2 id={titleId} className="text-base font-semibold">
           {service.name}
         </h2>
-        <span
-          className={
-            service.active
-              ? 'rounded-full bg-status-completed px-2.5 py-1 text-xs font-medium text-status-completed-foreground'
-              : 'rounded-full bg-status-cancelled px-2.5 py-1 text-xs font-medium text-status-cancelled-foreground'
-          }
-        >
+        <Badge variant={service.active ? 'green' : 'neutral'}>
           {service.active ? 'Activo' : 'Inactivo'}
-        </span>
+        </Badge>
       </div>
       <p className="text-sm text-muted-foreground">
         {formatDuration(service.duration_min)} · {formatPrice(service.price)}

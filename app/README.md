@@ -79,8 +79,8 @@ Rutas: `/` (Panel de control), `/agenda?view=day|week&date=YYYY-MM-DD`, `/custom
 
 `useIsDesktop()` (`src/shared/lib/use-media-query.ts`) consulta `matchMedia('(min-width: 1024px)')` con `useSyncExternalStore`. `AppLayout` elige según ese valor:
 
-- Desde 1024 px, `Sidebar`: barra lateral oscura con Panel de control, Agenda, Clientes, Técnicos, Tipos de servicio, Configuración y Perfil al pie. Entre 1024 y 1279 px se contrae a íconos (la etiqueta queda `sr-only`); desde 1280 px (`xl:`) muestra las etiquetas.
-- Por debajo de 1024 px, `BottomNav`: Panel, Agenda, Clientes, Técnicos y "Más" (Tipos de servicio y Configuración). Perfil no está en la barra inferior: se abre desde el ícono del encabezado del Panel (`features/dashboard/ProfileLink.tsx`).
+- Desde 1024 px, `Sidebar` (el `Sidebar` de shadcn, variante `inset`, sin cajón móvil) dentro de un `SidebarProvider` cuyo `open` sale de la media query de 1280 px: entre 1024 y 1279 px queda contraída a íconos (etiqueta `sr-only` y tooltip) y desde 1280 px expandida (220 px). Arriba, el logo (`Wordmark`: ícono de calendario y "Schedule App" en el color de marca) y el grupo principal (Panel de control, Agenda, Clientes, Técnicos, Tipos de servicio); al pie, el grupo "Cuenta" con Configuración y Perfil. El contenido va en `SidebarInset`, un contenedor `rounded-2xl` con borde sobre `app-bg`.
+- Por debajo de 1024 px, una barra superior con el logo y `BottomNav` (blanca, íconos de 18 px, ítem activo con el fondo suave del acento): Panel, Agenda, Clientes, Técnicos y "Más" (Tipos de servicio y Configuración). Perfil no está en la barra inferior: se abre desde el ícono del encabezado del Panel (`features/dashboard/ProfileLink.tsx`).
 - `PageHeader` (`shared/ui`) reemplaza a `PageTitle` en las pantallas. En móvil y fuera de `/` muestra "Volver": `navigate(-1)` si hubo navegación dentro de la aplicación y, si no, `/`.
 
 Las entradas de navegación están en `src/app/nav-items.ts`. Las medidas reales (objetivo táctil de 44 px, contracción de la barra lateral) no se miden en jsdom; las pruebas comprueban clases y atributos ARIA y el resto se revisa a mano.
@@ -224,19 +224,34 @@ Viven en `src/features/customers/`. Las consultas cuelgan de `['customers']` (`c
 - La API deja el alias también en `name` de un cliente anonimizado, así que la etiqueta se decide por `anonymized_at` (`customerRecordLabel` en `shared/lib/people.ts`).
 - Errores: `customer_has_future_appointments` (409) lista los servicios en el diálogo y deja intentar de nuevo; `customer_anonymized` (409) y `not_found` recargan la ficha, que pasa a solo lectura; un error de red ofrece "Reintentar"; un cliente inexistente muestra el mensaje y un enlace a la lista.
 
-## Tema
+## Sistema visual
 
-Los colores son variables CSS en `src/index.css` (convención de shadcn/ui): azul primario `#2563EB`, neutros slate y un par fondo/texto por cada estado del servicio (`pending`, `confirmed`, `completed`, `no_show`, `cancelled`). Hay tema claro y oscuro (clase `.dark`, que `index.html` activa según `prefers-color-scheme`). `src/theme/tokens.test.ts` verifica que todos los pares cumplan contraste AA (4,5:1).
+Los tokens vienen del brief de diseño y se usan tal cual. Son variables CSS en `src/index.css` (convención de shadcn/ui), registradas en `@theme inline` como utilidades de Tailwind (`bg-card`, `text-brand`, `bg-event-blue-bg`...). Hay tema claro y oscuro con los mismos nombres (clase `.dark`, que `index.html` activa según `prefers-color-scheme`).
+
+- Capas: `app-bg` (#F3F4F6, fondo general), `background` (#F9FAFB, contenido), `card` (#FFFFFF), `border` (#ECEDEF).
+- Texto: `foreground`, `muted-foreground` (labels y subtítulos) y `text-subtle` (metadatos).
+- Color: `primary` #4F7CF7 (estado activo y datos), `accent` (fondo suave del ítem activo), `brand` #E31937 (logo, toggle activo, CTA), `success`, `destructive`, `warning-from`/`warning-to` y sus fondos suaves.
+- Eventos: `--event-{blue,purple,amber,red,green}-{bg,border,text}`. Los usan las variantes del `Badge` y, en la Fase 3, los bloques de la agenda.
+- Forma: `--radius` 0,75 rem; tarjetas `rounded-xl` con `shadow-xs`; pills y botones de 8 px.
+- Tipografía: Inter variable, autoalojada con `@fontsource-variable/inter` (solo subconjunto latino, sin CDN: la app funciona sin conexión).
+- Panel de control: `KpiCard` (`src/components/KpiCard.tsx`) muestra etiqueta, valor, sufijo, detalle, ícono y pie opcional; con `href` es un enlace y con `tone="attention"` usa el ámbar suave (Servicios pendientes con conteo mayor que 0). La barra de Eficiencia usa `accent` como pista y `primary` como barra, y se oculta si no hay tasa. El estado de cada fila es un `Badge` con ícono y texto: pendiente ámbar, confirmado azul, completado verde, no asistió rojo y cancelado `neutral`. No se añadieron tokens.
+- Componentes base: `Card`, `Badge` (variantes blue, purple, amber, red, green y neutral, esta última gris con `secondary`), `Sidebar` y `ToggleGroup` de shadcn/ui en `src/components/ui`, y `SegmentedControl` (`src/components/SegmentedControl.tsx`), que envuelve a `ToggleGroup`.
+
+- Controles y diálogos (Fase 4): `Button` por defecto es la acción principal en `brand` (rojo) con texto blanco; `outline` y `secondary` para las secundarias y `ghost` de 13 px. `Input`, `Select` y `Textarea` son blancos, de 44 px, `rounded-xl`, con borde `border` y foco en `primary` a baja opacidad. `Dialog` es blanco, `rounded-2xl`, con divisores finos bajo el encabezado y sobre el pie (la acción principal va a la derecha). Los avisos usan `Notice` (`src/shared/ui/Notice.tsx`, tonos error, success, info y warning): fondo pastel `--event-*`, borde izquierdo de 3 px, texto del mismo tono e ícono; `ErrorNotice` y `SubmitError` se apoyan en él. Los estados activo/inactivo de los listados son `Badge` verde y neutro. La pantalla sin conexión es una `Card` centrada sobre `app-bg`. Los íconos de la PWA y `favicon.svg` salen de `npm run icons` con el rojo de marca.
+
+### Contraste
+
+`src/theme/tokens.test.ts` mide el contraste de cada par texto/fondo en ambos temas. Algunos pares de la paleta del brief no llegan a AA (4,5:1) y se aceptan de forma explícita en `ACCEPTED_AA_EXCEPTIONS`: texto blanco sobre `primary` (3,78:1) y sobre `destructive` (3,76:1), `text-subtle` sobre blanco (2,54:1), `muted-foreground` sobre `muted` (4,39:1), `accent-foreground` sobre `accent` (4,05:1) y el texto verde de evento (4,49:1). La prueba falla si un par declarado empeora, si uno no declarado incumple o si uno declarado ya cumple y debe salir de la lista. El rojo de marca con texto blanco (4,71:1) sí cumple.
 
 ### Colores de técnicos
 
-`--tech-1` a `--tech-10` definen el fondo tenue de la tarjeta; `--tech-N-foreground` es el texto y `--tech-N-accent` la franja izquierda. Tema claro: fondo 100, texto 900 y acento 600 de la escala de Tailwind; tema oscuro: fondo 950, texto 100 y acento 400. Los tonos son blue, emerald, amber, rose, violet, cyan, orange, lime, fuchsia y stone. Las pruebas exigen texto sobre fondo con 4,5:1 o más, acento contra `--card` con 3:1 o más y 10 acentos distintos. El color nunca es la única señal: la tarjeta muestra también el nombre del técnico.
+`--tech-N-bg`, `--tech-N-border` y `--tech-N-text` (N de 1 a 10) son los nombres semánticos: fondo pastel, franja izquierda de 3 px y texto oscuro del mismo tono. Son alias con el mismo valor de `--tech-N`, `--tech-N-accent` y `--tech-N-foreground`, que siguen vigentes; una prueba exige que no diverjan. `EventBlock` (`src/components/EventBlock.tsx`) usa los nombres semánticos: hora y estado (`Badge` con ícono y texto) en la primera línea, cliente, servicio y técnico (iniciales y nombre) debajo; el servicio cancelado se atenúa y tacha, y la cola de traslado es una franja rayada decorativa.
+
+La grilla de la agenda muestra por columna el día abreviado en mayúsculas y el número grande, sombrea sábado y domingo con `bg-muted/50` y tiñe la columna de hoy con `--today`. El estado de cada servicio sale de una sola fuente, `STATUS_STYLES` (`appointment-status.ts`: etiqueta, ícono y variante de `Badge`), que usan el panel, la grilla, la lista, la búsqueda y las fichas. El selector de técnicos sigue siendo un grupo de casillas siempre visible (no un desplegable) con el resumen "Técnicos: N de M".
+
+En el detalle de los tonos: Tema claro: fondo 100, texto 900 y acento 600 de la escala de Tailwind; tema oscuro: fondo 950, texto 100 y acento 400. Los tonos son blue, emerald, amber, rose, violet, cyan, orange, lime, fuchsia y stone. Las pruebas exigen texto sobre fondo con 4,5:1 o más, acento contra `--card` con 3:1 o más y 10 acentos distintos. El color nunca es la única señal: la tarjeta muestra también el nombre del técnico.
 
 `assignTechnicianColors` (`src/features/agenda/technician-colors.ts`) es una función pura. Recibe todos los técnicos del negocio (eliminados incluidos, `includeAnonymized=true`) y los ids visibles. El color preferido es el rango por antigüedad (`created_at`, luego `id`) módulo 10. Los visibles se recorren por antigüedad y, si el preferido ya está tomado dentro de la selección, se usa el siguiente libre. Con 10 técnicos o menos los colores no cambian nunca, y borrar a uno no mueve a los demás. Con más de 10, solo cambian ante un choque; si los 10 colores están tomados, el color se repite.
-
-### Barra lateral
-
-`--sidebar`, `--sidebar-foreground`, `--sidebar-muted-foreground`, `--sidebar-accent` (elemento activo, azul primario), `--sidebar-accent-foreground`, `--sidebar-hover` y `--sidebar-border` forman una barra oscura con la escala slate, en ambos temas. Cada par texto/fondo cumple AA en `tokens.test.ts`.
 
 ## PWA
 

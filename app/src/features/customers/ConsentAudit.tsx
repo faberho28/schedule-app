@@ -21,7 +21,7 @@ export function ConsentAudit({ events, timeZone }: { events: ConsentEvent[]; tim
       {newestFirst.map((event) => (
         <li
           key={event.id}
-          className="flex flex-col gap-1 rounded-lg border bg-card p-4 text-sm text-card-foreground"
+          className="flex flex-col gap-1 rounded-xl border border-border bg-card p-4 shadow-xs text-sm text-card-foreground"
         >
           <p className="font-semibold">{KIND_LABELS[event.kind]}</p>
           <p>Fecha: {formatDate(event.occurred_at, timeZone)}</p>

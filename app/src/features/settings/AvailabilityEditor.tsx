@@ -52,7 +52,7 @@ export function AvailabilityEditor({ technicianId, busy, onSave }: AvailabilityE
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="availability-title">
-      <h2 id="availability-title" className="text-lg font-semibold">
+      <h2 id="availability-title" className="text-base font-semibold">
         Horario semanal
       </h2>
       <p className="text-sm text-muted-foreground">Horas locales del negocio.</p>
@@ -72,7 +72,10 @@ export function AvailabilityEditor({ technicianId, busy, onSave }: AvailabilityE
             const errorId = `${row.key}-error`;
             const error = errors[row.key];
             return (
-              <li key={row.key} className="flex flex-col gap-2 rounded-lg border bg-card p-3">
+              <li
+                key={row.key}
+                className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-xs"
+              >
                 <div className="grid grid-cols-[1fr_auto] items-center gap-2">
                   <Select
                     aria-label={`Día de la franja ${position}`}
@@ -114,7 +117,7 @@ export function AvailabilityEditor({ technicianId, busy, onSave }: AvailabilityE
                   />
                 </div>
                 {error ? (
-                  <p id={errorId} className="text-sm font-medium text-destructive">
+                  <p id={errorId} className="text-xs font-medium text-event-red-text">
                     {error}
                   </p>
                 ) : null}

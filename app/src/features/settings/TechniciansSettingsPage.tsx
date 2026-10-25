@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import type { components } from '@/shared/api/schema';
@@ -59,22 +60,16 @@ function TechnicianCard({ technician }: { technician: Technician }) {
   return (
     <article
       aria-labelledby={titleId}
-      className="flex flex-col gap-2 rounded-lg border bg-card p-4 text-card-foreground"
+      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs text-card-foreground"
     >
       <div className="flex items-start justify-between gap-3">
         <h2 id={titleId} className="text-base font-semibold">
           {label}
         </h2>
         {erased ? null : (
-          <span
-            className={
-              technician.active
-                ? 'rounded-full bg-status-completed px-2.5 py-1 text-xs font-medium text-status-completed-foreground'
-                : 'rounded-full bg-status-cancelled px-2.5 py-1 text-xs font-medium text-status-cancelled-foreground'
-            }
-          >
+          <Badge variant={technician.active ? 'green' : 'neutral'}>
             {technician.active ? 'Activo' : 'Inactivo'}
-          </span>
+          </Badge>
         )}
       </div>
       {technician.phone ? (
