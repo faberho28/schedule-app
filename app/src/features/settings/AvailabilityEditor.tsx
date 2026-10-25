@@ -62,7 +62,7 @@ export function AvailabilityEditor({ technicianId, busy, onSave }: AvailabilityE
         <ErrorNotice error={availability.error} onRetry={() => void availability.refetch()} />
       ) : null}
       {availability.data && rows.length === 0 ? (
-        <p>Aún no tiene franjas. No recibirá citas hasta que agregues una.</p>
+        <p>Aún no tiene franjas. No recibirá servicios hasta que agregues una.</p>
       ) : null}
 
       {availability.data ? (

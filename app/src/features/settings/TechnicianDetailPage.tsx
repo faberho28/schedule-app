@@ -61,7 +61,7 @@ export function TechnicianDetailPage() {
         <>
           <p className="text-base font-semibold">{technicianLabel(current)}</p>
           <p className="text-sm text-muted-foreground">
-            Este técnico fue eliminado. Su historial de citas se conserva con el alias.
+            Este técnico fue eliminado. Su historial de servicios se conserva con el alias.
           </p>
         </>
       ) : null}

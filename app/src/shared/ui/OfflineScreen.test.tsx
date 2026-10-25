@@ -18,7 +18,7 @@ describe('OfflineScreen', () => {
     render(<OfflineScreen onRetry={() => {}} />);
 
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
-    expect(screen.queryByText(/cita/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/servicio/i)).not.toBeInTheDocument();
   });
 
   it('llama a onRetry cada vez que se pulsa "Reintentar"', async () => {

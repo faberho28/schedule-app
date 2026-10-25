@@ -60,7 +60,7 @@ describe('MoveAppointmentDialog', () => {
     const requests = serve();
     renderDialog();
 
-    expect(screen.getByRole('dialog', { name: 'Mover cita' })).toHaveAccessibleDescription(
+    expect(screen.getByRole('dialog', { name: 'Mover servicio' })).toHaveAccessibleDescription(
       /Ana Pérez.*Mantenimiento de aire.*vie 6 nov 08:00.*Carlos/,
     );
     await screen.findByRole('radio', { name: '10:00 con Carlos' });
@@ -94,7 +94,7 @@ describe('MoveAppointmentDialog', () => {
     await user.click(await screen.findByRole('radio', { name: '14:00 con Marta' }));
 
     const notice = screen.getByRole('status');
-    expect(notice).toHaveTextContent('Cambia el técnico: la cita pasará de Carlos a Marta.');
+    expect(notice).toHaveTextContent('Cambia el técnico: el servicio pasará de Carlos a Marta.');
     expect(notice).toHaveTextContent(
       'Se avisará al cliente del cambio en el futuro mensaje de reprogramación; en esta versión no se envía ningún mensaje.',
     );
@@ -106,7 +106,7 @@ describe('MoveAppointmentDialog', () => {
     const { onMoved } = renderDialog();
 
     await user.click(await screen.findByRole('radio', { name: '14:00 con Marta' }));
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
     await waitFor(() => expect(onMoved).toHaveBeenCalledTimes(1));
     expect(requests.moved).toEqual([{ starts_at: SLOT_14 }]);
@@ -118,7 +118,7 @@ describe('MoveAppointmentDialog', () => {
     renderDialog();
     await screen.findByRole('radio', { name: '10:00 con Carlos' });
 
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
     expect(
       screen.getByRole('radiogroup', { name: 'Cupos disponibles' }),
@@ -139,7 +139,7 @@ describe('MoveAppointmentDialog', () => {
     renderDialog();
 
     await user.click(await screen.findByRole('radio', { name: /14:00/ }));
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
     expect(await screen.findByText('Cupo ocupado')).toBeInTheDocument();
     await waitFor(() =>
@@ -157,7 +157,7 @@ describe('MoveAppointmentDialog', () => {
     await user.click(await screen.findByRole('radio', { name: /10:00/ }));
     const before = requests.slots.length;
 
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
     expect(
       await screen.findByText('Ese horario no está disponible. Elige uno de los cupos ofrecidos.'),
@@ -171,9 +171,11 @@ describe('MoveAppointmentDialog', () => {
     renderDialog();
     await user.click(await screen.findByRole('radio', { name: /10:00/ }));
 
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
-    expect(await screen.findByText('La cita no admite ese cambio de estado.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('El servicio no admite ese cambio de estado.'),
+    ).toBeInTheDocument();
   });
 
   it('ofrece reintentar tras un error de red', async () => {
@@ -185,7 +187,7 @@ describe('MoveAppointmentDialog', () => {
     const { onMoved } = renderDialog();
     await user.click(await screen.findByRole('radio', { name: /10:00/ }));
 
-    await user.click(screen.getByRole('button', { name: 'Mover cita' }));
+    await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
     expect(await screen.findByText(/No se pudo conectar con el servidor/)).toBeInTheDocument();
     failing = false;
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));

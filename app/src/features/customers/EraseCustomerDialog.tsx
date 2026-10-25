@@ -64,10 +64,10 @@ export function EraseCustomerDialog({
         {blocking ? (
           <section className="flex flex-col gap-2 text-sm">
             <p>
-              Los datos no se eliminarán hasta que canceles estas citas. El sistema no las cancela
-              por ti: ábrelas en la agenda, cancélalas y vuelve a intentar la eliminación.
+              Los datos no se eliminarán hasta que canceles estos servicios. El sistema no los
+              cancela por ti: ábrelos en la agenda, cancélalos y vuelve a intentar la eliminación.
             </p>
-            <ul aria-label="Citas futuras del cliente" className="flex flex-col gap-2">
+            <ul aria-label="Servicios futuros del cliente" className="flex flex-col gap-2">
               {blocking.map((appointment) => {
                 const status = STATUS_STYLES[appointment.status];
                 return (
@@ -86,7 +86,7 @@ export function EraseCustomerDialog({
                       Abrir en la agenda
                       <span className="sr-only">
                         {' '}
-                        la cita del {formatDateTime(appointment.starts_at, timeZone)}
+                        el servicio del {formatDateTime(appointment.starts_at, timeZone)}
                       </span>
                     </Link>
                   </li>

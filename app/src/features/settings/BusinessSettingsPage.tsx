@@ -79,7 +79,7 @@ function BusinessForm({ business }: { business: Business }) {
 
       <FormField
         label="Buffer de traslado (minutos)"
-        hint="Tiempo entre una cita y la siguiente del mismo técnico. De 0 a 240 minutos."
+        hint="Tiempo entre un servicio y el siguiente del mismo técnico. De 0 a 240 minutos."
         error={bufferError}
       >
         {(control) => (

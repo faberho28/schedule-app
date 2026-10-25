@@ -264,7 +264,7 @@ function Lane({
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={`Nueva cita con ${technician.name} el ${dayLabel}`}
+            aria-label={`Nuevo servicio con ${technician.name} el ${dayLabel}`}
             onClick={() => onEmptyCellSelect(technician.id, day)}
           >
             <Plus aria-hidden="true" />

@@ -86,9 +86,11 @@ export function ServiceFormDialog({ service, onClose, onSaved }: ServiceFormDial
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{service ? 'Editar servicio' : 'Nuevo servicio'}</DialogTitle>
+          <DialogTitle>
+            {service ? 'Editar tipo de servicio' : 'Nuevo tipo de servicio'}
+          </DialogTitle>
           <DialogDescription>
-            Los cambios de precio y duración no modifican las citas ya agendadas.
+            Los cambios de precio y duración no modifican los servicios ya agendados.
           </DialogDescription>
         </DialogHeader>
 
@@ -131,7 +133,7 @@ export function ServiceFormDialog({ service, onClose, onSaved }: ServiceFormDial
           </FormField>
           <FormField
             label="Días hasta el seguimiento (opcional)"
-            hint="Déjalo vacío si el servicio no lleva seguimiento."
+            hint="Déjalo vacío si el tipo de servicio no lleva seguimiento."
             error={errors.followupInterval}
           >
             {(control) => (
@@ -154,7 +156,7 @@ export function ServiceFormDialog({ service, onClose, onSaved }: ServiceFormDial
               Cancelar
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {service ? 'Guardar cambios' : 'Crear servicio'}
+              {service ? 'Guardar cambios' : 'Crear tipo de servicio'}
             </Button>
           </DialogFooter>
         </form>

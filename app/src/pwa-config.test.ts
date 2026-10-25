@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { pwaOptions } from '../pwa.config';
@@ -6,6 +6,7 @@ import { pwaOptions } from '../pwa.config';
 const manifest = pwaOptions.manifest as {
   name: string;
   short_name: string;
+  description: string;
   theme_color: string;
   background_color: string;
   display: string;
@@ -27,6 +28,14 @@ describe('manifest de la PWA', () => {
     expect(manifest.background_color).toBe('#F8FAFC');
     expect(manifest.display).toBe('standalone');
     expect(manifest.lang).toBe('es');
+  });
+
+  it('describe la aplicación con el vocabulario de servicios, en el manifiesto y en index.html', () => {
+    const description = 'Agenda de servicios para tu negocio';
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+
+    expect(manifest.description).toBe(description);
+    expect(html).toContain(`<meta name="description" content="${description}" />`);
   });
 
   it('declara íconos de 192, 512 y 512 maskable', () => {

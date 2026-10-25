@@ -66,7 +66,7 @@ export function ReassignDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reasignar cita</DialogTitle>
+          <DialogTitle>Reasignar servicio</DialogTitle>
           <DialogDescription>
             {customerLabel(appointment.customer)} · {appointment.service_name_snapshot} ·{' '}
             {formatDateTime(appointment.starts_at, timeZone)} · {currentName}
@@ -79,7 +79,7 @@ export function ReassignDialog({
           </p>
 
           {candidates.length === 0 ? (
-            <p>No hay otros técnicos activos para esta cita.</p>
+            <p>No hay otros técnicos activos para este servicio.</p>
           ) : (
             <FormField label="Nuevo técnico" error={error}>
               {(control) => (

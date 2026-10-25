@@ -27,8 +27,8 @@ export function EraseTechnicianDialog({
           <DialogTitle>Eliminar técnico</DialogTitle>
           <DialogDescription>
             Al eliminar a {technicianName} se borrarán su nombre y su teléfono, y se anonimizará su
-            historial: sus citas se conservan atribuidas a un alias aleatorio. Esta acción es
-            irreversible. Si tiene citas futuras, antes verás la propuesta para reasignarlas.
+            historial: sus servicios se conservan atribuidos a un alias aleatorio. Esta acción es
+            irreversible. Si tiene servicios futuros, antes verás la propuesta para reasignarlos.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

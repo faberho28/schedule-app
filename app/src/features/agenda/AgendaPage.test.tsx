@@ -100,7 +100,7 @@ describe('AgendaPage: carga', () => {
 
     renderAgenda();
 
-    expect(await screen.findByText('No hay citas en este rango.')).toBeInTheDocument();
+    expect(await screen.findByText('No hay servicios en este rango.')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Carlos, vie 6 nov' })).toBeInTheDocument();
   });
 
@@ -110,7 +110,7 @@ describe('AgendaPage: carga', () => {
     renderAgenda();
 
     expect(await screen.findByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
-    expect(screen.queryByText('No hay citas en este rango.')).not.toBeInTheDocument();
+    expect(screen.queryByText('No hay servicios en este rango.')).not.toBeInTheDocument();
   });
 
   it('indica que faltan técnicos cuando no hay ninguno activo', async () => {
@@ -187,8 +187,10 @@ describe('AgendaPage: técnicos y clientes eliminados', () => {
 
     const marta = await screen.findByRole('group', { name: 'Marta, vie 6 nov' });
     expect(within(marta).getByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Nueva cita con Marta/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Nueva cita con Carlos/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Nuevo servicio con Marta/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Nuevo servicio con Carlos/ })).toBeInTheDocument();
   });
 
   it('muestra al cliente eliminado con su alias', async () => {
@@ -341,7 +343,7 @@ describe('AgendaPage: acciones', () => {
     renderAgenda(ENTRY, { onAppointmentSelect, onEmptyCellSelect });
 
     await user.click(await screen.findByRole('button', { name: /Ana Pérez/ }));
-    await user.click(screen.getByRole('button', { name: 'Nueva cita con Marta el vie 6 nov' }));
+    await user.click(screen.getByRole('button', { name: 'Nuevo servicio con Marta el vie 6 nov' }));
 
     expect(onAppointmentSelect).toHaveBeenCalledExactlyOnceWith(IDS.apt1);
     expect(onEmptyCellSelect).toHaveBeenCalledExactlyOnceWith(IDS.marta, '2026-11-06');
@@ -359,7 +361,7 @@ describe('AgendaPage: actualización', () => {
     current = [appointment({ status: 'cancelled' })];
     await queryClient.invalidateQueries({ queryKey: ['appointments'] });
 
-    const cancelled = await screen.findByRole('button', { name: /Cancelada/ });
-    expect(within(cancelled).getByText('Cancelada')).toBeInTheDocument();
+    const cancelled = await screen.findByRole('button', { name: /Cancelado/ });
+    expect(within(cancelled).getByText('Cancelado')).toBeInTheDocument();
   });
 });

@@ -80,7 +80,7 @@ export function ClosureDialog({
   function next(event: FormEvent) {
     event.preventDefault();
     const found: Errors = {};
-    if (!outcome) found.outcome = 'Elige el resultado de la cita.';
+    if (!outcome) found.outcome = 'Elige el resultado del servicio.';
     if (early && trimmedReason === '') found.reason = EARLY_REASON_MESSAGE;
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -126,11 +126,11 @@ export function ClosureDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cerrar cita</DialogTitle>
+          <DialogTitle>Cerrar servicio</DialogTitle>
           <DialogDescription>
-            Cita de {customerLabel(appointment.customer)} del{' '}
-            {formatDateTime(appointment.starts_at, timeZone)}. Una cita cerrada conserva su horario
-            ocupado.
+            Servicio de {customerLabel(appointment.customer)} del{' '}
+            {formatDateTime(appointment.starts_at, timeZone)}. Un servicio cerrado conserva su
+            horario ocupado.
           </DialogDescription>
         </DialogHeader>
 
@@ -138,7 +138,7 @@ export function ClosureDialog({
           <form noValidate onSubmit={next} className="flex flex-col gap-4">
             {early ? (
               <p className="text-sm font-medium">
-                La cita aún no empieza. Para cerrarla antes de su hora debes indicar el motivo y
+                El servicio aún no empieza. Para cerrarlo antes de su hora debes indicar el motivo y
                 confirmar de nuevo.
               </p>
             ) : null}
@@ -191,7 +191,7 @@ export function ClosureDialog({
           </form>
         ) : (
           <form noValidate onSubmit={submit} className="flex flex-col gap-4">
-            <p className="text-sm font-medium">Vas a cerrar la cita como {outcomeLabel}.</p>
+            <p className="text-sm font-medium">Vas a cerrar el servicio como {outcomeLabel}.</p>
             {trimmedReason !== '' ? (
               <p className="text-sm">
                 {early ? 'Motivo' : 'Nota'}: {trimmedReason}
@@ -201,15 +201,15 @@ export function ClosureDialog({
             {early ? (
               <>
                 <Warning>
-                  Es un cierre anticipado: la cita aún no empieza. Se registrará quién, cuándo y por
-                  qué la cierras antes de su hora, y la cita conservará su horario ocupado.
+                  Es un cierre anticipado: el servicio aún no empieza. Se registrará quién, cuándo y
+                  por qué lo cierras antes de su hora, y el servicio conservará su horario ocupado.
                 </Warning>
                 <ConfirmCheckbox
                   checked={confirmed}
                   error={errors.confirm}
                   onChange={(checked) => edit(() => setConfirmed(checked))}
                 >
-                  Entiendo que la cita aún no empieza y quiero cerrarla antes de su hora.
+                  Entiendo que el servicio aún no empieza y quiero cerrarlo antes de su hora.
                 </ConfirmCheckbox>
               </>
             ) : null}

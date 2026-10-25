@@ -68,7 +68,7 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
       {erased ? (
         <p className="text-sm text-muted-foreground">
           Este cliente fue eliminado: sus datos personales se reemplazaron por valores neutros y no
-          admite cambios, autorizaciones ni citas nuevas. Su historial se conserva.
+          admite cambios, autorizaciones ni servicios nuevos. Su historial se conserva.
         </p>
       ) : (
         <>
@@ -160,8 +160,8 @@ function CustomerFile({ customer }: { customer: CustomerDetail }) {
           {upcoming.length > 0 ? (
             <p className="text-sm font-medium">
               Este cliente tiene {upcoming.length}{' '}
-              {pluralize(upcoming.length, 'cita futura activa', 'citas futuras activas')}.
-              Cancélalas antes de eliminar sus datos.
+              {pluralize(upcoming.length, 'servicio futuro activo', 'servicios futuros activos')}.
+              Cancélalos antes de eliminar sus datos.
             </p>
           ) : null}
           <Button

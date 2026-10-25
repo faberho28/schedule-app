@@ -77,7 +77,7 @@ export function MoveAppointmentDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Mover cita</DialogTitle>
+          <DialogTitle>Mover servicio</DialogTitle>
           <DialogDescription>
             {customerLabel(appointment.customer)} · {appointment.service_name_snapshot} ·{' '}
             {formatDateTime(appointment.starts_at, timeZone)} · {currentName}
@@ -107,7 +107,7 @@ export function MoveAppointmentDialog({
                 <>Se mantiene el técnico: {currentName}.</>
               ) : (
                 <>
-                  Cambia el técnico: la cita pasará de {currentName} a{' '}
+                  Cambia el técnico: el servicio pasará de {currentName} a{' '}
                   {nameOf(slot.technician_id, null)}. Se avisará al cliente del cambio en el futuro
                   mensaje de reprogramación; en esta versión no se envía ningún mensaje.
                 </>
@@ -122,7 +122,7 @@ export function MoveAppointmentDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={move.isPending}>
-              Mover cita
+              Mover servicio
             </Button>
           </DialogFooter>
         </form>

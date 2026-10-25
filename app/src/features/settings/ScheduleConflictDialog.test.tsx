@@ -145,9 +145,9 @@ describe('ScheduleConflictDialog: propuesta', () => {
     await startChange(user);
 
     const dialog = await screen.findByRole('dialog', {
-      name: 'Registrar días libres: citas afectadas',
+      name: 'Registrar días libres: servicios afectados',
     });
-    expect(dialog).toHaveTextContent('Este cambio afecta 2 citas de Carlos');
+    expect(dialog).toHaveTextContent('Este cambio afecta 2 servicios de Carlos');
     const items = within(dialog).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('vie 6 nov 08:00');
@@ -172,7 +172,7 @@ describe('ScheduleConflictDialog: propuesta', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Aceptar' }));
 
     expect(await screen.findByRole('dialog', { name: 'Cambio aplicado' })).toHaveTextContent(
-      'Se reasignaron 2 citas.',
+      'Se reasignaron 2 servicios.',
     );
     expect(screen.getByRole('dialog')).toHaveTextContent('Ana Pérez');
     expect(screen.getByRole('dialog')).toHaveTextContent('Marta');
@@ -217,7 +217,7 @@ describe('ScheduleConflictDialog: propuesta', () => {
     await startChange(user);
 
     expect(await screen.findByRole('dialog')).toHaveTextContent(
-      'Este cambio afecta 1 cita de Carlos',
+      'Este cambio afecta 1 servicio de Carlos',
     );
   });
 });
@@ -244,7 +244,7 @@ describe('ScheduleConflictDialog: citas sin reemplazo', () => {
     expect(items[0]).toHaveTextContent('Pasa a Marta');
     expect(items[1]).toHaveTextContent('Sin reemplazo disponible');
     expect(dialog).toHaveTextContent(
-      'Muévelas, reasígnalas o cancélalas a mano desde la agenda y vuelve a intentar el cambio.',
+      'Muévelos, reasígnalos o cancélalos a mano desde la agenda y vuelve a intentar el cambio.',
     );
     expect(within(dialog).getByRole('button', { name: 'Aceptar' })).toBeDisabled();
     expect(received.applies).toEqual([]);
@@ -256,9 +256,9 @@ describe('ScheduleConflictDialog: citas sin reemplazo', () => {
 
 describe('ScheduleConflictDialog: propuesta vencida', () => {
   it.each([
-    ['proposal_stale', 'La propuesta ya no está vigente. Revisa las citas afectadas de nuevo.'],
+    ['proposal_stale', 'La propuesta ya no está vigente. Revisa los servicios afectados de nuevo.'],
     ['slot_taken', 'Cupo ocupado'],
-    ['schedule_conflict', 'El cambio afecta citas que ya están agendadas.'],
+    ['schedule_conflict', 'El cambio afecta servicios que ya están agendados.'],
   ] as const)('ante %s vuelve a pedir la vista previa y la muestra', async (code, message) => {
     const user = userEvent.setup();
     const refreshed: Preview = {
@@ -281,7 +281,9 @@ describe('ScheduleConflictDialog: propuesta vencida', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Aceptar' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('dialog')).toHaveTextContent('Este cambio afecta 1 cita de Carlos');
+      expect(screen.getByRole('dialog')).toHaveTextContent(
+        'Este cambio afecta 1 servicio de Carlos',
+      );
     });
     expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent(message);
     expect(within(screen.getByRole('dialog')).getAllByRole('listitem')).toHaveLength(1);
@@ -305,7 +307,9 @@ describe('ScheduleConflictDialog: propuesta vencida', () => {
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Aceptar' }),
     );
 
-    const dialog = await screen.findByText('Ya no hay citas afectadas. Puedes aplicar el cambio.');
+    const dialog = await screen.findByText(
+      'Ya no hay servicios afectados. Puedes aplicar el cambio.',
+    );
     expect(dialog).toBeInTheDocument();
     server.use(
       http.post(apiUrl('/technicians/:id/schedule-changes'), async ({ request }) => {
@@ -346,7 +350,9 @@ describe('ScheduleConflictDialog: eliminar técnico', () => {
     renderWithQuery(<Harness change={ERASE} />);
 
     await startChange(user);
-    const dialog = await screen.findByRole('dialog', { name: 'Eliminar técnico: citas afectadas' });
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Eliminar técnico: servicios afectados',
+    });
     await user.click(within(dialog).getByRole('button', { name: 'Aceptar' }));
 
     expect(await screen.findByRole('dialog', { name: 'Cambio aplicado' })).toBeInTheDocument();

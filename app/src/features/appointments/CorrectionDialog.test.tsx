@@ -50,19 +50,19 @@ describe('CorrectionDialog: opciones por estado', () => {
     renderDialog();
 
     expect(screen.getByRole('dialog', { name: 'Corregir cierre' })).toHaveAccessibleDescription(
-      /Ana Pérez.*Completada/,
+      /Ana Pérez.*Completado/,
     );
     expect(screen.getByRole('radio', { name: 'Cambiar a No asistió' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Cambiar la fecha de completado' })).toBeVisible();
-    expect(screen.getByRole('radio', { name: 'Devolver a Confirmada' })).toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: 'Cambiar a Completada' })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Devolver a Confirmado' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Cambiar a Completado' })).not.toBeInTheDocument();
   });
 
   it('desde No asistió ofrece Completada y devolver a Confirmada, sin cambiar la fecha', () => {
     renderDialog({ status: 'no_show', completed_at: null });
 
-    expect(screen.getByRole('radio', { name: 'Cambiar a Completada' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Devolver a Confirmada' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Cambiar a Completado' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Devolver a Confirmado' })).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'Cambiar a No asistió' })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('radio', { name: 'Cambiar la fecha de completado' }),
@@ -93,7 +93,7 @@ describe('CorrectionDialog: cambio de resultado', () => {
     const bodies = serve(() => HttpResponse.json(appointment({ status: 'completed' })));
     const { onCorrected } = renderDialog({ status: 'no_show', completed_at: null });
 
-    await pick(user, 'Cambiar a Completada', 'Sí asistió');
+    await pick(user, 'Cambiar a Completado', 'Sí asistió');
     await user.click(screen.getByRole('button', { name: 'Guardar corrección' }));
 
     await waitFor(() => expect(onCorrected).toHaveBeenCalledTimes(1));
@@ -192,7 +192,7 @@ describe('CorrectionDialog: fecha de completado', () => {
     const user = userEvent.setup();
     serve(() =>
       problem('validation_error', 422, {
-        errors: [{ field: 'completed_at', messages: ['La fecha es anterior a la cita.'] }],
+        errors: [{ field: 'completed_at', messages: ['La fecha es anterior al servicio.'] }],
       }),
     );
     renderDialog();
@@ -206,24 +206,24 @@ describe('CorrectionDialog: fecha de completado', () => {
 
     const field = await screen.findByLabelText('Fecha de completado');
     await waitFor(() => expect(field).toBeInvalid());
-    expect(field).toHaveAccessibleDescription('La fecha es anterior a la cita.');
+    expect(field).toHaveAccessibleDescription('La fecha es anterior al servicio.');
   });
 });
 
 describe('CorrectionDialog: devolver a Confirmada', () => {
   const checkboxName =
-    'Entiendo que se anulará el seguimiento y quiero devolver la cita a Confirmada.';
+    'Entiendo que se anulará el seguimiento y quiero devolver el servicio a Confirmado.';
 
   it('explica los efectos de reabrir', async () => {
     const user = userEvent.setup();
     renderDialog();
 
-    await user.click(screen.getByRole('radio', { name: 'Devolver a Confirmada' }));
+    await user.click(screen.getByRole('radio', { name: 'Devolver a Confirmado' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       /se anula el seguimiento programado.*fecha de completado.*conserva su horario/,
     );
-    expect(screen.getByRole('button', { name: 'Devolver a Confirmada' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Devolver a Confirmado' })).toBeInTheDocument();
   });
 
   it('exige la confirmación reforzada y el motivo, y envía confirm_reopen', async () => {
@@ -231,17 +231,17 @@ describe('CorrectionDialog: devolver a Confirmada', () => {
     const bodies = serve(() => HttpResponse.json(appointment({ status: 'confirmed' })));
     const { onCorrected } = renderDialog();
 
-    await user.click(screen.getByRole('radio', { name: 'Devolver a Confirmada' }));
+    await user.click(screen.getByRole('radio', { name: 'Devolver a Confirmado' }));
     await user.type(reasonField(), 'Se cerró por error');
-    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmada' }));
+    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmado' }));
 
     expect(
-      screen.getByText('Marca la casilla para confirmar que quieres reabrir la cita.'),
+      screen.getByText('Marca la casilla para confirmar que quieres reabrir el servicio.'),
     ).toBeInTheDocument();
     expect(bodies).toEqual([]);
 
     await user.click(screen.getByRole('checkbox', { name: checkboxName }));
-    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmada' }));
+    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmado' }));
 
     await waitFor(() => expect(onCorrected).toHaveBeenCalledTimes(1));
     expect(bodies).toEqual([
@@ -254,10 +254,10 @@ describe('CorrectionDialog: devolver a Confirmada', () => {
     const bodies = serve(() => HttpResponse.json(appointment({ status: 'confirmed' })));
     const { onCorrected } = renderDialog({ status: 'no_show', completed_at: null });
 
-    await user.click(screen.getByRole('radio', { name: 'Devolver a Confirmada' }));
+    await user.click(screen.getByRole('radio', { name: 'Devolver a Confirmado' }));
     await user.type(reasonField(), 'Llegó tarde');
     await user.click(screen.getByRole('checkbox', { name: checkboxName }));
-    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmada' }));
+    await user.click(screen.getByRole('button', { name: 'Devolver a Confirmado' }));
 
     await waitFor(() => expect(onCorrected).toHaveBeenCalledTimes(1));
     expect(bodies).toEqual([{ outcome: 'confirmed', reason: 'Llegó tarde', confirm_reopen: true }]);
@@ -273,8 +273,8 @@ describe('CorrectionDialog: errores de la API', () => {
 
   it.each([
     ['correction_reason_required', 'Indica el motivo de la corrección.'],
-    ['reopen_confirmation_required', 'Confirma que quieres reabrir la cita.'],
-    ['invalid_transition', 'La cita no admite ese cambio de estado.'],
+    ['reopen_confirmation_required', 'Confirma que quieres reabrir el servicio.'],
+    ['invalid_transition', 'El servicio no admite ese cambio de estado.'],
     ['not_found', 'No se encontró el recurso solicitado.'],
   ] as const)('muestra %s', async (code, message) => {
     const user = userEvent.setup();

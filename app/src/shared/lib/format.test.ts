@@ -27,8 +27,8 @@ describe('formatDuration', () => {
 
 describe('pluralize', () => {
   it('usa el singular con 1 y el plural con cualquier otro número', () => {
-    expect(pluralize(1, 'cita', 'citas')).toBe('cita');
-    expect(pluralize(5, 'cita', 'citas')).toBe('citas');
-    expect(pluralize(0, 'cita', 'citas')).toBe('citas');
+    expect(pluralize(1, 'servicio', 'servicios')).toBe('servicio');
+    expect(pluralize(5, 'servicio', 'servicios')).toBe('servicios');
+    expect(pluralize(0, 'servicio', 'servicios')).toBe('servicios');
   });
 });

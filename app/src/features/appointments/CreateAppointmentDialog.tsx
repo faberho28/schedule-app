@@ -99,7 +99,7 @@ export function CreateAppointmentDialog({
     event?.preventDefault();
     const found: ClientErrors = {};
     if (!customer) found.customer = 'Selecciona un cliente.';
-    if (serviceId === '') found.service = 'Selecciona un servicio.';
+    if (serviceId === '') found.service = 'Selecciona un tipo de servicio.';
     else if (!slot) found.slot = 'Elige un cupo de la lista.';
     if (address.trim() === '') found.address = 'La dirección es obligatoria.';
     setClientErrors(found);
@@ -126,9 +126,10 @@ export function CreateAppointmentDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nueva cita</DialogTitle>
+          <DialogTitle>Nuevo servicio</DialogTitle>
           <DialogDescription>
-            Elige el cliente, el servicio y uno de los cupos ofrecidos. La cita queda confirmada.
+            Elige el cliente, el tipo de servicio y uno de los cupos ofrecidos. El servicio queda
+            confirmado.
           </DialogDescription>
         </DialogHeader>
 
@@ -144,7 +145,7 @@ export function CreateAppointmentDialog({
             }
           />
 
-          <FormField label="Servicio" error={errors.service}>
+          <FormField label="Tipo de servicio" error={errors.service}>
             {(control) => (
               <Select
                 {...control}
@@ -158,7 +159,7 @@ export function CreateAppointmentDialog({
                 }
               >
                 <option value="">
-                  {services.data ? 'Selecciona un servicio' : 'Cargando servicios…'}
+                  {services.data ? 'Selecciona un tipo de servicio' : 'Cargando tipos de servicio…'}
                 </option>
                 {services.data?.map((service) => (
                   <option key={service.id} value={service.id}>
@@ -170,7 +171,9 @@ export function CreateAppointmentDialog({
           </FormField>
 
           {serviceId === '' ? (
-            <p className="text-sm text-muted-foreground">Elige un servicio para ver los cupos.</p>
+            <p className="text-sm text-muted-foreground">
+              Elige un tipo de servicio para ver los cupos.
+            </p>
           ) : (
             <SlotsPanel
               serviceId={serviceId}
@@ -223,7 +226,7 @@ export function CreateAppointmentDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={create.isPending}>
-              Crear cita
+              Crear servicio
             </Button>
           </DialogFooter>
         </form>

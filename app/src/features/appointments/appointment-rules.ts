@@ -6,7 +6,7 @@ export function isModifiable(status: AppointmentStatus): boolean {
 }
 
 const CANCELLED_REASON =
-  'Una cita cancelada no se puede reabrir. Para volver a agendar, crea una cita nueva.';
+  'Un servicio cancelado no se puede reabrir. Para volver a agendar, crea un servicio nuevo.';
 
 /** Solo las citas `pending` y `confirmed` se cierran (CL-R1). */
 export function isClosable(status: AppointmentStatus): boolean {
@@ -22,14 +22,14 @@ export function isCorrectable(status: AppointmentStatus): boolean {
 export function closureBlockedReason(status: AppointmentStatus): string | null {
   if (isClosable(status)) return null;
   if (status === 'cancelled') return CANCELLED_REASON;
-  return 'La cita ya está cerrada. Usa "Corregir cierre" para cambiar su resultado.';
+  return 'El servicio ya está cerrado. Usa "Corregir cierre" para cambiar su resultado.';
 }
 
 /** Explica por qué no hay un cierre que corregir, o `null` si lo hay. */
 export function correctionBlockedReason(status: AppointmentStatus): string | null {
   if (isCorrectable(status)) return null;
   if (status === 'cancelled') return CANCELLED_REASON;
-  return 'Solo las citas cerradas (completadas o con inasistencia) tienen un cierre que corregir.';
+  return 'Solo los servicios cerrados (completados o con inasistencia) tienen un cierre que corregir.';
 }
 
 /** El cierre es anticipado mientras la cita no ha empezado. La API tiene la última palabra. */
@@ -41,5 +41,5 @@ export function isEarlyClosure(startsAt: string, now: Date): boolean {
 export function unmodifiableReason(status: AppointmentStatus): string | null {
   if (isModifiable(status)) return null;
   if (status === 'cancelled') return CANCELLED_REASON;
-  return 'Las citas cerradas (completadas o con inasistencia) no se pueden mover, reasignar ni cancelar. Primero hay que reabrirlas.';
+  return 'Los servicios cerrados (completados o con inasistencia) no se pueden mover, reasignar ni cancelar. Primero hay que reabrirlos.';
 }

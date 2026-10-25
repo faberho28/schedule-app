@@ -162,12 +162,12 @@ describe('CustomerDetailPage: datos e historial', () => {
     expect(first).toHaveTextContent('6 nov 2026 08:00');
     expect(first).toHaveTextContent('Mantenimiento de aire');
     expect(first).toHaveTextContent('Carlos');
-    expect(first).toHaveTextContent('Completada');
+    expect(first).toHaveTextContent('Completado');
     expect(first).toHaveTextContent('Carrera 7 # 1-1');
     expect(first).toHaveTextContent(/120\.000/);
-    expect(first).toHaveTextContent('Completada el 6 nov 2026');
+    expect(first).toHaveTextContent('Completado el 6 nov 2026');
     expect(second).toHaveTextContent('2 oct 2026 08:00');
-    expect(second).toHaveTextContent('Cancelada');
+    expect(second).toHaveTextContent('Cancelado');
     expect(second).toHaveTextContent('Técnico eliminado (tiger_1)');
     expect(second).toHaveTextContent('Motivo de la cancelación: Viaje del cliente');
     expect(second).toHaveTextContent(/90\.000/);
@@ -205,7 +205,7 @@ describe('CustomerDetailPage: datos e historial', () => {
     serve();
     renderDetail();
 
-    expect(await screen.findByText('Este cliente aún no tiene citas.')).toBeInTheDocument();
+    expect(await screen.findByText('Este cliente aún no tiene servicios.')).toBeInTheDocument();
   });
 
   it('muestra la auditoría del consentimiento: fecha, medio, origen y quién lo registró', async () => {
@@ -683,15 +683,15 @@ describe('CustomerDetailPage: eliminar datos personales', () => {
       await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
 
       expect(await within(dialog).findByRole('alert')).toHaveTextContent(
-        'No se puede eliminar: el cliente tiene citas futuras. Cancélalas primero.',
+        'No se puede eliminar: el cliente tiene servicios futuros. Cancélalos primero.',
       );
-      expect(dialog).toHaveTextContent(/no se eliminarán hasta que canceles estas citas/i);
-      expect(dialog).toHaveTextContent(/el sistema no las cancela por ti/i);
-      const list = within(dialog).getByRole('list', { name: 'Citas futuras del cliente' });
+      expect(dialog).toHaveTextContent(/no se eliminarán hasta que canceles estos servicios/i);
+      expect(dialog).toHaveTextContent(/el sistema no los cancela por ti/i);
+      const list = within(dialog).getByRole('list', { name: 'Servicios futuros del cliente' });
       const [first, second] = within(list).getAllByRole('listitem');
       expect(first).toHaveTextContent('vie 6 nov 08:00');
       expect(first).toHaveTextContent('Mantenimiento de aire');
-      expect(first).toHaveTextContent('Confirmada');
+      expect(first).toHaveTextContent('Confirmado');
       expect(first).toHaveTextContent('Carlos');
       expect(second).toHaveTextContent('lun 9 nov 10:30');
       expect(second).toHaveTextContent('Instalación');
@@ -718,7 +718,7 @@ describe('CustomerDetailPage: eliminar datos personales', () => {
       const { user, dialog, received } = await openEraseDialog({ appointments: FUTURE });
       const { release } = blockErase(received);
       await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
-      await within(dialog).findByRole('list', { name: 'Citas futuras del cliente' });
+      await within(dialog).findByRole('list', { name: 'Servicios futuros del cliente' });
 
       release();
       await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
@@ -731,7 +731,7 @@ describe('CustomerDetailPage: eliminar datos personales', () => {
       const { user, dialog, received } = await openEraseDialog({ appointments: FUTURE });
       blockErase(received);
       await user.click(within(dialog).getByRole('button', { name: 'Eliminar definitivamente' }));
-      await within(dialog).findByRole('list', { name: 'Citas futuras del cliente' });
+      await within(dialog).findByRole('list', { name: 'Servicios futuros del cliente' });
 
       await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
 
@@ -785,7 +785,7 @@ describe('CustomerDetailPage: aviso de citas futuras', () => {
 
     const section = await screen.findByRole('region', { name: 'Eliminar datos personales' });
     expect(section).toHaveTextContent(
-      'Este cliente tiene 2 citas futuras activas. Cancélalas antes de eliminar sus datos.',
+      'Este cliente tiene 2 servicios futuros activos. Cancélalos antes de eliminar sus datos.',
     );
   });
 
@@ -800,7 +800,7 @@ describe('CustomerDetailPage: aviso de citas futuras', () => {
     renderDetail();
 
     const section = await screen.findByRole('region', { name: 'Eliminar datos personales' });
-    expect(section).not.toHaveTextContent(/citas? futuras? activas?/i);
+    expect(section).not.toHaveTextContent(/servicios? futuros? activos?/i);
   });
 });
 

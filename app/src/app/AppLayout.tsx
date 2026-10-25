@@ -9,7 +9,7 @@ type NavItem = { to: string; label: string; icon: LucideIcon };
 const NAV_ITEMS: NavItem[] = [
   { to: '/agenda', label: 'Agenda', icon: CalendarDays },
   { to: '/customers', label: 'Clientes', icon: Users },
-  { to: '/settings/services', label: 'Servicios', icon: Wrench },
+  { to: '/settings/services', label: 'Tipos de servicio', icon: Wrench },
   { to: '/settings/technicians', label: 'Técnicos', icon: HardHat },
   { to: '/settings/business', label: 'Negocio', icon: Store },
 ];

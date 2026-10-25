@@ -41,7 +41,7 @@ describe('rutas de la aplicación', () => {
     ['/customers', 'Clientes'],
     ['/customers/7c9e6679-7425-40de-944b-e07fc1f90ae7', 'Ficha del cliente'],
     ['/settings/business', 'Configuración del negocio'],
-    ['/settings/services', 'Servicios'],
+    ['/settings/services', 'Tipos de servicio'],
     ['/settings/technicians', 'Técnicos'],
     ['/settings/technicians/7c9e6679-7425-40de-944b-e07fc1f90ae7', 'Ficha del técnico'],
   ])('%s muestra su pantalla con el título "%s"', (path, title) => {

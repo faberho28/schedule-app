@@ -13,7 +13,7 @@ export const pwaOptions: Partial<VitePWAOptions> = {
   manifest: {
     name: 'Schedule App',
     short_name: 'Schedule App',
-    description: 'Agenda de citas para tu negocio de servicios',
+    description: 'Agenda de servicios para tu negocio',
     lang: 'es',
     start_url: '/',
     scope: '/',

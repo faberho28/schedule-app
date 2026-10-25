@@ -52,11 +52,11 @@ export function CancelAppointmentDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cancelar cita</DialogTitle>
+          <DialogTitle>Cancelar servicio</DialogTitle>
           <DialogDescription>
-            ¿Cancelar la cita de {customerLabel(appointment.customer)} del{' '}
-            {formatDateTime(appointment.starts_at, timeZone)}? El cupo quedará libre y una cita
-            cancelada no se puede reabrir.
+            ¿Cancelar el servicio de {customerLabel(appointment.customer)} del{' '}
+            {formatDateTime(appointment.starts_at, timeZone)}? El cupo quedará libre y un servicio
+            cancelado no se puede reabrir.
           </DialogDescription>
         </DialogHeader>
 
@@ -82,7 +82,7 @@ export function CancelAppointmentDialog({
               No cancelar
             </Button>
             <Button type="submit" variant="destructive" disabled={cancel.isPending}>
-              Cancelar la cita
+              Cancelar el servicio
             </Button>
           </DialogFooter>
         </form>

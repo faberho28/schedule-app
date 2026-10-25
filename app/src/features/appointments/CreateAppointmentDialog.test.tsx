@@ -89,7 +89,7 @@ async function pickCustomer(user: ReturnType<typeof userEvent.setup>, name = 'An
 }
 
 async function pickService(user: ReturnType<typeof userEvent.setup>) {
-  const select = await screen.findByLabelText('Servicio');
+  const select = await screen.findByLabelText('Tipo de servicio');
   await waitFor(() => expect(within(select).getAllByRole('option').length).toBeGreaterThan(1));
   await user.selectOptions(select, 'Mantenimiento de aire');
 }
@@ -150,7 +150,7 @@ describe('CreateAppointmentDialog: selección', () => {
     expect(await screen.findByText('No se encontraron clientes.')).toBeInTheDocument();
   });
 
-  it('ofrece solo los servicios activos', async () => {
+  it('ofrece solo los tipos de servicio activos', async () => {
     const user = userEvent.setup();
     serve({
       services: [service(), service({ id: IDS.marta, name: 'Servicio viejo', active: false })],
@@ -158,7 +158,7 @@ describe('CreateAppointmentDialog: selección', () => {
     renderDialog();
     await pickCustomer(user);
 
-    const select = await screen.findByLabelText('Servicio');
+    const select = await screen.findByLabelText('Tipo de servicio');
     await waitFor(() =>
       expect(within(select).getByRole('option', { name: 'Mantenimiento de aire' })).toBeVisible(),
     );
@@ -167,12 +167,12 @@ describe('CreateAppointmentDialog: selección', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('no pide cupos hasta elegir un servicio y luego los pide desde el día inicial', async () => {
+  it('no pide cupos hasta elegir un tipo de servicio y luego los pide desde el día inicial', async () => {
     const user = userEvent.setup();
     const requests = serve();
     renderDialog();
 
-    expect(screen.getByText('Elige un servicio para ver los cupos.')).toBeInTheDocument();
+    expect(screen.getByText('Elige un tipo de servicio para ver los cupos.')).toBeInTheDocument();
     expect(requests.slots).toEqual([]);
     await pickService(user);
 
@@ -248,7 +248,7 @@ describe('CreateAppointmentDialog: selección', () => {
 
     expect(screen.getByLabelText('Técnico')).toHaveValue(IDS.marta);
     await user.selectOptions(screen.getByLabelText('Técnico'), '');
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     await waitFor(() => expect(requests.created).toHaveLength(1));
     expect(requests.created[0]).not.toHaveProperty('technician_id');
@@ -256,7 +256,7 @@ describe('CreateAppointmentDialog: selección', () => {
 });
 
 describe('CreateAppointmentDialog: crear', () => {
-  it('crea la cita con el cupo elegido, la dirección y asignación automática', async () => {
+  it('crea el servicio con el cupo elegido, la dirección y asignación automática', async () => {
     const user = userEvent.setup();
     const requests = serve();
     const { onCreated } = renderDialog();
@@ -266,7 +266,7 @@ describe('CreateAppointmentDialog: crear', () => {
     expect(
       screen.getByRole('option', { name: 'Asignación automática (Carlos)' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
     expect(requests.created).toEqual([
@@ -294,7 +294,7 @@ describe('CreateAppointmentDialog: crear', () => {
         .map((option) => option.textContent),
     ).toEqual(['Asignación automática (Carlos)', 'Carlos', 'Marta']);
     await user.selectOptions(select, 'Marta');
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     await waitFor(() => expect(requests.created).toHaveLength(1));
     expect(requests.created[0]).toMatchObject({ technician_id: IDS.marta, starts_at: SLOT_8 });
@@ -308,7 +308,7 @@ describe('CreateAppointmentDialog: crear', () => {
 
     await user.clear(screen.getByLabelText('Dirección'));
     await user.type(screen.getByLabelText('Dirección'), '  Carrera 7 # 1-1 ');
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     await waitFor(() => expect(requests.created).toHaveLength(1));
     expect(requests.created[0]).toMatchObject({ address: 'Carrera 7 # 1-1' });
@@ -321,7 +321,7 @@ describe('CreateAppointmentDialog: crear', () => {
     await fillUntilSlot(user);
 
     expect(screen.getByLabelText('Dirección')).toHaveValue('');
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     const address = screen.getByLabelText('Dirección');
     expect(address).toBeInvalid();
@@ -329,23 +329,23 @@ describe('CreateAppointmentDialog: crear', () => {
     expect(requests.created).toEqual([]);
   });
 
-  it('exige cliente, servicio y cupo antes de enviar', async () => {
+  it('exige cliente, tipo de servicio y cupo antes de enviar', async () => {
     const user = userEvent.setup();
     const requests = serve();
     renderDialog();
 
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     expect(screen.getByLabelText('Buscar cliente')).toHaveAccessibleDescription(
       'Selecciona un cliente.',
     );
-    expect(screen.getByLabelText('Servicio')).toHaveAccessibleDescription(
-      'Selecciona un servicio.',
+    expect(screen.getByLabelText('Tipo de servicio')).toHaveAccessibleDescription(
+      'Selecciona un tipo de servicio.',
     );
     expect(requests.created).toEqual([]);
   });
 
-  it('exige elegir un cupo cuando ya hay cliente y servicio', async () => {
+  it('exige elegir un cupo cuando ya hay cliente y tipo de servicio', async () => {
     const user = userEvent.setup();
     const requests = serve();
     renderDialog();
@@ -353,7 +353,7 @@ describe('CreateAppointmentDialog: crear', () => {
     await pickService(user);
     await screen.findByRole('radio', { name: /08:00/ });
 
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     expect(
       screen.getByRole('radiogroup', { name: 'Cupos disponibles' }),
@@ -423,7 +423,7 @@ describe('CreateAppointmentDialog: cliente nuevo', () => {
     );
   });
 
-  it('no envía la cita al pulsar Enter en el formulario del cliente', async () => {
+  it('no envía el servicio al pulsar Enter en el formulario del cliente', async () => {
     const user = userEvent.setup();
     const requests = serve({ customers: [] });
     renderDialog();
@@ -464,7 +464,7 @@ describe('CreateAppointmentDialog: errores', () => {
     });
     const { onCreated } = renderDialog();
     await fillUntilSlot(user);
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     const alert = await screen.findByRole('alert');
     expect(within(alert).getByText('Cupo ocupado')).toBeInTheDocument();
@@ -479,7 +479,7 @@ describe('CreateAppointmentDialog: errores', () => {
     expect(onCreated).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('radio', { name: /09:30/ }));
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
     await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
     expect(requests.created.map((body) => body.starts_at)).toEqual([SLOT_8, SLOT_9]);
   });
@@ -491,7 +491,7 @@ describe('CreateAppointmentDialog: errores', () => {
     await fillUntilSlot(user);
     const before = requests.slots.length;
 
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     expect(
       await screen.findByText('Ese horario no está disponible. Elige uno de los cupos ofrecidos.'),
@@ -506,7 +506,7 @@ describe('CreateAppointmentDialog: errores', () => {
     renderDialog();
     await fillUntilSlot(user);
 
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     expect(
       await screen.findByText('El cliente fue eliminado y ya no admite cambios.'),
@@ -527,7 +527,7 @@ describe('CreateAppointmentDialog: errores', () => {
     renderDialog();
     await fillUntilSlot(user);
 
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     await waitFor(() =>
       expect(screen.getByLabelText('Dirección')).toHaveAccessibleDescription(
@@ -542,13 +542,13 @@ describe('CreateAppointmentDialog: errores', () => {
     renderDialog();
     await fillUntilSlot(user);
 
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
 
     expect(await screen.findByText('No se encontró el recurso solicitado.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
   });
 
-  it('ofrece reintentar tras un error de red y crea la cita al reintentar', async () => {
+  it('ofrece reintentar tras un error de red y crea el servicio al reintentar', async () => {
     const user = userEvent.setup();
     let failing = true;
     const requests = serve({
@@ -558,7 +558,7 @@ describe('CreateAppointmentDialog: errores', () => {
     const { onCreated } = renderDialog();
     await fillUntilSlot(user);
 
-    await user.click(screen.getByRole('button', { name: 'Crear cita' }));
+    await user.click(screen.getByRole('button', { name: 'Crear servicio' }));
     expect(await screen.findByText(/No se pudo conectar con el servidor/)).toBeInTheDocument();
     failing = false;
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));

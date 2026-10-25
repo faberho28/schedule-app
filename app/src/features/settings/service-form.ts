@@ -79,6 +79,10 @@ export function serviceChanges(
 
 /** Aviso informativo cuando un cambio de duración deja citas futuras con la duración anterior. */
 export function durationWarningMessage(count: number): string {
-  const subject = pluralize(count, 'cita futura que conserva', 'citas futuras que conservan');
+  const subject = pluralize(
+    count,
+    'servicio futuro que conserva',
+    'servicios futuros que conservan',
+  );
   return `Hay ${count} ${subject} la duración anterior`;
 }

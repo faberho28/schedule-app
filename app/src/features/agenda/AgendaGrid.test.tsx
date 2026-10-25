@@ -170,7 +170,7 @@ describe('AgendaGrid: citas', () => {
 
     expect(
       screen.getByRole('button', {
-        name: '08:00 a 09:30, Ana Pérez, Mantenimiento de aire, Confirmada, Carlos',
+        name: '08:00 a 09:30, Ana Pérez, Mantenimiento de aire, Confirmado, Carlos',
       }),
     ).toBeInTheDocument();
   });
@@ -182,17 +182,17 @@ describe('AgendaGrid: citas', () => {
 
     expect(
       screen.getByRole('button', {
-        name: '08:00 a 09:30, Ana Pérez, Mantenimiento de aire, Confirmada, Carlos, incluye 30 min de traslado',
+        name: '08:00 a 09:30, Ana Pérez, Mantenimiento de aire, Confirmado, Carlos, incluye 30 min de traslado',
       }),
     ).toBeInTheDocument();
   });
 
   it.each([
     ['pending', 'Pendiente'],
-    ['confirmed', 'Confirmada'],
-    ['completed', 'Completada'],
+    ['confirmed', 'Confirmado'],
+    ['completed', 'Completado'],
     ['no_show', 'No asistió'],
-    ['cancelled', 'Cancelada'],
+    ['cancelled', 'Cancelado'],
   ] as const)('el estado %s se indica con texto "%s" y no solo con color', (status, label) => {
     renderGrid({ appointments: [appointment({ status })] });
 
@@ -238,7 +238,7 @@ describe('AgendaGrid: citas', () => {
 
     const button = screen.getByRole('button', { name: /Ana Pérez/ });
     expect(button).not.toHaveAccessibleName(expect.stringContaining('traslado'));
-    expect(within(button).getByText('Cancelada')).toBeInTheDocument();
+    expect(within(button).getByText('Cancelado')).toBeInTheDocument();
   });
 
   it('una cita cerrada conserva su bloque', () => {
@@ -256,7 +256,7 @@ describe('AgendaGrid: citas', () => {
       ],
     });
 
-    expect(screen.getByRole('button', { name: /Ana Pérez.*Completada/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ana Pérez.*Completado/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Luis Gómez.*No asistió/ })).toBeInTheDocument();
   });
 
@@ -342,12 +342,12 @@ describe('AgendaGrid: selección', () => {
     renderGrid({ onEmptyCellSelect });
 
     await userEvent.click(
-      screen.getByRole('button', { name: 'Nueva cita con Marta el vie 6 nov' }),
+      screen.getByRole('button', { name: 'Nuevo servicio con Marta el vie 6 nov' }),
     );
 
     expect(onEmptyCellSelect).toHaveBeenCalledExactlyOnceWith(MARTA, '2026-11-06');
     expect(
-      screen.getByRole('button', { name: 'Nueva cita con Carlos el vie 6 nov' }),
+      screen.getByRole('button', { name: 'Nuevo servicio con Carlos el vie 6 nov' }),
     ).toBeInTheDocument();
   });
 
@@ -356,7 +356,7 @@ describe('AgendaGrid: selección', () => {
     renderGrid({ view: 'week', days: WEEK, onEmptyCellSelect });
 
     await userEvent.click(
-      screen.getByRole('button', { name: 'Nueva cita con Carlos el mar 3 nov' }),
+      screen.getByRole('button', { name: 'Nuevo servicio con Carlos el mar 3 nov' }),
     );
 
     expect(onEmptyCellSelect).toHaveBeenCalledExactlyOnceWith(CARLOS, '2026-11-03');
@@ -372,8 +372,10 @@ describe('AgendaGrid: selección', () => {
       onEmptyCellSelect: vi.fn(),
     });
 
-    expect(screen.queryByRole('button', { name: /Nueva cita con Marta/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Nueva cita con Carlos/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Nuevo servicio con Marta/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Nuevo servicio con Carlos/ })).toBeInTheDocument();
     const marta = screen.getByRole('group', { name: 'Marta, vie 6 nov' });
     expect(within(marta).getByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
   });
@@ -381,7 +383,7 @@ describe('AgendaGrid: selección', () => {
   it('sin manejador no muestra botones de cita nueva', () => {
     renderGrid();
 
-    expect(screen.queryByRole('button', { name: /Nueva cita/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Nuevo servicio/ })).not.toBeInTheDocument();
   });
 });
 

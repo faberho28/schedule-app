@@ -40,7 +40,7 @@ describe('AppLayout', () => {
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
     const labels = Array.from(nav.querySelectorAll('a')).map((link) => link.textContent);
 
-    expect(labels).toEqual(['Agenda', 'Clientes', 'Servicios', 'Técnicos', 'Negocio']);
+    expect(labels).toEqual(['Agenda', 'Clientes', 'Tipos de servicio', 'Técnicos', 'Negocio']);
   });
 
   it('marca la sección activa y navega al pulsar otra', async () => {

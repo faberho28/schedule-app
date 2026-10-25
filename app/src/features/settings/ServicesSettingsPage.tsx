@@ -20,14 +20,14 @@ export function ServicesSettingsPage() {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <PageTitle>Servicios</PageTitle>
+        <PageTitle>Tipos de servicio</PageTitle>
         <Button
           onClick={() => {
             setNotice('');
             setDialog(null);
           }}
         >
-          Nuevo servicio
+          Nuevo tipo de servicio
         </Button>
       </div>
 
@@ -41,7 +41,7 @@ export function ServicesSettingsPage() {
       ) : null}
       {toggle.isError ? <ErrorNotice error={toggle.error} /> : null}
 
-      {services.data?.length === 0 ? <p>Aún no hay servicios. Crea el primero.</p> : null}
+      {services.data?.length === 0 ? <p>Aún no hay tipos de servicio. Crea el primero.</p> : null}
       {services.data && services.data.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {services.data.map((service) => (

@@ -115,7 +115,7 @@ function AgendaScreen({
         {canCreate ? (
           <Button type="button" className="ml-auto" onClick={() => open({ kind: 'create' })}>
             <Plus aria-hidden="true" />
-            Nueva cita
+            Nuevo servicio
           </Button>
         ) : null}
       </div>
@@ -219,7 +219,7 @@ function AgendaContent({
 
   return (
     <>
-      {appointments.length === 0 ? <p>No hay citas en este rango.</p> : null}
+      {appointments.length === 0 ? <p>No hay servicios en este rango.</p> : null}
       <AgendaGrid
         view={view}
         days={days}

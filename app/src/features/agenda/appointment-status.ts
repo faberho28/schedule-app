@@ -21,12 +21,12 @@ export const STATUS_STYLES: Record<AppointmentStatus, StatusStyle> = {
     className: 'bg-status-pending text-status-pending-foreground',
   },
   confirmed: {
-    label: 'Confirmada',
+    label: 'Confirmado',
     icon: CircleCheck,
     className: 'bg-status-confirmed text-status-confirmed-foreground',
   },
   completed: {
-    label: 'Completada',
+    label: 'Completado',
     icon: CheckCheck,
     className: 'bg-status-completed text-status-completed-foreground',
   },
@@ -36,7 +36,7 @@ export const STATUS_STYLES: Record<AppointmentStatus, StatusStyle> = {
     className: 'bg-status-no-show text-status-no-show-foreground',
   },
   cancelled: {
-    label: 'Cancelada',
+    label: 'Cancelado',
     icon: Ban,
     className: 'bg-status-cancelled text-status-cancelled-foreground',
   },

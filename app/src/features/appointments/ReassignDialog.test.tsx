@@ -57,7 +57,7 @@ describe('ReassignDialog', () => {
       }),
     ]);
 
-    expect(screen.getByRole('dialog', { name: 'Reasignar cita' })).toHaveAccessibleDescription(
+    expect(screen.getByRole('dialog', { name: 'Reasignar servicio' })).toHaveAccessibleDescription(
       /vie 6 nov 08:00.*Carlos/,
     );
     expect(screen.getByText(/La hora no cambia/)).toBeInTheDocument();
@@ -98,7 +98,9 @@ describe('ReassignDialog', () => {
     serve();
     renderDialog([CARLOS]);
 
-    expect(screen.getByText('No hay otros técnicos activos para esta cita.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No hay otros técnicos activos para este servicio.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reasignar' })).toBeDisabled();
   });
 
@@ -127,7 +129,9 @@ describe('ReassignDialog', () => {
 
     await user.selectOptions(screen.getByLabelText('Nuevo técnico'), 'Marta');
     await user.click(screen.getByRole('button', { name: 'Reasignar' }));
-    expect(await screen.findByText('La cita no admite ese cambio de estado.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('El servicio no admite ese cambio de estado.'),
+    ).toBeInTheDocument();
 
     code = 'not_found';
     await user.selectOptions(screen.getByLabelText('Nuevo técnico'), 'Luis');

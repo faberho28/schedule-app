@@ -15,14 +15,14 @@ describe('cierre y corrección', () => {
     expect(closureBlockedReason(status)).toBeNull();
     expect(isCorrectable(status)).toBe(false);
     expect(correctionBlockedReason(status)).toBe(
-      'Solo las citas cerradas (completadas o con inasistencia) tienen un cierre que corregir.',
+      'Solo los servicios cerrados (completados o con inasistencia) tienen un cierre que corregir.',
     );
   });
 
   it.each(['completed', 'no_show'] as const)('permite corregir una cita %s', (status) => {
     expect(isClosable(status)).toBe(false);
     expect(closureBlockedReason(status)).toBe(
-      'La cita ya está cerrada. Usa "Corregir cierre" para cambiar su resultado.',
+      'El servicio ya está cerrado. Usa "Corregir cierre" para cambiar su resultado.',
     );
     expect(isCorrectable(status)).toBe(true);
     expect(correctionBlockedReason(status)).toBeNull();
@@ -30,7 +30,7 @@ describe('cierre y corrección', () => {
 
   it('una cita cancelada no se cierra ni se corrige: se crea una nueva', () => {
     const reason =
-      'Una cita cancelada no se puede reabrir. Para volver a agendar, crea una cita nueva.';
+      'Un servicio cancelado no se puede reabrir. Para volver a agendar, crea un servicio nuevo.';
     expect(isClosable('cancelled')).toBe(false);
     expect(isCorrectable('cancelled')).toBe(false);
     expect(closureBlockedReason('cancelled')).toBe(reason);
@@ -59,7 +59,7 @@ describe('isModifiable', () => {
     (status) => {
       expect(isModifiable(status)).toBe(false);
       expect(unmodifiableReason(status)).toBe(
-        'Las citas cerradas (completadas o con inasistencia) no se pueden mover, reasignar ni cancelar. Primero hay que reabrirlas.',
+        'Los servicios cerrados (completados o con inasistencia) no se pueden mover, reasignar ni cancelar. Primero hay que reabrirlos.',
       );
     },
   );
@@ -67,7 +67,7 @@ describe('isModifiable', () => {
   it('bloquea una cita cancelada e indica que no se reabre', () => {
     expect(isModifiable('cancelled')).toBe(false);
     expect(unmodifiableReason('cancelled')).toBe(
-      'Una cita cancelada no se puede reabrir. Para volver a agendar, crea una cita nueva.',
+      'Un servicio cancelado no se puede reabrir. Para volver a agendar, crea un servicio nuevo.',
     );
   });
 });
