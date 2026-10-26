@@ -92,6 +92,31 @@ describe('CustomersTable: estructura', () => {
   });
 });
 
+describe('CustomersTable: anchos de columna', () => {
+  it('Cliente absorbe el espacio libre y las demás columnas tienen un ancho fijo', () => {
+    renderTable();
+
+    const [name, phone, consent, actions] = screen.getAllByRole('columnheader');
+    expect(name).toHaveClass('w-full');
+    expect(phone).toHaveClass('w-[200px]');
+    expect(consent).toHaveClass('w-[160px]');
+    expect(actions).toHaveClass('w-12');
+    for (const header of [phone, consent, actions]) {
+      expect(header).not.toHaveClass('w-full');
+    }
+  });
+
+  it('las celdas de cada fila llevan el mismo ancho que su encabezado', () => {
+    renderTable();
+
+    const cells = within(bodyRows()[0]!).getAllByRole('cell');
+    expect(cells[0]).toHaveClass('w-full');
+    expect(cells[1]).toHaveClass('w-[200px]');
+    expect(cells[2]).toHaveClass('w-[160px]');
+    expect(cells[3]).toHaveClass('w-12');
+  });
+});
+
 describe('CustomersTable: contenido de las filas', () => {
   it('muestra el avatar con iniciales y el nombre del cliente', () => {
     renderTable();
@@ -256,12 +281,13 @@ describe('CustomersTable: paginación', () => {
     customer({ id: `c-${index}`, name: `Cliente ${String(index + 1).padStart(2, '0')}` }),
   );
 
-  it('con pocos clientes muestra el rango "1–3 de 3 clientes" y deshabilita los botones', () => {
+  it('si todo cabe en una página deja solo el rango, sin selector de filas ni botones', () => {
     renderTable();
 
     expect(screen.getByText('1–3 de 3 clientes')).toHaveClass('text-sm', 'text-muted-foreground');
-    expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Página siguiente' })).toBeDisabled();
+    expect(screen.queryByRole('combobox', { name: 'Filas por página' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Página anterior' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Página siguiente' })).not.toBeInTheDocument();
   });
 
   it('con un solo cliente usa el singular', () => {
@@ -289,19 +315,23 @@ describe('CustomersTable: paginación', () => {
     expect(screen.getByText('11–20 de 25 clientes')).toBeInTheDocument();
   });
 
-  it('permite elegir 10, 25 o 50 filas por página', async () => {
+  it('permite elegir 10, 25 o 50 filas por página con el selector de shadcn', async () => {
     renderTable({ customers: MANY });
     const select = screen.getByRole('combobox', { name: 'Filas por página' });
-    expect(
-      within(select)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual(['10', '25', '50']);
+    expect(select).toHaveClass('h-8', 'w-[70px]');
 
-    await userEvent.selectOptions(select, '25');
+    await userEvent.click(select);
+    expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual([
+      '10',
+      '25',
+      '50',
+    ]);
+    await userEvent.click(screen.getByRole('option', { name: '25' }));
 
     expect(bodyRows()).toHaveLength(25);
     expect(screen.getByText('1–25 de 25 clientes')).toBeInTheDocument();
+    // Con 25 filas en una página el selector y los botones ya no hacen falta.
+    expect(screen.queryByRole('combobox', { name: 'Filas por página' })).not.toBeInTheDocument();
   });
 
   it('el pie mide 48 px, con borde superior y los controles a la derecha', () => {

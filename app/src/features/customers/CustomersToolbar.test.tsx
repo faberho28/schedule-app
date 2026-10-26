@@ -32,7 +32,8 @@ describe('CustomersToolbar: título y contador', () => {
     );
     const count = screen.getByLabelText('3 clientes');
     expect(count).toHaveTextContent('3');
-    expect(count).toHaveClass('text-muted-foreground');
+    expect(count).toHaveClass('text-sm', 'font-normal', 'text-muted-foreground');
+    expect(count.parentElement).toHaveClass('items-baseline', 'gap-2');
   });
 
   it('mientras carga (sin conteo) no muestra el contador', () => {

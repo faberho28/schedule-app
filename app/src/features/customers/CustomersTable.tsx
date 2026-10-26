@@ -9,14 +9,7 @@ import {
   type PaginationState,
   type SortingState,
 } from '@tanstack/react-table';
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -26,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -36,9 +28,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { pluralize } from '@/shared/lib/format';
 import { customerRecordLabel } from '@/shared/lib/people';
 import { cn } from '@/shared/lib/utils';
+import { COLUMN_WIDTH, PAGE_SIZES, type ColumnWidth } from '@/shared/ui/data-table';
+import { DataTablePagination } from '@/shared/ui/DataTablePagination';
 import { CONSENT_STATUS_INFO } from './consent';
 import {
   ConsentBadge,
@@ -64,8 +57,17 @@ export type CustomersTableProps = {
   onCreate(): void;
 };
 
-const PAGE_SIZES = [10, 25, 50] as const;
 const SKELETON_ROWS = 6;
+const NOUN = { singular: 'cliente', plural: 'clientes' };
+
+/** Ancho de cada columna: el nombre absorbe el espacio y las demás son fijas. */
+const WIDTH_OF: Record<string, ColumnWidth> = {
+  name: 'main',
+  phone: 'phone',
+  consent: 'status',
+  actions: 'actions',
+};
+const widthClass = (columnId: string) => COLUMN_WIDTH[WIDTH_OF[columnId]!];
 const collator = new Intl.Collator('es');
 const helper = createColumnHelper<Customer>();
 
@@ -198,7 +200,6 @@ export function CustomersTable({
 
   const rows = table.getRowModel().rows;
   const total = customers.length;
-  const first = pagination.pageIndex * pagination.pageSize + 1;
   const showEmpty = !loading && total === 0;
 
   return (
@@ -213,7 +214,7 @@ export function CustomersTable({
               {group.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  className={cn(header.column.id === 'actions' && 'w-12')}
+                  className={widthClass(header.column.id)}
                   aria-sort={
                     header.column.getCanSort()
                       ? ARIA_SORT[String(header.column.getIsSorted())]
@@ -230,19 +231,19 @@ export function CustomersTable({
           {loading
             ? Array.from({ length: SKELETON_ROWS }, (_, index) => (
                 <TableRow key={index} className="h-14">
-                  <TableCell>
+                  <TableCell className={COLUMN_WIDTH.main}>
                     <div className="flex items-center gap-3">
                       <Skeleton className="size-8 rounded-full" />
                       <Skeleton className="h-4 w-36" />
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={COLUMN_WIDTH.phone}>
                     <Skeleton className="h-4 w-28" />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={COLUMN_WIDTH.status}>
                     <Skeleton className="h-5 w-20 rounded-full" />
                   </TableCell>
-                  <TableCell className="w-12">
+                  <TableCell className={COLUMN_WIDTH.actions}>
                     <Skeleton className="ml-auto size-8 rounded-md" />
                   </TableCell>
                 </TableRow>
@@ -280,7 +281,10 @@ export function CustomersTable({
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={cn(cell.column.id === 'actions' && 'w-12 text-right')}
+                      className={cn(
+                        widthClass(cell.column.id),
+                        cell.column.id === 'actions' && 'text-right',
+                      )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
@@ -290,47 +294,19 @@ export function CustomersTable({
         </TableBody>
       </Table>
       {loading || showEmpty ? null : (
-        <div className="flex h-12 items-center justify-between border-t px-4">
-          <p className="text-sm text-muted-foreground">
-            {first}–{first + rows.length - 1} de {total} {pluralize(total, 'cliente', 'clientes')}
-          </p>
-          <div className="flex items-center gap-2">
-            <Select
-              aria-label="Filas por página"
-              className="h-9 w-20 rounded-lg"
-              value={pagination.pageSize}
-              onChange={(event) => table.setPageSize(Number(event.target.value))}
-            >
-              {PAGE_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </Select>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="size-9"
-              aria-label="Página anterior"
-              disabled={!table.getCanPreviousPage()}
-              onClick={() => table.previousPage()}
-            >
-              <ChevronLeft aria-hidden="true" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="size-9"
-              aria-label="Página siguiente"
-              disabled={!table.getCanNextPage()}
-              onClick={() => table.nextPage()}
-            >
-              <ChevronRight aria-hidden="true" />
-            </Button>
-          </div>
-        </div>
+        <DataTablePagination
+          total={total}
+          shown={rows.length}
+          pageIndex={pagination.pageIndex}
+          pageSize={pagination.pageSize}
+          pageSizes={PAGE_SIZES}
+          noun={NOUN}
+          canPrevious={table.getCanPreviousPage()}
+          canNext={table.getCanNextPage()}
+          onPageSizeChange={table.setPageSize}
+          onPrevious={table.previousPage}
+          onNext={table.nextPage}
+        />
       )}
     </div>
   );

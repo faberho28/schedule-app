@@ -2,9 +2,12 @@ import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { pluralize } from '@/shared/lib/format';
+import { ListTitle } from '@/shared/ui/ListTitle';
 import { ConsentFilterButton } from './ConsentFilterButton';
 import type { ConsentFilter } from './consent-filter';
 import { MoreFiltersButton } from './MoreFiltersButton';
+
+const NOUN = { singular: 'cliente', plural: 'clientes' };
 
 export type CustomersToolbarProps = {
   /** Muestra el `h1` "Clientes" en la barra; si no, la pantalla ya tiene su propio encabezado. */
@@ -63,17 +66,7 @@ export function CustomersToolbar({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {showTitle ? (
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-xl font-semibold">Clientes</h1>
-            {count === undefined ? null : (
-              <span
-                aria-label={`${count} ${pluralize(count, 'cliente', 'clientes')}`}
-                className="text-xl text-muted-foreground tabular-nums"
-              >
-                {count}
-              </span>
-            )}
-          </div>
+          <ListTitle title="Clientes" count={count} noun={NOUN} />
         ) : count === undefined ? null : (
           <span className="text-sm text-muted-foreground tabular-nums">
             {count} {pluralize(count, 'cliente', 'clientes')}
