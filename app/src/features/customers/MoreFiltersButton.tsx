@@ -24,7 +24,7 @@ export function MoreFiltersButton({
           type="button"
           variant="outline"
           aria-label={showErased ? 'Más filtros: con eliminados' : 'Más filtros'}
-          className="h-10 min-h-10 gap-2 rounded-lg px-3 font-normal"
+          className="h-11 min-h-11 gap-2 rounded-lg px-3 font-normal md:h-10 md:min-h-10"
         >
           <SlidersHorizontal aria-hidden="true" className="size-4" />
           <span className={cn(compact && 'sr-only')}>Más filtros</span>

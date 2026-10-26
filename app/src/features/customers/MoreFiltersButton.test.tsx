@@ -9,7 +9,7 @@ describe('MoreFiltersButton', () => {
   it('es un botón outline de 40 px, sin punto cuando no hay filtros', () => {
     render(<MoreFiltersButton showErased={false} onShowErasedChange={vi.fn()} />);
 
-    expect(trigger()).toHaveClass('h-10');
+    expect(trigger()).toHaveClass('h-11', 'md:h-10');
     expect(trigger()).toHaveAccessibleName('Más filtros');
     expect(trigger().querySelector('[data-slot="active-indicator"]')).not.toBeInTheDocument();
   });

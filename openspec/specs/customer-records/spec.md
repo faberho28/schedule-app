@@ -242,6 +242,40 @@ El sistema MUST mostrar en la ficha del cliente el historial de sus citas (servi
 - WHEN el dueño escribe "maria" en la pantalla Clientes y en el selector de cliente de "Nuevo servicio"
 - THEN ambos listan a "María Gómez"
 
+### Requirement: Lista de clientes como tabla
+
+Desde 768 px la pantalla Clientes MUST mostrar a los clientes en una tabla con las columnas Cliente (avatar con iniciales y nombre), Teléfono (formateado, por ejemplo `+57 300 994 2233`), Consentimiento (insignia de color con un punto y su nombre) y un menú de acciones con "Ver ficha". Pulsar una fila MUST abrir la ficha del cliente, sin que el enlace del nombre ni el menú la abran dos veces. Las columnas Cliente y Consentimiento MUST poder ordenarse, y la tabla MUST paginarse en el navegador con 10, 25 o 50 filas por página y el rango visible ("1–3 de 3 clientes"). La barra MUST tener, desde 1024 px, el `h1` "Clientes" con su contador (por debajo, el encabezado de la pantalla hace de título y la barra solo cuenta los clientes), la búsqueda, el filtro Consentimiento (Todos, Otorgado, Pendiente, Revocado), "Más filtros" con "Mostrar eliminados", "Limpiar filtros" cuando haya filtros activos y "Nuevo cliente". La búsqueda y "Mostrar eliminados" MUST resolverse en la API; el filtro de consentimiento, el orden y la paginación, en el navegador. Los clientes eliminados MUST mostrarse atenuados con la insignia "Eliminado", sin teléfono ni consentimiento. Mientras carga MUST mostrar seis filas de esqueleto; sin resultados, un mensaje con "Limpiar búsqueda" o "Limpiar filtros"; sin clientes, una invitación a crear el primero. Por debajo de 768 px MUST mostrarse una lista de filas compactas (avatar, nombre, teléfono debajo y consentimiento a la derecha) que enlazan a la ficha, con la búsqueda en su propia fila y los filtros como botones de solo ícono.
+
+#### Scenario: Abrir una ficha
+
+- GIVEN la tabla con "Ana Pérez"
+- WHEN el dueño pulsa su fila, su nombre o "Ver ficha" en su menú
+- THEN se abre la ficha de Ana Pérez una sola vez
+
+#### Scenario: Filtrar por consentimiento
+
+- GIVEN tres clientes, uno con consentimiento Otorgado
+- WHEN el dueño elige "Otorgado" en el filtro
+- THEN la tabla muestra solo ese cliente, el contador dice 1 y no se hace otra petición a la API
+
+#### Scenario: Ordenar
+
+- GIVEN clientes "Luis", "Ana" y "Marta"
+- WHEN el dueño pulsa dos veces el encabezado Cliente
+- THEN la tabla los muestra de Marta a Ana
+
+#### Scenario: Paginar
+
+- GIVEN 25 clientes
+- WHEN el dueño abre la pantalla
+- THEN ve "1–10 de 25 clientes" y puede pasar de página o elegir 25 o 50 filas
+
+#### Scenario: Cliente eliminado
+
+- GIVEN un cliente eliminado y "Mostrar eliminados" activo
+- WHEN se muestra la tabla
+- THEN su fila está atenuada, lleva la insignia "Eliminado" y no muestra teléfono ni consentimiento
+
 ## Open questions
 
 Ninguna.

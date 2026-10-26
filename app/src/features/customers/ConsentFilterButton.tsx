@@ -36,7 +36,7 @@ export function ConsentFilterButton({
           type="button"
           variant="outline"
           aria-label={`Consentimiento: ${label}`}
-          className={cn('h-10 min-h-10 gap-2 rounded-lg font-normal', compact ? 'px-3' : 'px-3')}
+          className="h-11 min-h-11 gap-2 rounded-lg px-3 font-normal md:h-10 md:min-h-10"
         >
           <ShieldCheck aria-hidden="true" className="size-4" />
           <span className={cn(compact && 'sr-only')}>Consentimiento</span>

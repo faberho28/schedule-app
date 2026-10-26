@@ -10,7 +10,7 @@ describe('ConsentFilterButton', () => {
     render(<ConsentFilterButton value="all" onChange={vi.fn()} />);
 
     expect(trigger()).toHaveAccessibleName('Consentimiento: Todos');
-    expect(trigger()).toHaveClass('h-10');
+    expect(trigger()).toHaveClass('h-11', 'md:h-10');
     expect(within(trigger()).getByText('Todos')).toHaveClass('text-muted-foreground');
   });
 
