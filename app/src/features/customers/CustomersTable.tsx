@@ -32,6 +32,7 @@ import { customerRecordLabel } from '@/shared/lib/people';
 import { cn } from '@/shared/lib/utils';
 import { COLUMN_WIDTH, PAGE_SIZES, type ColumnWidth } from '@/shared/ui/data-table';
 import { DataTablePagination } from '@/shared/ui/DataTablePagination';
+import { ErasedBadge } from '@/shared/ui/ErasedBadge';
 import { ariaSortOf, SortHeader } from '@/shared/ui/SortHeader';
 import { CONSENT_STATUS_INFO } from './consent';
 import {
@@ -39,7 +40,6 @@ import {
   ConsentBadge,
   CustomerAvatar,
   customerPhone,
-  ErasedBadge,
   hasNotes,
   isErased,
   NotesHint,

@@ -90,11 +90,6 @@ export function NotesHint({ notes }: { notes: string }) {
   );
 }
 
-/** Insignia "Eliminado" que acompaña al nombre de un cliente anonimizado. */
-export function ErasedBadge() {
-  return <Badge variant="outline">Eliminado</Badge>;
-}
-
 /** Teléfono legible, o un guion si el cliente fue eliminado (su número ya no existe). */
 export function customerPhone(customer: Customer): string {
   return customer.anonymized_at === null ? formatPhone(customer.phone) : '—';

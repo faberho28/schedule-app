@@ -2,13 +2,8 @@ import { Link } from 'react-router';
 import { Skeleton } from '@/components/ui/skeleton';
 import { customerRecordLabel } from '@/shared/lib/people';
 import { cn } from '@/shared/lib/utils';
-import {
-  ConsentBadge,
-  CustomerAvatar,
-  customerPhone,
-  ErasedBadge,
-  isErased,
-} from './customer-cells';
+import { ErasedBadge } from '@/shared/ui/ErasedBadge';
+import { ConsentBadge, CustomerAvatar, customerPhone, isErased } from './customer-cells';
 import { CustomersEmptyState } from './CustomersEmptyState';
 import type { Customer } from './customers-api';
 

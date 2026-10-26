@@ -1,87 +1,76 @@
-import { useId, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router';
-import { Button } from '@/components/ui/button';
-import type { components } from '@/shared/api/schema';
-import { technicianLabel } from '@/shared/lib/people';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { technicianColorMap } from '@/features/agenda/technician-view';
+import { useIsDesktop, useIsTablet } from '@/shared/lib/use-media-query';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
+import { isTechnicianErased } from './technician-cells';
 import { TechnicianCreateDialog } from './TechnicianCreateDialog';
+import { TechniciansList } from './TechniciansList';
+import { TechniciansTable } from './TechniciansTable';
+import { TechniciansToolbar } from './TechniciansToolbar';
 import { useTechnicians } from './technicians-api';
 
-type Technician = components['schemas']['Technician'];
-
+/**
+ * Lista de técnicos. Desde 768 px es una tabla; por debajo, filas compactas. Se piden todos, con los
+ * eliminados incluidos, y "Mostrar eliminados" filtra en el navegador: así cada técnico conserva el
+ * mismo color que tiene en la Agenda aunque se oculten o muestren los eliminados.
+ */
 export function TechniciansSettingsPage() {
+  const isDesktop = useIsDesktop();
+  const isTablet = useIsTablet();
+  const navigate = useNavigate();
   const [showErased, setShowErased] = useState(false);
   const [creating, setCreating] = useState(false);
-  const technicians = useTechnicians(showErased);
+  const technicians = useTechnicians(true);
+  const all = technicians.data;
+  const colors = useMemo(
+    () =>
+      technicianColorMap(
+        all ?? [],
+        (all ?? []).map((technician) => technician.id),
+      ),
+    [all],
+  );
+  const visible = useMemo(
+    () => (all ?? []).filter((technician) => showErased || !isTechnicianErased(technician)),
+    [all, showErased],
+  );
+  const common = {
+    technicians: visible,
+    colors,
+    loading: technicians.isPending,
+    filtered: showErased,
+    onClearFilters: () => setShowErased(false),
+    onCreate: () => setCreating(true),
+  };
 
   return (
-    <section className="flex flex-col gap-4">
-      <PageHeader
-        title="Técnicos"
-        actions={<Button onClick={() => setCreating(true)}>Nuevo técnico</Button>}
+    <section className="flex flex-col gap-4 lg:pt-6">
+      {/* En escritorio el título va en la barra; por debajo, el encabezado conserva "Volver". */}
+      {isDesktop ? null : <PageHeader title="Técnicos" />}
+      <TechniciansToolbar
+        showTitle={isDesktop}
+        compact={!isTablet}
+        count={technicians.isPending ? undefined : visible.length}
+        showErased={showErased}
+        onShowErasedChange={setShowErased}
+        onClearFilters={() => setShowErased(false)}
+        onCreate={() => setCreating(true)}
       />
 
-      <label className="flex min-h-11 items-center gap-3 text-sm">
-        <input
-          type="checkbox"
-          className="size-5"
-          checked={showErased}
-          onChange={(event) => setShowErased(event.target.checked)}
-        />
-        Mostrar técnicos eliminados
-      </label>
-
-      {technicians.isPending ? <p>Cargando…</p> : null}
       {technicians.isError ? (
         <ErrorNotice error={technicians.error} onRetry={() => void technicians.refetch()} />
-      ) : null}
-      {technicians.data?.length === 0 ? <p>Aún no hay técnicos. Crea el primero.</p> : null}
-      {technicians.data && technicians.data.length > 0 ? (
-        <ul className="flex flex-col gap-3">
-          {technicians.data.map((technician) => (
-            <li key={technician.id}>
-              <TechnicianCard technician={technician} />
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      ) : isTablet ? (
+        <TechniciansTable
+          {...common}
+          onOpen={(id) => void navigate(`/settings/technicians/${id}`)}
+        />
+      ) : (
+        <TechniciansList {...common} />
+      )}
 
       {creating ? <TechnicianCreateDialog onClose={() => setCreating(false)} /> : null}
     </section>
-  );
-}
-
-function TechnicianCard({ technician }: { technician: Technician }) {
-  const titleId = useId();
-  const erased = technician.anonymized_at !== null;
-  const label = technicianLabel(technician);
-  return (
-    <article
-      aria-labelledby={titleId}
-      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs text-card-foreground"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h2 id={titleId} className="text-base font-semibold">
-          {label}
-        </h2>
-        {erased ? null : (
-          <Badge variant={technician.active ? 'green' : 'neutral'}>
-            {technician.active ? 'Activo' : 'Inactivo'}
-          </Badge>
-        )}
-      </div>
-      {technician.phone ? (
-        <p className="text-sm text-muted-foreground">{technician.phone}</p>
-      ) : null}
-      {erased ? null : (
-        <Button asChild variant="outline" className="self-start">
-          <Link to={`/settings/technicians/${technician.id}`} aria-label={`Ver ficha de ${label}`}>
-            Ver ficha
-          </Link>
-        </Button>
-      )}
-    </article>
   );
 }

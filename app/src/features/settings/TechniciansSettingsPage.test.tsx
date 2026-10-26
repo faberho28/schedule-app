@@ -1,11 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { components } from '@/shared/api/schema';
 import { apiUrl, IDS, problem, technician } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
+import { setDesktopViewport, setMobileViewport } from '@/test/viewport';
 import { TechniciansSettingsPage } from './TechniciansSettingsPage';
 
 type Technician = components['schemas']['Technician'];
@@ -43,43 +44,109 @@ function serveTechnicians(initial: Technician[]) {
 }
 
 describe('TechniciansSettingsPage: listado', () => {
-  it('muestra los técnicos activos e inactivos con enlace a su ficha', async () => {
+  beforeEach(() => setDesktopViewport());
+
+  it('en escritorio es una tabla con el título, el contador y los técnicos activos e inactivos', async () => {
     serveTechnicians([CARLOS, MARTA]);
 
     renderPage(<TechniciansSettingsPage />);
 
-    const carlos = await screen.findByRole('article', { name: 'Carlos' });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Técnicos' })).toBeInTheDocument();
+    const carlos = await screen.findByRole('row', { name: /Carlos/ });
     expect(within(carlos).getByText('Activo')).toBeInTheDocument();
-    expect(within(carlos).getByText('+573001112233')).toBeInTheDocument();
-    expect(within(carlos).getByRole('link', { name: 'Ver ficha de Carlos' })).toHaveAttribute(
+    expect(within(carlos).getByRole('link', { name: 'Carlos' })).toHaveAttribute(
       'href',
       `/settings/technicians/${IDS.carlos}`,
     );
-    const marta = screen.getByRole('article', { name: 'Marta' });
-    expect(within(marta).getByText('Inactivo')).toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: /Marta/ })).getByText('Inactivo')).toBeVisible();
+    expect(screen.getByLabelText('2 técnicos')).toBeInTheDocument();
   });
 
-  it('oculta los técnicos eliminados y los muestra al activar la opción', async () => {
+  it('pulsar una fila abre la ficha del técnico', async () => {
+    const user = userEvent.setup();
+    serveTechnicians([CARLOS]);
+    const { router } = renderPage(<TechniciansSettingsPage />);
+
+    await user.click(
+      within(await screen.findByRole('row', { name: /Carlos/ })).getByText('Activo'),
+    );
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/technicians/${IDS.carlos}`),
+    );
+  });
+
+  it('en pantallas angostas es una lista de filas que enlazan a la ficha', async () => {
+    setMobileViewport();
+    serveTechnicians([CARLOS, MARTA]);
+
+    renderPage(<TechniciansSettingsPage />);
+
+    expect(await screen.findByRole('link', { name: /Carlos/ })).toHaveAttribute(
+      'href',
+      `/settings/technicians/${IDS.carlos}`,
+    );
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('oculta los técnicos eliminados y los muestra al activar "Mostrar eliminados"', async () => {
     const user = userEvent.setup();
     const requests = serveTechnicians([CARLOS, ERASED]);
     renderPage(<TechniciansSettingsPage />);
-    await screen.findByRole('article', { name: 'Carlos' });
+    await screen.findByRole('row', { name: /Carlos/ });
     expect(screen.queryByText('Técnico eliminado (tiger_1)')).not.toBeInTheDocument();
-    expect(requests.queries).toEqual(['?includeAnonymized=false']);
+    expect(screen.getByLabelText('1 técnico')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('checkbox', { name: 'Mostrar técnicos eliminados' }));
+    await user.click(screen.getByRole('button', { name: /^Más filtros/ }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('switch', { name: 'Mostrar eliminados' }),
+    );
 
-    const erased = await screen.findByRole('article', { name: 'Técnico eliminado (tiger_1)' });
+    const erased = await screen.findByRole('row', { name: /Técnico eliminado \(tiger_1\)/ });
     expect(within(erased).queryByRole('link')).not.toBeInTheDocument();
-    expect(requests.queries.at(-1)).toBe('?includeAnonymized=true');
+    expect(requests.queries).toEqual(['?includeAnonymized=true']);
+  });
+
+  it('"Limpiar filtros" vuelve a ocultar los eliminados', async () => {
+    const user = userEvent.setup();
+    serveTechnicians([CARLOS, ERASED]);
+    renderPage(<TechniciansSettingsPage />);
+    await screen.findByRole('row', { name: /Carlos/ });
+    await user.click(screen.getByRole('button', { name: /^Más filtros/ }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('switch', { name: 'Mostrar eliminados' }),
+    );
+    await screen.findByRole('row', { name: /Técnico eliminado/ });
+
+    await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
+
+    expect(screen.queryByRole('row', { name: /Técnico eliminado/ })).not.toBeInTheDocument();
+  });
+
+  it('cada técnico conserva su color al mostrar los eliminados', async () => {
+    const user = userEvent.setup();
+    serveTechnicians([ERASED, CARLOS]);
+    renderPage(<TechniciansSettingsPage />);
+    const before = (await screen.findByText('CA')).getAttribute('style');
+
+    await user.click(screen.getByRole('button', { name: /^Más filtros/ }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('switch', { name: 'Mostrar eliminados' }),
+    );
+    await screen.findByRole('row', { name: /Técnico eliminado/ });
+
+    expect(screen.getByText('CA').getAttribute('style')).toBe(before);
   });
 
   it('invita a crear el primer técnico cuando no hay ninguno', async () => {
+    const user = userEvent.setup();
     serveTechnicians([]);
-
     renderPage(<TechniciansSettingsPage />);
 
-    expect(await screen.findByText('Aún no hay técnicos. Crea el primero.')).toBeInTheDocument();
+    expect(await screen.findByText('Aún no tienes técnicos')).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button', { name: 'Nuevo técnico' });
+    await user.click(buttons.at(-1)!);
+    expect(screen.getByRole('dialog', { name: 'Nuevo técnico' })).toBeInTheDocument();
   });
 
   it('muestra el error de carga con la opción de reintentar', async () => {
@@ -108,7 +175,7 @@ describe('TechniciansSettingsPage: alta', () => {
     await user.type(within(dialog).getByLabelText(/Teléfono/), '+573112223344');
     await user.click(within(dialog).getByRole('button', { name: 'Crear técnico' }));
 
-    expect(await screen.findByRole('article', { name: 'Luisa' })).toBeVisible();
+    expect(await screen.findByText('Luisa')).toBeVisible();
     expect(requests.posts).toEqual([{ name: 'Luisa', phone: '+573112223344' }]);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
