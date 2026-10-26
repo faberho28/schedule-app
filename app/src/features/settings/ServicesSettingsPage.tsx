@@ -1,56 +1,55 @@
-import { useId, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import type { components } from '@/shared/api/schema';
-import { formatDuration, formatPrice } from '@/shared/lib/format';
+import { useIsDesktop, useIsTablet } from '@/shared/lib/use-media-query';
 import { ErrorNotice } from '@/shared/ui/ErrorNotice';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { ServiceFormDialog } from './ServiceFormDialog';
+import { ServicesList } from './ServicesList';
+import { ServicesTable } from './ServicesTable';
+import { ServicesToolbar } from './ServicesToolbar';
 import { useServices, useUpdateService } from './services-api';
 import { durationWarningMessage } from './service-form';
-
-type Service = components['schemas']['Service'];
+import type { Service } from './service-cells';
 
 /** El aviso de duración es largo e importa: se queda más que un aviso común. */
 const WARNING_MS = 8000;
 
+/** Catálogo de servicios. Desde 768 px es una tabla; por debajo, filas compactas. */
 export function ServicesSettingsPage() {
+  const isDesktop = useIsDesktop();
+  const isTablet = useIsTablet();
   const services = useServices();
   const toggle = useUpdateService();
   // `undefined` = diálogo cerrado; `null` = alta; un servicio = edición.
   const [dialog, setDialog] = useState<Service | null | undefined>(undefined);
+  const common = {
+    services: services.data ?? [],
+    loading: services.isPending,
+    busy: toggle.isPending,
+    onEdit: (service: Service) => setDialog(service),
+    onToggle: (service: Service) =>
+      toggle.mutate({ id: service.id, body: { active: !service.active } }),
+    onCreate: () => setDialog(null),
+  };
 
   return (
-    <section className="flex flex-col gap-4">
-      <PageHeader
-        title="Tipos de servicio"
-        actions={<Button onClick={() => setDialog(null)}>Nuevo tipo de servicio</Button>}
+    <section className="flex flex-col gap-4 lg:pt-6">
+      {/* En escritorio el título va en la barra; por debajo, el encabezado conserva "Volver". */}
+      {isDesktop ? null : <PageHeader title="Tipos de servicio" />}
+      <ServicesToolbar
+        showTitle={isDesktop}
+        count={services.isPending ? undefined : services.data?.length}
+        onCreate={() => setDialog(null)}
       />
 
-      {services.isPending ? <p>Cargando…</p> : null}
+      {toggle.isError ? <ErrorNotice error={toggle.error} /> : null}
       {services.isError ? (
         <ErrorNotice error={services.error} onRetry={() => void services.refetch()} />
-      ) : null}
-      {toggle.isError ? <ErrorNotice error={toggle.error} /> : null}
-
-      {services.data?.length === 0 ? <p>Aún no hay tipos de servicio. Crea el primero.</p> : null}
-      {services.data && services.data.length > 0 ? (
-        <ul className="flex flex-col gap-3">
-          {services.data.map((service) => (
-            <li key={service.id}>
-              <ServiceCard
-                service={service}
-                busy={toggle.isPending}
-                onEdit={() => setDialog(service)}
-                onToggle={() =>
-                  toggle.mutate({ id: service.id, body: { active: !service.active } })
-                }
-              />
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      ) : isTablet ? (
+        <ServicesTable {...common} />
+      ) : (
+        <ServicesList {...common} />
+      )}
 
       {dialog !== undefined ? (
         <ServiceFormDialog
@@ -65,52 +64,5 @@ export function ServicesSettingsPage() {
         />
       ) : null}
     </section>
-  );
-}
-
-type ServiceCardProps = {
-  service: Service;
-  busy: boolean;
-  onEdit: () => void;
-  onToggle: () => void;
-};
-
-function ServiceCard({ service, busy, onEdit, onToggle }: ServiceCardProps) {
-  const titleId = useId();
-  return (
-    <article
-      aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-xs text-card-foreground"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h2 id={titleId} className="text-base font-semibold">
-          {service.name}
-        </h2>
-        <Badge variant={service.active ? 'green' : 'neutral'}>
-          {service.active ? 'Activo' : 'Inactivo'}
-        </Badge>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {formatDuration(service.duration_min)} · {formatPrice(service.price)}
-      </p>
-      <p className="text-sm text-muted-foreground">
-        {service.followup_interval_days === null
-          ? 'Sin seguimiento'
-          : `Seguimiento a los ${service.followup_interval_days} días`}
-      </p>
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={onEdit} aria-label={`Editar ${service.name}`}>
-          Editar
-        </Button>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={onToggle}
-          aria-label={`${service.active ? 'Desactivar' : 'Reactivar'} ${service.name}`}
-        >
-          {service.active ? 'Desactivar' : 'Reactivar'}
-        </Button>
-      </div>
-    </article>
   );
 }

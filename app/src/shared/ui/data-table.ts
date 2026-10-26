@@ -10,6 +10,10 @@ export const COLUMN_WIDTH = {
   address: 'w-[34%]',
   /** Estado o consentimiento. */
   status: 'w-[14%]',
+  /** Dato corto: duración o precio. */
+  short: 'w-[14%]',
+  /** Dato de texto breve, como el seguimiento de un servicio. */
+  medium: 'w-[24%]',
   /** Acciones, alineadas a la derecha. */
   actions: 'w-[6%]',
 } as const;

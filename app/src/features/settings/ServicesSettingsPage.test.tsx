@@ -1,11 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { components } from '@/shared/api/schema';
 import { apiUrl, problem, service } from '@/test/api';
 import { renderPage } from '@/test/render';
 import { server } from '@/test/server';
+import { setDesktopViewport, setMobileViewport } from '@/test/viewport';
 import { currentToasts, findToast } from '@/test/toast';
 import { ServicesSettingsPage } from './ServicesSettingsPage';
 
@@ -21,6 +22,18 @@ const LIMPIEZA = service({
   followup_interval_days: null,
   active: false,
 });
+
+beforeEach(() => setDesktopViewport());
+
+/** Abre el menú de acciones de un servicio y elige una opción. */
+async function chooseAction(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+  action: string,
+) {
+  await user.click(await screen.findByRole('button', { name: `Acciones de ${name}` }));
+  await user.click(await screen.findByRole('menuitem', { name: action }));
+}
 
 /** Servidor falso con estado para el catálogo de servicios. */
 function serveServices(initial: Service[], warning: ServiceWarning = null) {
@@ -60,15 +73,26 @@ describe('ServicesSettingsPage: listado', () => {
 
     renderPage(<ServicesSettingsPage />);
 
-    const aire = await screen.findByRole('article', { name: 'Mantenimiento de aire' });
-    const limpieza = screen.getByRole('article', { name: 'Limpieza profunda' });
+    const aire = await screen.findByRole('row', { name: /Mantenimiento de aire/ });
+    const limpieza = screen.getByRole('row', { name: /Limpieza profunda/ });
     expect(requests.queries).toEqual(['?includeInactive=true']);
     expect(within(aire).getByText('Activo')).toBeInTheDocument();
     expect(within(aire).getByText(/1 h 30 min/)).toBeInTheDocument();
     expect(within(aire).getByText(/120\.000/)).toBeInTheDocument();
-    expect(within(aire).getByText(/Seguimiento a los 180 días/)).toBeInTheDocument();
+    expect(within(aire).getByText('A los 180 días')).toBeInTheDocument();
     expect(within(limpieza).getByText('Inactivo')).toBeInTheDocument();
     expect(within(limpieza).getByText('Sin seguimiento')).toBeInTheDocument();
+    expect(screen.getByLabelText('2 tipos de servicio')).toBeInTheDocument();
+  });
+
+  it('en pantallas angostas es una lista de filas', async () => {
+    setMobileViewport();
+    serveServices([AIRE]);
+
+    renderPage(<ServicesSettingsPage />);
+
+    expect(await screen.findByRole('button', { name: /^Mantenimiento de aire/ })).toBeVisible();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('invita a crear el primer servicio cuando el catálogo está vacío', async () => {
@@ -76,9 +100,7 @@ describe('ServicesSettingsPage: listado', () => {
 
     renderPage(<ServicesSettingsPage />);
 
-    expect(
-      await screen.findByText('Aún no hay tipos de servicio. Crea el primero.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Aún no tienes tipos de servicio')).toBeInTheDocument();
   });
 
   it('permite reintentar cuando falla la carga', async () => {
@@ -95,14 +117,13 @@ describe('ServicesSettingsPage: listado', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
-    expect(await screen.findByRole('article', { name: 'Mantenimiento de aire' })).toBeVisible();
+    expect(await screen.findByRole('row', { name: /Mantenimiento de aire/ })).toBeVisible();
   });
 });
 
 describe('ServicesSettingsPage: alta', () => {
   async function openCreateDialog(user: ReturnType<typeof userEvent.setup>) {
-    await screen.findByRole('button', { name: 'Nuevo tipo de servicio' });
-    await user.click(screen.getByRole('button', { name: 'Nuevo tipo de servicio' }));
+    await user.click(await screen.findByRole('button', { name: 'Nuevo tipo de servicio' }));
     return screen.getByRole('dialog', { name: 'Nuevo tipo de servicio' });
   }
 
@@ -118,7 +139,7 @@ describe('ServicesSettingsPage: alta', () => {
     await user.type(within(dialog).getByLabelText(/Días hasta el seguimiento/), '180');
     await user.click(within(dialog).getByRole('button', { name: 'Crear tipo de servicio' }));
 
-    expect(await screen.findByRole('article', { name: 'Mantenimiento de aire' })).toBeVisible();
+    expect(await screen.findByRole('row', { name: /Mantenimiento de aire/ })).toBeVisible();
     expect(requests.posts).toEqual([
       {
         name: 'Mantenimiento de aire',
@@ -212,7 +233,7 @@ describe('ServicesSettingsPage: alta', () => {
 
 describe('ServicesSettingsPage: edición', () => {
   async function openEditDialog(user: ReturnType<typeof userEvent.setup>, name: string) {
-    await user.click(await screen.findByRole('button', { name: `Editar ${name}` }));
+    await chooseAction(user, name, 'Editar');
     return screen.getByRole('dialog', { name: 'Editar tipo de servicio' });
   }
 
@@ -252,7 +273,7 @@ describe('ServicesSettingsPage: edición', () => {
     expect(warning).toHaveClass('bg-event-amber-bg');
     expect(requests.patches).toEqual([{ duration_min: 120 }]);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(within(screen.getByRole('article')).getByText(/2 h/)).toBeInTheDocument();
+    expect(within(screen.getAllByRole('row')[1]!).getByText(/2 h/)).toBeInTheDocument();
   });
 
   it('no muestra aviso cuando no hay citas futuras', async () => {
@@ -298,7 +319,7 @@ describe('ServicesSettingsPage: edición', () => {
     serveServices([AIRE]);
     renderPage(<ServicesSettingsPage />);
 
-    await screen.findByRole('article', { name: 'Mantenimiento de aire' });
+    await screen.findByRole('row', { name: /Mantenimiento de aire/ });
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(currentToasts()).toHaveLength(0);
@@ -311,17 +332,15 @@ describe('ServicesSettingsPage: desactivar y reactivar', () => {
     const requests = serveServices([AIRE]);
     renderPage(<ServicesSettingsPage />);
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Desactivar Mantenimiento de aire' }),
-    );
+    await chooseAction(user, 'Mantenimiento de aire', 'Desactivar');
 
-    const article = await screen.findByRole('article', { name: 'Mantenimiento de aire' });
-    await waitFor(() => expect(within(article).getByText('Inactivo')).toBeInTheDocument());
+    const row = await screen.findByRole('row', { name: /Mantenimiento de aire/ });
+    await waitFor(() => expect(within(row).getByText('Inactivo')).toBeInTheDocument());
     expect(requests.patches).toEqual([{ active: false }]);
 
-    await user.click(screen.getByRole('button', { name: 'Reactivar Mantenimiento de aire' }));
+    await chooseAction(user, 'Mantenimiento de aire', 'Reactivar');
 
-    await waitFor(() => expect(within(article).getByText('Activo')).toBeInTheDocument());
+    await waitFor(() => expect(within(row).getByText('Activo')).toBeInTheDocument());
     expect(requests.patches).toEqual([{ active: false }, { active: true }]);
     expect(requests.queries.at(-1)).toBe('?includeInactive=true');
   });
@@ -332,13 +351,11 @@ describe('ServicesSettingsPage: desactivar y reactivar', () => {
     server.use(http.patch(apiUrl('/services/:id'), () => problem('internal_error', 500)));
     renderPage(<ServicesSettingsPage />);
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Desactivar Mantenimiento de aire' }),
-    );
+    await chooseAction(user, 'Mantenimiento de aire', 'Desactivar');
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Ocurrió un error inesperado');
     expect(
-      within(screen.getByRole('article', { name: 'Mantenimiento de aire' })).getByText('Activo'),
+      within(screen.getByRole('row', { name: /Mantenimiento de aire/ })).getByText('Activo'),
     ).toBeInTheDocument();
   });
 });
