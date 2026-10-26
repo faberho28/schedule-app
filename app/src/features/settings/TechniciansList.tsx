@@ -3,13 +3,13 @@ import { Link } from 'react-router';
 import { Skeleton } from '@/components/ui/skeleton';
 import { technicianLabel } from '@/shared/lib/people';
 import { cn } from '@/shared/lib/utils';
+import { ActiveStatusBadge } from '@/shared/ui/ActiveStatusBadge';
 import { ErasedBadge } from '@/shared/ui/ErasedBadge';
 import { ListEmptyState } from '@/shared/ui/ListEmptyState';
 import {
   isTechnicianErased,
   TechnicianAvatar,
   technicianPhone,
-  TechnicianStatusBadge,
   type Technician,
 } from './technician-cells';
 
@@ -90,7 +90,7 @@ export function TechniciansList({
                     <span className="text-sm text-muted-foreground tabular-nums">{phone}</span>
                   )}
                 </div>
-                {erased ? null : <TechnicianStatusBadge active={technician.active} />}
+                {erased ? null : <ActiveStatusBadge active={technician.active} />}
               </>
             );
             return (

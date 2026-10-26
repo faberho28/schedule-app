@@ -31,6 +31,7 @@ import { technicianLabel } from '@/shared/lib/people';
 import { cn } from '@/shared/lib/utils';
 import { COLUMN_WIDTH, PAGE_SIZES } from '@/shared/ui/data-table';
 import { DataTablePagination } from '@/shared/ui/DataTablePagination';
+import { ActiveStatusBadge } from '@/shared/ui/ActiveStatusBadge';
 import { ErasedBadge } from '@/shared/ui/ErasedBadge';
 import { ListEmptyState } from '@/shared/ui/ListEmptyState';
 import { ariaSortOf, SortHeader } from '@/shared/ui/SortHeader';
@@ -38,7 +39,6 @@ import {
   isTechnicianErased,
   TechnicianAvatar,
   technicianPhone,
-  TechnicianStatusBadge,
   type Technician,
 } from './technician-cells';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -138,7 +138,7 @@ export function TechniciansTable({
           isTechnicianErased(row.original) ? (
             <span className="text-sm text-muted-foreground">—</span>
           ) : (
-            <TechnicianStatusBadge active={row.original.active} />
+            <ActiveStatusBadge active={row.original.active} />
           ),
       }),
       helper.display({

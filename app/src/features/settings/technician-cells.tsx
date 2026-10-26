@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import type { components } from '@/shared/api/schema';
 import { formatPhone } from '@/shared/lib/format';
 import { initialsOf, technicianLabel } from '@/shared/lib/people';
@@ -39,20 +38,6 @@ export function TechnicianAvatar({
         {initialsOf(technicianLabel(technician))}
       </AvatarFallback>
     </Avatar>
-  );
-}
-
-/** Estado del técnico: insignia con un punto, verde si está activo y gris si no. */
-export function TechnicianStatusBadge({ active }: { active: boolean }) {
-  return (
-    <Badge variant={active ? 'green' : 'neutral'} className="gap-1.5 rounded-full px-2">
-      <span
-        aria-hidden="true"
-        data-slot="status-dot"
-        className="size-1.5 shrink-0 rounded-full bg-current"
-      />
-      {active ? 'Activo' : 'Inactivo'}
-    </Badge>
   );
 }
 
