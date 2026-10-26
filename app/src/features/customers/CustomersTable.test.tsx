@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { customer } from '@/test/api';
 import { renderPage } from '@/test/render';
+import { avatarToneOf } from './customer-tone';
 import { CustomersTable, type CustomersTableProps } from './CustomersTable';
 
 const ANA = customer({ id: 'c-ana', name: 'Ana Pérez', phone: '+573001234567' });
@@ -46,17 +47,18 @@ const bodyRows = () => within(screen.getByRole('table')).getAllByRole('row').sli
 const names = () => bodyRows().map((row) => within(row).getAllByRole('cell')[0]!.textContent);
 
 describe('CustomersTable: estructura', () => {
-  it('tiene las columnas Cliente, Teléfono, Consentimiento y Acciones (esta última solo para lectores)', () => {
+  it('tiene las columnas Cliente, Teléfono, Dirección, Consentimiento y Acciones (esta última solo para lectores)', () => {
     renderTable();
 
     const headers = screen.getAllByRole('columnheader');
     expect(headers.map((header) => header.textContent)).toEqual([
       'Cliente',
       'Teléfono',
+      'Dirección',
       'Consentimiento',
       'Acciones',
     ]);
-    expect(within(headers[3]!).getByText('Acciones')).toHaveClass('sr-only');
+    expect(within(headers[4]!).getByText('Acciones')).toHaveClass('sr-only');
   });
 
   it('el encabezado mide 40 px, con fondo tenue y texto pequeño en mayúsculas', () => {
@@ -99,46 +101,158 @@ describe('CustomersTable: anchos de columna', () => {
     expect(screen.getByRole('table')).toHaveClass('table-fixed', 'w-full');
   });
 
-  it('Cliente, Teléfono y Consentimiento tienen ancho fijo y Acciones toma el espacio que sobra', () => {
+  it('las columnas reparten el ancho en porcentajes: 28, 18, 34, 14 y 6', () => {
     renderTable();
 
-    const [name, phone, consent, actions] = screen.getAllByRole('columnheader');
-    expect(name).toHaveClass('w-[240px]', 'lg:w-[320px]');
-    expect(phone).toHaveClass('w-[200px]');
-    expect(consent).toHaveClass('w-[160px]');
-    // Sin ancho propio: es la columna que recibe lo que sobra.
-    expect(actions!.className).not.toMatch(/(^|\s)(lg:)?w-/);
-    expect(actions).toHaveClass('text-right');
+    const widths = screen
+      .getAllByRole('columnheader')
+      .map((header) => /w-\[(\d+%)\]/.exec(header.className)?.[1]);
+    expect(widths).toEqual(['28%', '18%', '34%', '14%', '6%']);
+    expect(screen.getAllByRole('columnheader')[4]).toHaveClass('text-right');
   });
 
   it('las celdas de cada fila llevan el mismo ancho que su encabezado y las acciones van a la derecha', () => {
     renderTable();
 
-    const cells = within(bodyRows()[0]!).getAllByRole('cell');
-    expect(cells[0]).toHaveClass('w-[240px]', 'lg:w-[320px]');
-    expect(cells[1]).toHaveClass('w-[200px]');
-    expect(cells[2]).toHaveClass('w-[160px]');
-    expect(cells[3]!.className).not.toMatch(/(^|\s)(lg:)?w-/);
-    expect(cells[3]).toHaveClass('text-right');
+    const widths = within(bodyRows()[0]!)
+      .getAllByRole('cell')
+      .map((cell) => /w-\[(\d+%)\]/.exec(cell.className)?.[1]);
+    expect(widths).toEqual(['28%', '18%', '34%', '14%', '6%']);
+    expect(within(bodyRows()[0]!).getAllByRole('cell')[4]).toHaveClass('text-right');
   });
 
   it('el esqueleto de carga usa los mismos anchos', () => {
     renderTable({ customers: [], loading: true });
 
-    const cells = within(bodyRows()[0]!).getAllByRole('cell');
-    expect(cells[0]).toHaveClass('w-[240px]');
-    expect(cells[1]).toHaveClass('w-[200px]');
-    expect(cells[2]).toHaveClass('w-[160px]');
+    const widths = within(bodyRows()[0]!)
+      .getAllByRole('cell')
+      .map((cell) => /w-\[(\d+%)\]/.exec(cell.className)?.[1]);
+    expect(widths).toEqual(['28%', '18%', '34%', '14%', '6%']);
+  });
+});
+
+describe('CustomersTable: dirección', () => {
+  it('muestra un ícono de ubicación de 14 px en gris tenue y la dirección recortada', () => {
+    renderTable();
+
+    const cell = within(bodyRows()[0]!).getAllByRole('cell')[2]!;
+    const icon = cell.querySelector('svg')!;
+    expect(icon).toHaveClass('size-3.5', 'text-text-subtle', 'lucide-map-pin');
+    expect(within(cell).getByText('Calle 10 # 5-20')).toHaveClass('truncate');
+  });
+
+  it('al pasar el mouse muestra la dirección completa en un tooltip', async () => {
+    renderTable({
+      customers: [customer({ id: 'c-long', address: 'Carrera 7 # 1-1, Torre 3 apto 502, Bogotá' })],
+    });
+
+    await userEvent.hover(screen.getByText('Carrera 7 # 1-1, Torre 3 apto 502, Bogotá'));
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Carrera 7 # 1-1, Torre 3 apto 502, Bogotá',
+    );
+  });
+
+  it('sin dirección muestra un guion gris tenue y ningún ícono', () => {
+    renderTable({ customers: [customer({ id: 'c-none', address: null })] });
+
+    const cell = within(bodyRows()[0]!).getAllByRole('cell')[2]!;
+    expect(within(cell).getByText('—')).toHaveClass('text-text-subtle');
+    expect(cell.querySelector('svg')).not.toBeInTheDocument();
+  });
+
+  it('una dirección en blanco cuenta como vacía', () => {
+    renderTable({ customers: [customer({ id: 'c-blank', address: '   ' })] });
+
+    expect(
+      within(within(bodyRows()[0]!).getAllByRole('cell')[2]!).getByText('—'),
+    ).toBeInTheDocument();
+  });
+
+  it('un cliente eliminado no muestra dirección', () => {
+    renderTable({ customers: [ERASED] });
+
+    expect(
+      within(within(bodyRows()[0]!).getAllByRole('cell')[2]!).getByText('—'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('CustomersTable: notas', () => {
+  const WITH_NOTES = customer({
+    id: 'c-notes',
+    name: 'Rosa Díaz',
+    notes: 'Portón verde.\nTimbre dañado: llamar al llegar.',
+  });
+
+  it('un cliente con notas muestra un ícono de nota de 14 px después del nombre', () => {
+    renderTable({ customers: [WITH_NOTES] });
+
+    const cell = within(bodyRows()[0]!).getAllByRole('cell')[0]!;
+    const note = within(cell).getByRole('img', { name: 'Tiene notas' });
+    expect(note.querySelector('svg')).toHaveClass(
+      'size-3.5',
+      'text-text-subtle',
+      'lucide-sticky-note',
+    );
+    expect(screen.getByRole('link', { name: 'Rosa Díaz' }).compareDocumentPosition(note)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('al pasar el mouse muestra las notas en un tooltip de hasta 3 líneas', async () => {
+    renderTable({ customers: [WITH_NOTES] });
+
+    await userEvent.hover(screen.getByRole('img', { name: 'Tiene notas' }));
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Portón verde.');
+    expect(tooltip).toHaveTextContent('Timbre dañado: llamar al llegar.');
+    const text = within(tooltip.parentElement!).getAllByText(/Portón verde/)[0]!;
+    expect(text).toHaveClass('line-clamp-3', 'max-w-xs');
+  });
+
+  it('también se puede ver con el teclado: el ícono recibe el foco', async () => {
+    renderTable({ customers: [WITH_NOTES] });
+
+    // Orden de tabulación: los dos encabezados que ordenan, el nombre y, por fin, el ícono.
+    for (let step = 0; step < 4; step += 1) await userEvent.tab();
+
+    expect(screen.getByRole('img', { name: 'Tiene notas' })).toHaveFocus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Portón verde.');
+  });
+
+  it('sin notas, o con notas en blanco, no muestra el ícono', () => {
+    renderTable({
+      customers: [ANA, customer({ id: 'c-blank', name: 'Blanca', notes: '  ' })],
+    });
+
+    expect(screen.queryByRole('img', { name: 'Tiene notas' })).not.toBeInTheDocument();
+  });
+
+  it('un cliente eliminado no muestra el ícono de notas', () => {
+    renderTable({ customers: [{ ...ERASED, notes: 'No debería verse' }] });
+
+    expect(screen.queryByRole('img', { name: 'Tiene notas' })).not.toBeInTheDocument();
+  });
+
+  it('pulsar el ícono abre la ficha, como el resto de la fila', async () => {
+    const props = renderTable({ customers: [WITH_NOTES] });
+
+    await userEvent.click(screen.getByRole('img', { name: 'Tiene notas' }));
+
+    expect(props.onOpen).toHaveBeenCalledExactlyOnceWith('c-notes');
   });
 });
 
 describe('CustomersTable: contenido que no se parte', () => {
-  it('el teléfono y el consentimiento no se parten en dos líneas', () => {
+  it('el teléfono, la dirección y el consentimiento no se parten en dos líneas', () => {
     renderTable();
 
     const cells = within(bodyRows()[0]!).getAllByRole('cell');
-    expect(cells[1]).toHaveClass('whitespace-nowrap');
-    expect(cells[2]).toHaveClass('whitespace-nowrap');
+    for (const index of [0, 1, 2, 3]) {
+      expect(cells[index]).toHaveClass('whitespace-nowrap');
+    }
     expect(screen.getByText('+57 300 123 4567')).toHaveClass('whitespace-nowrap');
   });
 
@@ -169,8 +283,24 @@ describe('CustomersTable: contenido de las filas', () => {
     const cell = within(bodyRows()[0]!).getAllByRole('cell')[0]!;
     const initials = within(cell).getByText('AP');
     expect(initials.closest('[data-slot="avatar"]')).toHaveClass('size-8');
-    expect(initials).toHaveClass('bg-muted');
     expect(within(cell).getByText('Ana Pérez')).toHaveClass('text-sm', 'font-medium');
+  });
+
+  it('el avatar toma un color pastel que sale del nombre y es siempre el mismo', () => {
+    renderTable({ customers: [ANA, LUIS] });
+
+    const style = (name: string) => screen.getByText(name).getAttribute('style');
+    const tone = avatarToneOf('Ana Pérez');
+    expect(style('AP')).toContain(tone.background);
+    expect(style('AP')).toContain(tone.color);
+    expect(style('LG')).toContain(avatarToneOf('Luis Gómez').background);
+  });
+
+  it('el color del avatar de un cliente eliminado es neutro', () => {
+    renderTable({ customers: [ERASED] });
+
+    expect(screen.getByText('CE')).toHaveClass('bg-muted');
+    expect(screen.getByText('CE').getAttribute('style') ?? '').not.toContain('--event');
   });
 
   it('el nombre es un enlace a la ficha', () => {
@@ -212,7 +342,8 @@ describe('CustomersTable: contenido de las filas', () => {
     expect(within(row).getByText('Cliente eliminado (bear_1)')).not.toHaveClass('line-through');
     expect(within(row).getByText('Eliminado').closest('[data-slot="badge"]')).toHaveClass('border');
     expect(within(row).queryByText(/anon/)).not.toBeInTheDocument();
-    expect(within(row).getAllByText('—')).toHaveLength(2);
+    // Teléfono, dirección y consentimiento.
+    expect(within(row).getAllByText('—')).toHaveLength(3);
   });
 });
 

@@ -1,16 +1,17 @@
 /**
- * Anchos de las columnas de las tablas de la aplicación, para una tabla de diseño fijo
- * (`table-fixed`). Las columnas de datos tienen un ancho propio y quedan juntas a la izquierda; la
- * de acciones no tiene ancho y recibe el espacio que sobra.
+ * Anchos de las columnas de las tablas de la aplicación, en porcentaje y para una tabla de diseño
+ * fijo (`table-fixed`): las columnas no se estiran con su contenido, que se recorta con puntos
+ * suspensivos. Suman 100.
  */
 export const COLUMN_WIDTH = {
-  /** Nombre (cliente, técnico): más angosta en pantallas medianas, donde no sobra espacio. */
-  main: 'w-[240px] lg:w-[320px]',
-  phone: 'w-[200px]',
+  /** Nombre (cliente, técnico). */
+  main: 'w-[28%]',
+  phone: 'w-[18%]',
+  address: 'w-[34%]',
   /** Estado o consentimiento. */
-  status: 'w-[160px]',
-  /** Sin ancho: toma el espacio restante. */
-  actions: '',
+  status: 'w-[14%]',
+  /** Acciones, alineadas a la derecha. */
+  actions: 'w-[6%]',
 } as const;
 
 export type ColumnWidth = keyof typeof COLUMN_WIDTH;

@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -34,11 +35,14 @@ import { COLUMN_WIDTH, PAGE_SIZES, type ColumnWidth } from '@/shared/ui/data-tab
 import { DataTablePagination } from '@/shared/ui/DataTablePagination';
 import { CONSENT_STATUS_INFO } from './consent';
 import {
+  AddressCell,
   ConsentBadge,
   CustomerAvatar,
   customerPhone,
   ErasedBadge,
+  hasNotes,
   isErased,
+  NotesHint,
 } from './customer-cells';
 import { CustomersEmptyState } from './CustomersEmptyState';
 import type { Customer } from './customers-api';
@@ -64,6 +68,7 @@ const NOUN = { singular: 'cliente', plural: 'clientes' };
 const WIDTH_OF: Record<string, ColumnWidth> = {
   name: 'main',
   phone: 'phone',
+  address: 'address',
   consent: 'status',
   actions: 'actions',
 };
@@ -131,6 +136,7 @@ export function CustomersTable({
               >
                 {label}
               </Link>
+              {hasNotes(customer) ? <NotesHint notes={customer.notes!.trim()} /> : null}
               {isErased(customer) ? <ErasedBadge /> : null}
             </div>
           );
@@ -145,6 +151,12 @@ export function CustomersTable({
             {customerPhone(row.original)}
           </span>
         ),
+      }),
+      helper.accessor((customer) => customer.address ?? '', {
+        id: 'address',
+        header: 'Dirección',
+        enableSorting: false,
+        cell: ({ row }) => <AddressCell customer={row.original} />,
       }),
       helper.accessor(consentLabel, {
         id: 'consent',
@@ -203,115 +215,120 @@ export function CustomersTable({
   const showEmpty = !loading && total === 0;
 
   return (
-    <div
-      data-slot="customers-table"
-      className="mt-4 overflow-hidden rounded-xl border bg-card text-card-foreground"
-    >
-      <Table aria-busy={loading}>
-        <TableHeader>
-          {table.getHeaderGroups().map((group) => (
-            <TableRow key={group.id} className="h-10 bg-muted/50 hover:bg-muted/50">
-              {group.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  className={cn(
-                    widthClass(header.column.id),
-                    header.column.id === 'actions' && 'text-right',
-                  )}
-                  aria-sort={
-                    header.column.getCanSort()
-                      ? ARIA_SORT[String(header.column.getIsSorted())]
-                      : undefined
-                  }
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {loading
-            ? Array.from({ length: SKELETON_ROWS }, (_, index) => (
-                <TableRow key={index} className="h-14">
-                  <TableCell className={COLUMN_WIDTH.main}>
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="size-8 rounded-full" />
-                      <Skeleton className="h-4 w-36" />
-                    </div>
-                  </TableCell>
-                  <TableCell className={COLUMN_WIDTH.phone}>
-                    <Skeleton className="h-4 w-28" />
-                  </TableCell>
-                  <TableCell className={COLUMN_WIDTH.status}>
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                  </TableCell>
-                  <TableCell className={COLUMN_WIDTH.actions}>
-                    <Skeleton className="ml-auto size-8 rounded-md" />
-                  </TableCell>
-                </TableRow>
-              ))
-            : null}
-          {showEmpty ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={4} className="p-0">
-                <CustomersEmptyState
-                  searching={searching}
-                  filtered={filtered}
-                  onClearSearch={onClearSearch}
-                  onClearFilters={onClearFilters}
-                  onCreate={onCreate}
-                />
-              </TableCell>
-            </TableRow>
-          ) : null}
-          {loading
-            ? null
-            : rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    'h-14 cursor-pointer hover:bg-muted/40',
-                    isErased(row.original) && 'opacity-60',
-                  )}
-                  onClick={(event) => {
-                    // El enlace, el menú y sus opciones ya saben qué hacer: la fila no los repite.
-                    if ((event.target as HTMLElement).closest('a, button, [role="menuitem"]'))
-                      return;
-                    onOpen(row.original.id);
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        widthClass(cell.column.id),
-                        'whitespace-nowrap',
-                        cell.column.id === 'actions' && 'text-right',
-                      )}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+    <TooltipProvider>
+      <div
+        data-slot="customers-table"
+        className="mt-4 overflow-hidden rounded-xl border bg-card text-card-foreground"
+      >
+        <Table aria-busy={loading}>
+          <TableHeader>
+            {table.getHeaderGroups().map((group) => (
+              <TableRow key={group.id} className="h-10 bg-muted/50 hover:bg-muted/50">
+                {group.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className={cn(
+                      widthClass(header.column.id),
+                      header.column.id === 'actions' && 'text-right',
+                    )}
+                    aria-sort={
+                      header.column.getCanSort()
+                        ? ARIA_SORT[String(header.column.getIsSorted())]
+                        : undefined
+                    }
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading
+              ? Array.from({ length: SKELETON_ROWS }, (_, index) => (
+                  <TableRow key={index} className="h-14">
+                    <TableCell className={COLUMN_WIDTH.main}>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="size-8 rounded-full" />
+                        <Skeleton className="h-4 w-36" />
+                      </div>
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-        </TableBody>
-      </Table>
-      {loading || showEmpty ? null : (
-        <DataTablePagination
-          total={total}
-          shown={rows.length}
-          pageIndex={pagination.pageIndex}
-          pageSize={pagination.pageSize}
-          pageSizes={PAGE_SIZES}
-          noun={NOUN}
-          canPrevious={table.getCanPreviousPage()}
-          canNext={table.getCanNextPage()}
-          onPageSizeChange={table.setPageSize}
-          onPrevious={table.previousPage}
-          onNext={table.nextPage}
-        />
-      )}
-    </div>
+                    <TableCell className={COLUMN_WIDTH.phone}>
+                      <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell className={COLUMN_WIDTH.address}>
+                      <Skeleton className="h-4 w-48 max-w-full" />
+                    </TableCell>
+                    <TableCell className={COLUMN_WIDTH.status}>
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </TableCell>
+                    <TableCell className={COLUMN_WIDTH.actions}>
+                      <Skeleton className="ml-auto size-8 rounded-md" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              : null}
+            {showEmpty ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={5} className="p-0">
+                  <CustomersEmptyState
+                    searching={searching}
+                    filtered={filtered}
+                    onClearSearch={onClearSearch}
+                    onClearFilters={onClearFilters}
+                    onCreate={onCreate}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {loading
+              ? null
+              : rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className={cn(
+                      'h-14 cursor-pointer hover:bg-muted/40',
+                      isErased(row.original) && 'opacity-60',
+                    )}
+                    onClick={(event) => {
+                      // El enlace, el menú y sus opciones ya saben qué hacer: la fila no los repite.
+                      if ((event.target as HTMLElement).closest('a, button, [role="menuitem"]'))
+                        return;
+                      onOpen(row.original.id);
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          widthClass(cell.column.id),
+                          'whitespace-nowrap',
+                          cell.column.id === 'actions' && 'text-right',
+                        )}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+          </TableBody>
+        </Table>
+        {loading || showEmpty ? null : (
+          <DataTablePagination
+            total={total}
+            shown={rows.length}
+            pageIndex={pagination.pageIndex}
+            pageSize={pagination.pageSize}
+            pageSizes={PAGE_SIZES}
+            noun={NOUN}
+            canPrevious={table.getCanPreviousPage()}
+            canNext={table.getCanNextPage()}
+            onPageSizeChange={table.setPageSize}
+            onPrevious={table.previousPage}
+            onNext={table.nextPage}
+          />
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

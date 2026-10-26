@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { customer } from '@/test/api';
 import { renderPage } from '@/test/render';
+import { avatarToneOf } from './customer-tone';
 import { CustomersList, type CustomersListProps } from './CustomersList';
 
 const ANA = customer({ id: 'c-ana', name: 'Ana Pérez', phone: '+573001234567' });
@@ -57,6 +58,22 @@ describe('CustomersList', () => {
     expect(within(row).getByText('Pendiente').closest('[data-slot="badge"]')).toHaveClass(
       'bg-event-amber-bg',
     );
+  });
+
+  it('no muestra la dirección ni el ícono de notas: solo nombre y teléfono debajo', () => {
+    renderList({ customers: [customer({ id: 'c-n', name: 'Rosa Díaz', notes: 'Portón verde' })] });
+
+    expect(screen.queryByText('Calle 10 # 5-20')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Tiene notas' })).not.toBeInTheDocument();
+    expect(screen.getByText('Rosa Díaz')).toBeInTheDocument();
+    expect(screen.getByText('+57 300 123 4567')).toBeInTheDocument();
+  });
+
+  it('el avatar toma el mismo color pastel que en la tabla, calculado del nombre', () => {
+    renderList();
+
+    const avatar = screen.getByText('AP');
+    expect(avatar.getAttribute('style')).toContain(avatarToneOf('Ana Pérez').background);
   });
 
   it('toda la fila es un enlace a la ficha del cliente', async () => {
