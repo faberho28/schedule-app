@@ -1,5 +1,5 @@
 import type { components } from '@/shared/api/schema';
-import { technicianLabel } from '@/shared/lib/people';
+import { initialsOf, technicianLabel } from '@/shared/lib/people';
 import {
   TECHNICIAN_COLOR_COUNT,
   assignTechnicianColors,
@@ -23,16 +23,7 @@ function isCurrent(technician: Technician): boolean {
   return technician.active && technician.anonymized_at === null;
 }
 
-/**
- * Iniciales para la tarjeta: la primera letra de las dos primeras palabras, o las dos primeras
- * letras si hay una sola. Lo que va entre paréntesis (el alias de un técnico eliminado) no cuenta.
- */
-export function initialsOf(label: string): string {
-  const words = label.split(/\s+/).filter((word) => word !== '' && !word.startsWith('('));
-  if (words.length === 0) return '';
-  const letters = words.length > 1 ? `${words[0]![0]}${words[1]![0]}` : words[0]!.slice(0, 2);
-  return letters.toUpperCase();
-}
+export { initialsOf };
 
 /**
  * Color (1 a 10) de cada técnico. `all` es la lista completa que entrega la API con los eliminados

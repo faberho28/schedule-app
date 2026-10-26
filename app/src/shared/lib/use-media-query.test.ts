@@ -1,7 +1,20 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { setDesktopViewport, setMobileViewport } from '@/test/viewport';
-import { useIsDesktop } from './use-media-query';
+import { useIsDesktop, useIsTablet } from './use-media-query';
+
+describe('useIsTablet', () => {
+  it('es falso con el ancho móvil y verdadero desde 768 px', () => {
+    const { result } = renderHook(() => useIsTablet());
+    expect(result.current).toBe(false);
+
+    act(() => setDesktopViewport(767));
+    expect(result.current).toBe(false);
+
+    act(() => setDesktopViewport(768));
+    expect(result.current).toBe(true);
+  });
+});
 
 describe('useIsDesktop', () => {
   it('es falso con el ancho móvil por defecto', () => {

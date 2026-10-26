@@ -3,6 +3,9 @@ import { useSyncExternalStore } from 'react';
 /** Ancho a partir del cual la aplicación usa la barra lateral (D18). */
 export const DESKTOP_QUERY = '(min-width: 1024px)';
 
+/** Ancho a partir del cual las listas largas pasan de filas compactas a tabla. */
+export const TABLET_QUERY = '(min-width: 768px)';
+
 /** Ancho a partir del cual la barra lateral muestra etiquetas en lugar de solo íconos. */
 export const WIDE_QUERY = '(min-width: 1280px)';
 
@@ -16,6 +19,11 @@ function useMediaQuery(query: string): boolean {
     () => window.matchMedia(query).matches,
     () => false,
   );
+}
+
+/** Verdadero desde 768 px: las listas largas se muestran como tabla. */
+export function useIsTablet(): boolean {
+  return useMediaQuery(TABLET_QUERY);
 }
 
 /** Verdadero desde 1024 px: barra lateral. Por debajo: barra inferior. */

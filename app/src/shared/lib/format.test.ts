@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, formatPrice, pluralize } from './format';
+import { formatDuration, formatPhone, formatPrice, pluralize } from './format';
+
+describe('formatPhone', () => {
+  it('separa un celular colombiano en grupos: +57 300 994 2233', () => {
+    expect(formatPhone('+573009942233')).toBe('+57 300 994 2233');
+  });
+
+  it('deja tal cual un número que no es celular colombiano', () => {
+    expect(formatPhone('+5712345678')).toBe('+5712345678');
+    expect(formatPhone('+14155550123')).toBe('+14155550123');
+    expect(formatPhone('3009942233')).toBe('3009942233');
+  });
+});
 
 /** `Intl` separa el símbolo con un espacio duro; se normaliza para comparar. */
 const plain = (text: string) => text.replaceAll(' ', ' ');
