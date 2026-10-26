@@ -40,3 +40,18 @@ Ideas acordadas con el dueño del producto que no pertenecen a un sprint en curs
 - Actualizar el `overrides` de `app`.
 
 **Fase sugerida:** tarea de mantenimiento propia, con su rama, separada de los cambios de seguridad.
+
+## Lógica del calendario interactivo
+
+**Origen:** cierre de la capa visual del calendario (2026-10-25). La grilla ya arrastra, redimensiona y selecciona espacios vacíos, pero solo avisa por callbacks: soltar o estirar un servicio no cambia ningún dato.
+
+**Qué falta definir**
+- Qué servicios se pueden mover o estirar (`isDraggable`, `isResizable`) según su estado y su hora.
+- Cuándo un destino es válido y qué mensaje se muestra si no (`getDropState`, `getDropMessage`). Debe apoyarse en la API de cupos y en la regla de bloqueo absoluto de cruces, no en un cálculo en la interfaz.
+- Qué ocurre al soltar (`onEventDrop`) y al estirar (`onEventResize`): llamada a la API, confirmación con `ConfirmDialog`, aviso con "Deshacer" (`notify.undoable`) y manejo de `slot_taken` (409).
+- Si estirar un servicio cambia su duración o solo su fin, y cómo afecta al tiempo de traslado.
+- Que el alta de un servicio reciba la hora y el técnico elegidos al hacer clic o seleccionar un espacio vacío (hoy solo recibe el día).
+- Contenido del `EventSheet` (panel lateral de 420 px) y si reemplaza al diálogo de detalle.
+- Redimensionar con el teclado y arrastrar en la lista móvil, que hoy no existen.
+
+**Fase sugerida:** sprint propio, después del bot o junto con la autenticación, porque mover servicios exige saber quién lo hace.
