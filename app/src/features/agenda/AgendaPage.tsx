@@ -19,7 +19,12 @@ import {
   type FilterOption,
   type FilterPatch,
 } from './AgendaFilters';
-import { AgendaGrid, type AgendaAppointment, type GridTechnician } from './AgendaGrid';
+import {
+  AgendaGrid,
+  type AgendaAppointment,
+  type AgendaGridProps,
+  type GridTechnician,
+} from './AgendaGrid';
 import { AgendaList } from './AgendaList';
 import { AgendaToolbar } from './AgendaToolbar';
 import { GlobalSearch } from './GlobalSearch';
@@ -50,12 +55,32 @@ type Technician = components['schemas']['Technician'];
 /** El último minuto que admite el parámetro `to` (`HH:MM`) de la lista de una franja. */
 const LAST_MINUTE_OF_DAY = 24 * 60 - 1;
 
-type AgendaPageProps = {
+/**
+ * Interacción de la grilla con los servicios (arrastrar y redimensionar). La página solo las pasa a
+ * la grilla: la regla de qué se puede mover y qué ocurre al soltar la pone quien la use.
+ */
+type GridInteractions = Pick<
+  AgendaGridProps,
+  | 'isDraggable'
+  | 'isResizable'
+  | 'getDropState'
+  | 'getDropMessage'
+  | 'onEventDrop'
+  | 'onEventResize'
+>;
+
+type AgendaPageProps = GridInteractions & {
   /** Sustituye la apertura de la ficha del servicio al tocarlo (por defecto abre sus diálogos). */
   onAppointmentSelect?(id: string): void;
   /** Sustituye la apertura de "Nuevo servicio" al pedirlo para un día de la grilla. */
   onEmptySlotSelect?(day: LocalDate): void;
 };
+
+/**
+ * Soltar o estirar un servicio todavía no cambia ningún dato: hasta que se pase la lógica real por
+ * `onEventDrop` y `onEventResize`, la interacción es solo visual y el servicio vuelve a su lugar.
+ */
+const NO_CHANGE = () => undefined;
 
 export function AgendaPage(props: AgendaPageProps) {
   const business = useBusiness();
@@ -79,6 +104,7 @@ function AgendaScreen({
   timeZone,
   onAppointmentSelect,
   onEmptySlotSelect,
+  ...interactions
 }: AgendaPageProps & { timeZone: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isDesktop = useIsDesktop();
@@ -295,6 +321,7 @@ function AgendaScreen({
           colors={colors}
           baseHours={baseHours}
           onSelectAllTechnicians={selectAllTechnicians}
+          interactions={interactions}
           onAppointmentSelect={onAppointmentSelect ?? ((id) => open({ kind: 'detail', id }))}
           onOverflowSelect={openOverflow}
           onCreateOnDay={onEmptySlotSelect ?? ((day) => open({ kind: 'create', day }))}
@@ -425,6 +452,7 @@ type GridContentProps = {
   colors: ReadonlyMap<string, number>;
   baseHours: VisibleHours | null;
   onSelectAllTechnicians(): void;
+  interactions: GridInteractions;
   onAppointmentSelect(id: string): void;
   onOverflowSelect(day: LocalDate, fromMinute: number, toMinute: number): void;
   /**
@@ -446,6 +474,7 @@ function GridContent({
   colors,
   baseHours,
   onSelectAllTechnicians,
+  interactions,
   onAppointmentSelect,
   onOverflowSelect,
   onCreateOnDay,
@@ -499,6 +528,9 @@ function GridContent({
         onOverflowSelect={onOverflowSelect}
         onSlotClick={(day) => onCreateOnDay(day)}
         onSlotSelect={(day) => onCreateOnDay(day)}
+        {...interactions}
+        onEventDrop={interactions.onEventDrop ?? NO_CHANGE}
+        onEventResize={interactions.onEventResize ?? NO_CHANGE}
       />
     </>
   );

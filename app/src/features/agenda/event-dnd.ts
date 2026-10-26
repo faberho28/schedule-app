@@ -1,4 +1,10 @@
-import type { KeyboardCoordinateGetter } from '@dnd-kit/core';
+import {
+  pointerWithin,
+  rectIntersection,
+  type CollisionDetection,
+  type DndContextProps,
+  type KeyboardCoordinateGetter,
+} from '@dnd-kit/core';
 import { createSnapModifier } from '@dnd-kit/modifiers';
 import {
   formatClock,
@@ -28,12 +34,13 @@ const STEP_PX = SNAP_MINUTES * PX_PER_MINUTE;
 const snapToRows = createSnapModifier(STEP_PX);
 
 /**
- * Ajuste visual a 15 min solo en vertical. `createSnapModifier` redondea los dos ejes, pero en
- * horizontal el arrastre se resuelve por columna y no por píxel.
+ * Ajuste visual a 15 min solo en vertical. `createSnapModifier` ajusta los dos ejes y siempre hacia
+ * arriba (`Math.ceil`): un píxel de arrastre ya mueve un paso entero. Se le resta medio paso para
+ * que redondee al más cercano. En horizontal el arrastre se resuelve por columna, no por píxel.
  */
 export const snapVertically: typeof snapToRows = (args) => ({
   ...args.transform,
-  y: snapToRows(args).y,
+  y: snapToRows({ ...args, transform: { ...args.transform, y: args.transform.y - STEP_PX / 2 } }).y,
 });
 
 type DropInput = {
@@ -128,6 +135,47 @@ export const eventKeyboardCoordinates: KeyboardCoordinateGetter = (
   if (!move) return undefined;
   event.preventDefault();
   return { x: currentCoordinates.x + move.x, y: currentCoordinates.y + move.y };
+};
+
+/**
+ * Columna sobre la que está el puntero: si el puntero sale de la grilla no hay destino, aunque el
+ * servicio todavía se superponga con una columna. Sin puntero (arrastre con teclado) se usa la
+ * columna que más se superpone con el servicio.
+ */
+export const detectColumn: CollisionDetection = (args) =>
+  args.pointerCoordinates ? pointerWithin(args) : rectIntersection(args);
+
+/** Datos que cada columna publica para saber a dónde se suelta un servicio. */
+export type ColumnData = {
+  columnKey: string;
+  day: LocalDate;
+  /** Técnico de la columna en la vista de día; `null` en la de semana. */
+  technicianId: string | null;
+  label: string;
+};
+
+const labelOf = (item: { data: { current?: { label?: string } } }) =>
+  item.data.current?.label ?? 'servicio';
+
+/** Instrucciones y avisos del arrastre para lectores de pantalla, en español. */
+export const EVENT_ACCESSIBILITY: NonNullable<DndContextProps['accessibility']> = {
+  screenReaderInstructions: {
+    draggable:
+      'Pulsa la barra espaciadora para levantar el servicio. Con las flechas, arriba y abajo cambian la hora de a 15 minutos; izquierda y derecha, de columna. Suelta con espacio o Enter y cancela con Escape.',
+  },
+  announcements: {
+    onDragStart: ({ active }) => `Servicio de ${labelOf(active)} levantado.`,
+    onDragOver: ({ active, over }) =>
+      over
+        ? `Servicio de ${labelOf(active)} sobre ${labelOf(over)}.`
+        : `Servicio de ${labelOf(active)} fuera de la agenda.`,
+    onDragEnd: ({ active, over }) =>
+      over
+        ? `Servicio de ${labelOf(active)} soltado sobre ${labelOf(over)}.`
+        : `Servicio de ${labelOf(active)} soltado fuera de la agenda; no se movió.`,
+    onDragCancel: ({ active }) =>
+      `Movimiento cancelado. El servicio de ${labelOf(active)} quedó donde estaba.`,
+  },
 };
 
 /** Teclas del arrastre con teclado: Enter queda libre para abrir el detalle del servicio. */

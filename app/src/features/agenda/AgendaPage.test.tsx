@@ -1035,6 +1035,57 @@ describe('AgendaPage: acciones', () => {
   });
 });
 
+describe('AgendaPage: interacción con los servicios', () => {
+  it('por defecto los servicios se pueden arrastrar y estirar, pero solo en lo visual', async () => {
+    serve({ appointments: [appointment()] });
+    renderAgenda();
+
+    const card = await screen.findByRole('button', { name: /Ana Pérez/ });
+
+    expect(card).toHaveClass('cursor-grab');
+    expect(card.querySelector('[data-slot="resize-handle"]')).toBeInTheDocument();
+  });
+
+  it('isDraggable e isResizable de quien usa la página deciden servicio por servicio', async () => {
+    serve({ appointments: [appointment()] });
+    renderAgenda(ENTRY, { isDraggable: () => false, isResizable: () => false });
+
+    const card = await screen.findByRole('button', { name: /Ana Pérez/ });
+
+    expect(card).toHaveClass('cursor-pointer');
+    expect(card.querySelector('[data-slot="resize-handle"]')).not.toBeInTheDocument();
+  });
+
+  it('entrega a quien usa la página el redimensionado, con el servicio y el nuevo fin', async () => {
+    serve({ appointments: [appointment()] });
+    const onEventResize = vi.fn();
+    renderAgenda(ENTRY, { onEventResize });
+    const card = await screen.findByRole('button', { name: /Ana Pérez/ });
+    const handle = card.querySelector<HTMLElement>('[data-slot="resize-handle"]')!;
+
+    fireEvent.pointerDown(handle, { clientY: 200, pointerId: 2, button: 0 });
+    fireEvent.pointerUp(handle, { clientY: 250, pointerId: 2 });
+
+    // 50 px son 40 minutos: de 09:30 a 10:10, que se ajusta a 10:15 (15:15Z en Bogotá).
+    expect(onEventResize).toHaveBeenCalledOnce();
+    expect(onEventResize.mock.calls[0]![1]).toBe('2026-11-06T15:15:00.000Z');
+  });
+
+  it('sin lógica pasada, estirar no pide nada a la API ni cambia la agenda', async () => {
+    const requests = serve({ appointments: [appointment()] });
+    renderAgenda();
+    const card = await screen.findByRole('button', { name: /Ana Pérez/ });
+    const before = requests.appointments.length;
+    const handle = card.querySelector<HTMLElement>('[data-slot="resize-handle"]')!;
+
+    fireEvent.pointerDown(handle, { clientY: 200, pointerId: 2, button: 0 });
+    fireEvent.pointerUp(handle, { clientY: 250, pointerId: 2 });
+
+    expect(requests.appointments).toHaveLength(before);
+    expect(within(card).getByText('08:00–09:30')).toBeInTheDocument();
+  });
+});
+
 describe('AgendaPage: actualización', () => {
   it('se refresca al invalidar las consultas de servicios', async () => {
     let current = [appointment()];

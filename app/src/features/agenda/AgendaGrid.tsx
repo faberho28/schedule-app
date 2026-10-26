@@ -1,19 +1,44 @@
-import { useId, useMemo, type CSSProperties } from 'react';
-import { EventBlock } from '@/components/EventBlock';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { useId, useMemo, useState, type CSSProperties } from 'react';
+import { DragPreview } from '@/components/calendar/DragPreview';
+import { ResizeHandle } from '@/components/calendar/ResizeHandle';
 import { SlotLayer } from '@/components/calendar/SlotLayer';
+import { EventBlock, type EventBlockProps } from '@/components/EventBlock';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { formatClock, resizeEnd } from '@/shared/lib/calendar/layout';
 import { formatDayLabel, formatTime, localDateOf, type LocalDate } from '@/shared/lib/dates';
 import { cn } from '@/shared/lib/utils';
 import {
   blockGeometry,
   formatMinuteOfDay,
   layoutDay,
+  minuteOfDay,
   type BlockGeometry,
   type OverflowGroup,
   type PackedPosition,
   type VisibleHours,
 } from './agenda-layout';
 import { STATUS_STYLES, type AppointmentStatus } from './appointment-status';
+import {
+  detectColumn,
+  EVENT_ACCESSIBILITY,
+  EVENT_KEYBOARD_CODES,
+  eventKeyboardCoordinates,
+  resolveResize,
+  snapVertically,
+  type ColumnData,
+  type DropTarget,
+} from './event-dnd';
+import { useEventDrag, type DropPreview } from './use-event-drag';
 
 export type AgendaAppointment = {
   id: string;
@@ -50,7 +75,7 @@ export type AgendaGridProps = {
   visibleHours: VisibleHours;
   /** Minutos por fila de la grilla; 15 por defecto. */
   rowMinutes?: number;
-  /** Columnas que caben por franja: 6 en la vista de día y 2 en la de semana. */
+  /** Columnas que caben por franja: 3 en la vista de día y 2 en la de semana. */
   maxColumns?: number;
   onAppointmentSelect(id: string): void;
   /** El dueño pidió ver los servicios ocultos de una franja ("+N más"). */
@@ -67,6 +92,30 @@ export type AgendaGridProps = {
     endMinute: number,
     technicianId?: string,
   ): void;
+  /**
+   * Cuáles servicios se pueden arrastrar. Sin esta función se pueden todos, mientras haya
+   * `onEventDrop`. La grilla no conoce reglas de negocio: quien la usa decide.
+   */
+  isDraggable?(appointment: AgendaAppointment): boolean;
+  /** Cuáles servicios se pueden redimensionar; sin ella, todos mientras haya `onEventResize`. */
+  isResizable?(appointment: AgendaAppointment): boolean;
+  /** Si el destino del arrastre es válido. Sin esta función todo destino se considera válido. */
+  getDropState?(appointment: AgendaAppointment, target: DropTarget): 'valid' | 'invalid';
+  /** Motivo por el que un destino inválido no sirve; se muestra en un tooltip sobre la vista previa. */
+  getDropMessage?(appointment: AgendaAppointment, target: DropTarget): string | undefined;
+  /**
+   * El dueño soltó un servicio en un destino válido y distinto del actual: nuevo inicio y fin
+   * (instantes ISO en UTC) y, si cambió de columna de técnico, el técnico destino. Sin este
+   * manejador el arrastre está apagado.
+   */
+  onEventDrop?(
+    appointment: AgendaAppointment,
+    newStart: string,
+    newEnd: string,
+    newTechnicianId?: string,
+  ): void;
+  /** El dueño estiró o encogió un servicio: nuevo fin (ISO en UTC). Sin él no hay asa de redimensionar. */
+  onEventResize?(appointment: AgendaAppointment, newEnd: string): void;
 };
 
 const DEFAULT_ROW_MINUTES = 15;
@@ -97,7 +146,8 @@ function dayParts(day: LocalDate): { weekday: string; number: number } {
  * Agenda de escritorio con CSS Grid propio y un eje de tiempo común. La vista de día tiene una
  * columna por técnico elegido; la de semana, una por día, donde los servicios de todos los técnicos
  * se reparten el ancho cuando coinciden en el tiempo y, si no caben, un botón "+N más" ocupa la
- * última columna.
+ * última columna. Los espacios vacíos admiten clic y selección; los servicios, arrastre y
+ * redimensionado si quien la usa lo permite. La grilla solo presenta y avisa: no decide nada.
  */
 export function AgendaGrid({
   view,
@@ -112,6 +162,12 @@ export function AgendaGrid({
   onOverflowSelect,
   onSlotClick,
   onSlotSelect,
+  isDraggable,
+  isResizable,
+  getDropState,
+  getDropMessage,
+  onEventDrop,
+  onEventResize,
 }: AgendaGridProps) {
   const baseId = useId();
   const totalRows = Math.ceil((visibleHours.endMinute - visibleHours.startMinute) / rowMinutes);
@@ -125,7 +181,26 @@ export function AgendaGrid({
         }))
       : days.map((day) => ({ key: day, day, technician: null }));
 
-  return (
+  const dragEnabled = onEventDrop !== undefined;
+  const { drag, preview, handlers } = useEventDrag({
+    appointments,
+    technicians,
+    timeZone,
+    visibleHours,
+    onEventDrop,
+    getDropState,
+    getDropMessage,
+  });
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: eventKeyboardCoordinates,
+      keyboardCodes: EVENT_KEYBOARD_CODES,
+    }),
+  );
+
+  const grid = (
     <div
       role="region"
       aria-label={view === 'day' ? 'Agenda del día' : 'Agenda de la semana'}
@@ -138,6 +213,7 @@ export function AgendaGrid({
           <DaySection
             key={key}
             id={`${baseId}-${key}`}
+            columnKey={key}
             day={day}
             columnTechnician={technician}
             view={view}
@@ -148,14 +224,34 @@ export function AgendaGrid({
             rowMinutes={rowMinutes}
             totalRows={totalRows}
             maxColumns={maxColumns}
+            dragEnabled={dragEnabled}
+            draggingId={drag?.id ?? null}
+            draggingByTouch={drag?.touch ?? false}
+            preview={preview?.columnKey === key ? preview : null}
+            isDraggable={isDraggable}
+            isResizable={isResizable}
             onAppointmentSelect={onAppointmentSelect}
             onOverflowSelect={onOverflowSelect}
             onSlotClick={onSlotClick}
             onSlotSelect={onSlotSelect}
+            onEventResize={onEventResize}
           />
         ))}
       </div>
     </div>
+  );
+
+  if (!dragEnabled) return grid;
+  return (
+    <DndContext
+      sensors={sensors}
+      modifiers={[snapVertically]}
+      collisionDetection={detectColumn}
+      accessibility={EVENT_ACCESSIBILITY}
+      {...handlers}
+    >
+      {grid}
+    </DndContext>
   );
 }
 
@@ -221,22 +317,33 @@ type DaySectionProps = Pick<
   | 'technicians'
   | 'appointments'
   | 'visibleHours'
+  | 'isDraggable'
+  | 'isResizable'
   | 'onAppointmentSelect'
   | 'onOverflowSelect'
   | 'onSlotClick'
   | 'onSlotSelect'
+  | 'onEventResize'
 > & {
   id: string;
+  /** Identificador de la columna como destino de un arrastre: el técnico (día) o el día (semana). */
+  columnKey: string;
   day: LocalDate;
   /** Técnico de la columna en la vista de día; `null` en la de semana, donde la columna es un día. */
   columnTechnician: GridTechnician | null;
   rowMinutes: number;
   totalRows: number;
   maxColumns: number;
+  dragEnabled: boolean;
+  draggingId: string | null;
+  draggingByTouch: boolean;
+  /** Vista previa del servicio arrastrado si su destino es esta columna. */
+  preview: DropPreview | null;
 };
 
 function DaySection({
   id,
+  columnKey,
   day,
   columnTechnician,
   view,
@@ -247,15 +354,34 @@ function DaySection({
   rowMinutes,
   totalRows,
   maxColumns,
+  dragEnabled,
+  draggingId,
+  draggingByTouch,
+  preview,
+  isDraggable,
+  isResizable,
   onAppointmentSelect,
   onOverflowSelect,
   onSlotClick,
   onSlotSelect,
+  onEventResize,
 }: DaySectionProps) {
   const dayLabel = formatDayLabel(day);
   const { weekday, number } = dayParts(day);
   const isToday = day === localDateOf(new Date().toISOString(), timeZone);
   const columnTechnicianId = columnTechnician?.id ?? null;
+  const [resizing, setResizing] = useState<{ id: string; deltaMinutes: number } | null>(null);
+  const droppableData: ColumnData = {
+    columnKey,
+    day,
+    technicianId: columnTechnicianId,
+    label: columnTechnician?.name ?? dayLabel,
+  };
+  const { setNodeRef } = useDroppable({
+    id: columnKey,
+    disabled: !dragEnabled,
+    data: droppableData,
+  });
   const { blocks, overflow } = useMemo<DayEntries>(() => {
     const byId = new Map(technicians.map((technician) => [technician.id, technician]));
     const timed = appointments
@@ -319,6 +445,20 @@ function DaySection({
     maxColumns,
   ]);
 
+  /** Fin y alto del servicio mientras el dueño lo redimensiona; `null` si no es el que se estira. */
+  function liveResize(block: PlacedBlock) {
+    if (resizing?.id !== block.appointment.id) return null;
+    const range = {
+      startMinute: minuteOfDay(block.appointment.startsAt, day, timeZone),
+      endMinute: minuteOfDay(block.appointment.endsAt, day, timeZone),
+    };
+    const endMinute = resizeEnd(range, resizing.deltaMinutes, visibleHours);
+    const endRow = Math.ceil((endMinute - visibleHours.startMinute) / rowMinutes);
+    return { endMinute, bodyRows: Math.max(endRow - block.geometry.startRow, 1) };
+  }
+
+  const invalidDrop = preview?.state === 'invalid';
+
   return (
     <section
       aria-labelledby={id}
@@ -367,7 +507,12 @@ function DaySection({
           </h2>
         )}
       </div>
-      <div className="relative">
+      <div
+        ref={setNodeRef}
+        data-slot="column-body"
+        data-drop={invalidDrop ? 'invalid' : undefined}
+        className="relative data-[drop=invalid]:cursor-not-allowed"
+      >
         <SlotLayer
           window={visibleHours}
           onSlotClick={
@@ -391,22 +536,58 @@ function DaySection({
             backgroundSize: `100% ${MINUTES_PER_HOUR * PX_PER_MINUTE}px`,
           }}
         >
-          {blocks.map(({ appointment, technician, geometry, position }) => (
-            <li
-              key={appointment.id}
-              className="z-10 flex min-h-0 min-w-0 p-px"
-              style={slotStyle(geometry.startRow, geometry.bodyRows + geometry.tailRows, position)}
-            >
-              <AppointmentCard
-                appointment={appointment}
-                technician={technician}
-                geometry={geometry}
-                rowMinutes={rowMinutes}
-                timeZone={timeZone}
-                onSelect={onAppointmentSelect}
-              />
-            </li>
-          ))}
+          {blocks.map((block) => {
+            const { appointment, technician, geometry, position } = block;
+            const live = liveResize(block);
+            const shown: BlockGeometry = live
+              ? { ...geometry, bodyRows: live.bodyRows, tailRows: 0 }
+              : geometry;
+            const resizable =
+              onEventResize !== undefined && (isResizable ? isResizable(appointment) : true);
+            const draggable = dragEnabled && (isDraggable ? isDraggable(appointment) : true);
+            const cardProps: AppointmentCardProps = {
+              appointment,
+              technician,
+              geometry: shown,
+              rowMinutes,
+              timeZone,
+              endMinute: live?.endMinute,
+              resizeHandle: resizable ? (
+                <ResizeHandle
+                  onResize={(deltaMinutes) => setResizing({ id: appointment.id, deltaMinutes })}
+                  onResizeEnd={(deltaMinutes) => {
+                    setResizing(null);
+                    const result = resolveResize({
+                      appointment,
+                      timeZone,
+                      visibleHours,
+                      deltaMinutes,
+                    });
+                    if (result.changed) onEventResize?.(appointment, result.endsAt);
+                  }}
+                  onResizeCancel={() => setResizing(null)}
+                />
+              ) : undefined,
+              onSelect: onAppointmentSelect,
+            };
+            return (
+              <li
+                key={appointment.id}
+                className="z-10 flex min-h-0 min-w-0 p-px"
+                style={slotStyle(shown.startRow, shown.bodyRows + shown.tailRows, position)}
+              >
+                {dragEnabled ? (
+                  <DraggableCard
+                    {...cardProps}
+                    disabled={!draggable}
+                    touch={draggingId === appointment.id && draggingByTouch}
+                  />
+                ) : (
+                  <AppointmentCard {...cardProps} />
+                )}
+              </li>
+            );
+          })}
           {overflow.map((group) => (
             <li
               key={`overflow-${group.ids[0]}`}
@@ -424,6 +605,16 @@ function DaySection({
             </li>
           ))}
         </ul>
+        {preview ? (
+          <DragPreview
+            range={preview.range}
+            window={visibleHours}
+            colorIndex={preview.colorIndex}
+            customer={preview.customer}
+            state={preview.state}
+            message={preview.message}
+          />
+        ) : null}
       </div>
     </section>
   );
@@ -448,6 +639,9 @@ type AppointmentCardProps = {
   geometry: BlockGeometry;
   rowMinutes: number;
   timeZone: string;
+  /** Fin provisional (minutos del día) mientras se redimensiona; reemplaza al fin real en la hora mostrada. */
+  endMinute?: number;
+  resizeHandle?: EventBlockProps['resizeHandle'];
   onSelect(id: string): void;
 };
 
@@ -457,16 +651,22 @@ function AppointmentCard({
   geometry,
   rowMinutes,
   timeZone,
+  endMinute,
+  resizeHandle,
   onSelect,
-}: AppointmentCardProps) {
+  ...interaction
+}: AppointmentCardProps &
+  Pick<EventBlockProps, 'draggable' | 'dragging' | 'lifted' | 'buttonRef' | 'buttonProps'>) {
   const style = STATUS_STYLES[appointment.status];
   const cancelled = appointment.status === 'cancelled';
-  const timeRange = `${formatTime(appointment.startsAt, timeZone)}–${formatTime(appointment.endsAt, timeZone)}`;
+  const start = formatTime(appointment.startsAt, timeZone);
+  const end =
+    endMinute === undefined ? formatTime(appointment.endsAt, timeZone) : formatClock(endMinute);
   const bufferMinutes = cancelled
     ? 0
     : Math.round((Date.parse(appointment.occupiedUntil) - Date.parse(appointment.endsAt)) / 60_000);
   const name = [
-    `${formatTime(appointment.startsAt, timeZone)} a ${formatTime(appointment.endsAt, timeZone)}`,
+    `${start} a ${end}`,
     appointment.customerName,
     appointment.serviceName,
     `técnico ${technician.name}`,
@@ -477,9 +677,10 @@ function AppointmentCard({
   ].join(', ');
   return (
     <EventBlock
+      {...interaction}
       label={name}
       colorIndex={technician.colorIndex}
-      time={timeRange}
+      time={`${start}–${end}`}
       customer={appointment.customerName}
       serviceName={appointment.serviceName}
       technicianName={technician.name}
@@ -492,7 +693,32 @@ function AppointmentCard({
       bodyRows={geometry.bodyRows}
       bodyHeight={geometry.bodyRows * rowMinutes * PX_PER_MINUTE}
       tailRows={geometry.tailRows}
+      resizeHandle={resizeHandle}
       onClick={() => onSelect(appointment.id)}
+    />
+  );
+}
+
+/** Servicio arrastrable: enlaza el bloque con `dnd-kit` y le pasa sus atributos y manejadores. */
+function DraggableCard({
+  disabled,
+  touch,
+  ...card
+}: AppointmentCardProps & { disabled: boolean; touch: boolean }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: card.appointment.id,
+    disabled,
+    data: { label: card.appointment.customerName },
+    attributes: { role: 'button', roleDescription: 'servicio arrastrable', tabIndex: 0 },
+  });
+  return (
+    <AppointmentCard
+      {...card}
+      draggable={!disabled}
+      dragging={isDragging}
+      lifted={isDragging && touch}
+      buttonRef={setNodeRef}
+      buttonProps={disabled ? undefined : { ...attributes, ...listeners }}
     />
   );
 }
