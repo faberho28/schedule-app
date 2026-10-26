@@ -50,7 +50,7 @@ export function CustomersPage() {
   };
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-4 lg:pt-6">
       {/* En escritorio el título va en la barra; por debajo, el encabezado conserva "Volver". */}
       {isDesktop ? null : <PageHeader title="Clientes" />}
       <CustomersToolbar

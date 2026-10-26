@@ -340,6 +340,15 @@ describe('AgendaPage: barra de herramientas de escritorio', () => {
     expect(document.querySelector('[data-sonner-toast]')).not.toBeInTheDocument();
   });
 
+  it('en escritorio la pantalla tiene aire arriba, igual que Clientes', async () => {
+    serve();
+    renderAgenda();
+    await screen.findByRole('region', { name: 'Agenda del día' });
+
+    const navigation = screen.getByRole('group', { name: 'Navegación de la agenda' });
+    expect(navigation.closest('section')).toHaveClass('lg:pt-6');
+  });
+
   it('no muestra los indicadores del Panel ni una vista Mes', async () => {
     serve({ appointments: [appointment()] });
 

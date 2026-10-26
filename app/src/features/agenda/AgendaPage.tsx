@@ -87,7 +87,7 @@ export function AgendaPage(props: AgendaPageProps) {
   const isDesktop = useIsDesktop();
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-4 lg:pt-6">
       {/* En escritorio la barra abre la página y el rango es su título; en móvil el encabezado
           conserva "Volver". */}
       {isDesktop ? null : <PageHeader title="Agenda" />}

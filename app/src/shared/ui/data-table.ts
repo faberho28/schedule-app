@@ -1,14 +1,16 @@
 /**
- * Anchos de las columnas de las tablas de la aplicación. La primera columna (el nombre) crece y
- * ocupa lo que sobra; las demás tienen un ancho fijo para que ninguna columna de datos se estire.
+ * Anchos de las columnas de las tablas de la aplicación, para una tabla de diseño fijo
+ * (`table-fixed`). Las columnas de datos tienen un ancho propio y quedan juntas a la izquierda; la
+ * de acciones no tiene ancho y recibe el espacio que sobra.
  */
 export const COLUMN_WIDTH = {
-  /** Primera columna: absorbe el espacio libre. */
-  main: 'w-full',
+  /** Nombre (cliente, técnico): más angosta en pantallas medianas, donde no sobra espacio. */
+  main: 'w-[240px] lg:w-[320px]',
   phone: 'w-[200px]',
   /** Estado o consentimiento. */
   status: 'w-[160px]',
-  actions: 'w-12',
+  /** Sin ancho: toma el espacio restante. */
+  actions: '',
 } as const;
 
 export type ColumnWidth = keyof typeof COLUMN_WIDTH;

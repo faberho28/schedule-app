@@ -82,6 +82,15 @@ describe('CustomersPage', () => {
     expect(screen.queryByText(/Cliente eliminado/)).not.toBeInTheDocument();
   });
 
+  it('en escritorio la pantalla tiene aire arriba: el título y la barra no tocan el borde', async () => {
+    serve();
+    renderPage(<CustomersPage />);
+
+    const title = screen.getByRole('heading', { level: 1, name: 'Clientes' });
+    expect(title.closest('section')).toHaveClass('lg:pt-6');
+    await screen.findByText('Ana Pérez');
+  });
+
   it('el contador de la barra cuenta los clientes que se muestran', async () => {
     serve();
     renderPage(<CustomersPage />);

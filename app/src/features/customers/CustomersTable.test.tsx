@@ -93,27 +93,72 @@ describe('CustomersTable: estructura', () => {
 });
 
 describe('CustomersTable: anchos de columna', () => {
-  it('Cliente absorbe el espacio libre y las demás columnas tienen un ancho fijo', () => {
+  it('la tabla es de diseño fijo: los anchos se respetan y nada se estira', () => {
+    renderTable();
+
+    expect(screen.getByRole('table')).toHaveClass('table-fixed', 'w-full');
+  });
+
+  it('Cliente, Teléfono y Consentimiento tienen ancho fijo y Acciones toma el espacio que sobra', () => {
     renderTable();
 
     const [name, phone, consent, actions] = screen.getAllByRole('columnheader');
-    expect(name).toHaveClass('w-full');
+    expect(name).toHaveClass('w-[240px]', 'lg:w-[320px]');
     expect(phone).toHaveClass('w-[200px]');
     expect(consent).toHaveClass('w-[160px]');
-    expect(actions).toHaveClass('w-12');
-    for (const header of [phone, consent, actions]) {
-      expect(header).not.toHaveClass('w-full');
-    }
+    // Sin ancho propio: es la columna que recibe lo que sobra.
+    expect(actions!.className).not.toMatch(/(^|\s)(lg:)?w-/);
+    expect(actions).toHaveClass('text-right');
   });
 
-  it('las celdas de cada fila llevan el mismo ancho que su encabezado', () => {
+  it('las celdas de cada fila llevan el mismo ancho que su encabezado y las acciones van a la derecha', () => {
     renderTable();
 
     const cells = within(bodyRows()[0]!).getAllByRole('cell');
-    expect(cells[0]).toHaveClass('w-full');
+    expect(cells[0]).toHaveClass('w-[240px]', 'lg:w-[320px]');
     expect(cells[1]).toHaveClass('w-[200px]');
     expect(cells[2]).toHaveClass('w-[160px]');
-    expect(cells[3]).toHaveClass('w-12');
+    expect(cells[3]!.className).not.toMatch(/(^|\s)(lg:)?w-/);
+    expect(cells[3]).toHaveClass('text-right');
+  });
+
+  it('el esqueleto de carga usa los mismos anchos', () => {
+    renderTable({ customers: [], loading: true });
+
+    const cells = within(bodyRows()[0]!).getAllByRole('cell');
+    expect(cells[0]).toHaveClass('w-[240px]');
+    expect(cells[1]).toHaveClass('w-[200px]');
+    expect(cells[2]).toHaveClass('w-[160px]');
+  });
+});
+
+describe('CustomersTable: contenido que no se parte', () => {
+  it('el teléfono y el consentimiento no se parten en dos líneas', () => {
+    renderTable();
+
+    const cells = within(bodyRows()[0]!).getAllByRole('cell');
+    expect(cells[1]).toHaveClass('whitespace-nowrap');
+    expect(cells[2]).toHaveClass('whitespace-nowrap');
+    expect(screen.getByText('+57 300 123 4567')).toHaveClass('whitespace-nowrap');
+  });
+
+  it('el nombre se recorta con puntos suspensivos en lugar de pasar a otra línea', () => {
+    renderTable({ customers: [customer({ id: 'c-long', name: 'Nombre Muy Largo '.repeat(8) })] });
+
+    const link = screen.getByRole('link', { name: /Nombre Muy Largo/ });
+    expect(link).toHaveClass('truncate', 'min-w-0');
+    expect(link.parentElement).toHaveClass('min-w-0');
+  });
+
+  it('las filas mantienen 56 px de alto y ningún contenido las ensancha', () => {
+    renderTable({ customers: [ANA, ERASED] });
+
+    for (const row of bodyRows()) {
+      expect(row).toHaveClass('h-14');
+    }
+    // La insignia "Eliminado" no cambia de línea junto al nombre.
+    const erasedCell = within(bodyRows()[1]!).getAllByRole('cell')[0]!;
+    expect(erasedCell.firstElementChild).toHaveClass('flex', 'items-center', 'flex-nowrap');
   });
 });
 
@@ -209,7 +254,7 @@ describe('CustomersTable: abrir la ficha', () => {
 
     const trigger = screen.getByRole('button', { name: 'Acciones de Ana Pérez' });
     expect(trigger).toHaveClass('size-11');
-    expect(trigger.closest('td')).toHaveClass('w-12', 'text-right');
+    expect(trigger.closest('td')).toHaveClass('text-right');
   });
 });
 

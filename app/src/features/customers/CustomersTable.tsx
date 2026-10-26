@@ -123,11 +123,11 @@ export function CustomersTable({
           const customer = row.original;
           const label = customerRecordLabel(customer);
           return (
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-nowrap items-center gap-3">
               <CustomerAvatar customer={customer} />
               <Link
                 to={`/customers/${customer.id}`}
-                className="rounded-sm text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40"
+                className="min-w-0 truncate rounded-sm text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40"
               >
                 {label}
               </Link>
@@ -141,7 +141,7 @@ export function CustomersTable({
         header: 'Teléfono',
         enableSorting: false,
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">
             {customerPhone(row.original)}
           </span>
         ),
@@ -214,7 +214,10 @@ export function CustomersTable({
               {group.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  className={widthClass(header.column.id)}
+                  className={cn(
+                    widthClass(header.column.id),
+                    header.column.id === 'actions' && 'text-right',
+                  )}
                   aria-sort={
                     header.column.getCanSort()
                       ? ARIA_SORT[String(header.column.getIsSorted())]
@@ -283,6 +286,7 @@ export function CustomersTable({
                       key={cell.id}
                       className={cn(
                         widthClass(cell.column.id),
+                        'whitespace-nowrap',
                         cell.column.id === 'actions' && 'text-right',
                       )}
                     >
