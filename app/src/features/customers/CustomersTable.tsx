@@ -5,11 +5,10 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  type Column,
   type PaginationState,
   type SortingState,
 } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,7 @@ import { customerRecordLabel } from '@/shared/lib/people';
 import { cn } from '@/shared/lib/utils';
 import { COLUMN_WIDTH, PAGE_SIZES, type ColumnWidth } from '@/shared/ui/data-table';
 import { DataTablePagination } from '@/shared/ui/DataTablePagination';
+import { ariaSortOf, SortHeader } from '@/shared/ui/SortHeader';
 import { CONSENT_STATUS_INFO } from './consent';
 import {
   AddressCell,
@@ -76,29 +76,8 @@ const widthClass = (columnId: string) => COLUMN_WIDTH[WIDTH_OF[columnId]!];
 const collator = new Intl.Collator('es');
 const helper = createColumnHelper<Customer>();
 
-const ARIA_SORT: Record<string, 'ascending' | 'descending' | 'none'> = {
-  asc: 'ascending',
-  desc: 'descending',
-  false: 'none',
-};
-
 const consentLabel = (customer: Customer) =>
   isErased(customer) ? '' : CONSENT_STATUS_INFO[customer.consent_status].label;
-
-function SortHeader({ column, children }: { column: Column<Customer, unknown>; children: string }) {
-  const sorted = column.getIsSorted();
-  const Icon = sorted === 'asc' ? ArrowUp : sorted === 'desc' ? ArrowDown : ArrowUpDown;
-  return (
-    <button
-      type="button"
-      className="-ml-1 inline-flex items-center gap-1.5 rounded-md px-1 uppercase outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40"
-      onClick={column.getToggleSortingHandler()}
-    >
-      {children}
-      <Icon aria-hidden="true" className="size-3.5" />
-    </button>
-  );
-}
 
 /**
  * Lista de clientes como tabla (`@tanstack/react-table`): ordena por cliente y consentimiento, pagina
@@ -231,11 +210,7 @@ export function CustomersTable({
                       widthClass(header.column.id),
                       header.column.id === 'actions' && 'text-right',
                     )}
-                    aria-sort={
-                      header.column.getCanSort()
-                        ? ARIA_SORT[String(header.column.getIsSorted())]
-                        : undefined
-                    }
+                    aria-sort={ariaSortOf(header.column)}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>

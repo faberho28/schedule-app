@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { pluralize } from '@/shared/lib/format';
 import { ListTitle } from '@/shared/ui/ListTitle';
+import { MoreFiltersButton } from '@/shared/ui/MoreFiltersButton';
 import { ConsentFilterButton } from './ConsentFilterButton';
 import type { ConsentFilter } from './consent-filter';
-import { MoreFiltersButton } from './MoreFiltersButton';
 
 const NOUN = { singular: 'cliente', plural: 'clientes' };
 

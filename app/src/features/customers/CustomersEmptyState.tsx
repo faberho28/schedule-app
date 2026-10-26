@@ -1,5 +1,5 @@
-import { SearchX, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Users } from 'lucide-react';
+import { ListEmptyState } from '@/shared/ui/ListEmptyState';
 
 type CustomersEmptyStateProps = {
   /** Hay una búsqueda activa: el vacío es "sin resultados" y no "sin clientes". */
@@ -12,40 +12,14 @@ type CustomersEmptyStateProps = {
 };
 
 /** Qué mostrar cuando la lista de clientes está vacía: sin resultados o sin clientes todavía. */
-export function CustomersEmptyState({
-  searching,
-  filtered,
-  onClearSearch,
-  onClearFilters,
-  onCreate,
-}: CustomersEmptyStateProps) {
-  if (searching || filtered) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <SearchX aria-hidden="true" className="size-8 text-muted-foreground" />
-        <p className="text-sm font-medium">No se encontraron clientes</p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={searching ? onClearSearch : onClearFilters}
-        >
-          {searching ? 'Limpiar búsqueda' : 'Limpiar filtros'}
-        </Button>
-      </div>
-    );
-  }
+export function CustomersEmptyState(props: CustomersEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center gap-3 py-16 text-center">
-      <Users aria-hidden="true" className="size-8 text-muted-foreground" />
-      <p className="text-sm font-medium">Aún no tienes clientes</p>
-      <Button
-        type="button"
-        className="bg-brand text-brand-foreground hover:bg-brand/90"
-        onClick={onCreate}
-      >
-        Nuevo cliente
-      </Button>
-    </div>
+    <ListEmptyState
+      {...props}
+      noun="clientes"
+      emptyTitle="Aún no tienes clientes"
+      emptyIcon={Users}
+      createLabel="Nuevo cliente"
+    />
   );
 }
