@@ -1,4 +1,5 @@
 import { ArrowLeftRight, FastForward, type LucideIcon } from 'lucide-react';
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/shared/lib/utils';
@@ -45,6 +46,18 @@ export type EventBlockProps = {
   bodyHeight?: number;
   /** Filas del tiempo de traslado posterior, dibujadas como una franja rayada. */
   tailRows: number;
+  /** Se puede arrastrar: cursor de agarrar. Si no, sigue siendo clicable con cursor de puntero. */
+  draggable?: boolean;
+  /** Se está arrastrando: el original se atenúa. */
+  dragging?: boolean;
+  /** El arrastre se activó con el dedo: el bloque se agranda un poco como señal. */
+  lifted?: boolean;
+  /** Referencia al botón, para el arrastre. */
+  buttonRef?: Ref<HTMLButtonElement>;
+  /** Propiedades del arrastre (rol, atributos de accesibilidad y manejadores) para el botón. */
+  buttonProps?: ComponentPropsWithoutRef<'button'>;
+  /** Asa de redimensionar, ubicada sobre el borde inferior. */
+  resizeHandle?: ReactNode;
   onClick(): void;
 };
 
@@ -71,6 +84,12 @@ export function EventBlock({
   bodyRows,
   bodyHeight = Infinity,
   tailRows,
+  draggable = false,
+  dragging = false,
+  lifted = false,
+  buttonRef,
+  buttonProps,
+  resizeHandle,
   onClick,
 }: EventBlockProps) {
   const StatusIcon = status.icon;
@@ -87,13 +106,18 @@ export function EventBlock({
       <Tooltip>
         <TooltipTrigger asChild>
           <button
+            {...buttonProps}
+            ref={buttonRef}
             type="button"
             aria-label={label}
             data-color-index={colorIndex}
             onClick={onClick}
             className={cn(
-              '@container/event flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md border-l-[3px] text-left text-xs transition-shadow duration-150 outline-none hover:shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring/40 motion-reduce:transition-none',
+              '@container/event group/event relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md border-l-[3px] text-left text-xs transition-shadow duration-150 outline-none hover:shadow-xs focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
+              draggable ? 'cursor-grab' : 'cursor-pointer',
               cancelled && 'opacity-70',
+              dragging && 'cursor-grabbing opacity-40',
+              lifted && 'scale-[1.02]',
             )}
             style={{
               backgroundColor: `var(--tech-${colorIndex}-bg)`,
@@ -194,6 +218,7 @@ export function EventBlock({
                 }}
               />
             ) : null}
+            {resizeHandle}
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" className="flex flex-col gap-0.5">

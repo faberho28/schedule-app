@@ -127,6 +127,70 @@ describe('EventBlock', () => {
     expect(tail).toHaveAttribute('title', 'Tiempo de traslado');
   });
 
+  describe('interacción', () => {
+    it('un servicio que no se puede arrastrar sigue siendo clicable, sin cursor de arrastre', () => {
+      render(<EventBlock {...base} />);
+
+      const block = screen.getByRole('button');
+      expect(block).toHaveClass('cursor-pointer');
+      expect(block).not.toHaveClass('cursor-grab', 'cursor-grabbing');
+    });
+
+    it('arrastrable usa cursor de agarrar', () => {
+      render(<EventBlock {...base} draggable />);
+
+      expect(screen.getByRole('button')).toHaveClass('cursor-grab');
+      expect(screen.getByRole('button')).not.toHaveClass('cursor-pointer');
+    });
+
+    it('mientras se arrastra el original se atenúa y el cursor es el de agarrado', () => {
+      render(<EventBlock {...base} draggable dragging />);
+
+      expect(screen.getByRole('button')).toHaveClass('opacity-40', 'cursor-grabbing');
+    });
+
+    it('al activarse el arrastre con el dedo se agranda un poco', () => {
+      const { rerender } = render(<EventBlock {...base} draggable />);
+      expect(screen.getByRole('button')).not.toHaveClass('scale-[1.02]');
+
+      rerender(<EventBlock {...base} draggable dragging lifted />);
+
+      expect(screen.getByRole('button')).toHaveClass('scale-[1.02]');
+    });
+
+    it('el foco de teclado se ve con un anillo de 2 px', () => {
+      render(<EventBlock {...base} />);
+
+      expect(screen.getByRole('button')).toHaveClass(
+        'focus-visible:ring-2',
+        'focus-visible:ring-ring',
+      );
+    });
+
+    it('entrega su botón y acepta las propiedades del arrastre, sin perder su nombre accesible', () => {
+      const ref = vi.fn();
+      render(
+        <EventBlock
+          {...base}
+          buttonRef={ref}
+          buttonProps={{ 'aria-roledescription': 'servicio arrastrable', 'aria-label': 'otro' }}
+        />,
+      );
+
+      const block = screen.getByRole('button', { name: 'Bloque de prueba' });
+      expect(block).toHaveAttribute('aria-roledescription', 'servicio arrastrable');
+      expect(ref).toHaveBeenCalledWith(block);
+    });
+
+    it('aloja el asa de redimensionar en el borde inferior del bloque', () => {
+      render(<EventBlock {...base} resizeHandle={<span data-testid="handle" />} />);
+
+      const block = screen.getByRole('button');
+      expect(block).toHaveClass('relative', 'group/event');
+      expect(block).toContainElement(screen.getByTestId('handle'));
+    });
+  });
+
   describe('densidad según el alto del bloque', () => {
     it.each([
       [59, 'compact'],
