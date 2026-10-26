@@ -183,7 +183,10 @@ describe('AgendaPage: comandos y actualización de la agenda (UI-R4)', () => {
     await user.click(await screen.findByRole('button', { name: 'Mover' }));
 
     await user.click(await screen.findByRole('radio', { name: '10:00 con Marta' }));
-    expect(screen.getByRole('status')).toHaveTextContent('Cambia el técnico');
+    // La agenda también tiene la región de anuncios del arrastre: se busca dentro del diálogo.
+    expect(within(screen.getByRole('dialog')).getByRole('status')).toHaveTextContent(
+      'Cambia el técnico',
+    );
     await user.click(screen.getByRole('button', { name: 'Mover servicio' }));
 
     expect(await screen.findByText('Servicio movido.')).toBeInTheDocument();

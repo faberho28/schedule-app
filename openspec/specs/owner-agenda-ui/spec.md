@@ -86,6 +86,46 @@ En escritorio (desde 1024 px) la agenda MUST ser una grilla de tiempo al estilo 
 - WHEN el dueño busca la vista Mes
 - THEN no existe
 
+### Requirement: Calendario interactivo (capa visual)
+
+En escritorio la grilla MUST ofrecer una capa visual de interacción sin decidir reglas de negocio: expone callbacks y la lógica de quien la usa decide qué ocurre. Los espacios vacíos MUST resaltar al pasar el cursor el tramo de 30 min con su hora, avisar el clic (día, inicio del tramo y, en la vista de día, el técnico de la columna) y, al arrastrar, dibujar un bloque fantasma con el rango en vivo y avisar la selección a 15 min. Con el dedo un toque MUST contar como clic y no MUST bloquear el desplazamiento. Los encabezados de día MUST NOT tener botones "+". Los servicios arrastrables (según `isDraggable`) MUST poder moverse con el ratón (activación a 5 px), con el dedo (mantener 250 ms, con una leve escala) y con el teclado (Espacio levanta, flechas mueven de a 15 min o de columna, Espacio o Enter sueltan, Escape cancela; Enter solo abre el detalle). Mientras se arrastra, el original MUST atenuarse y el destino MUST mostrar una vista previa con la hora nueva en vivo, ajustada a 15 min, con el color del técnico de la columna destino. Un destino que `getDropState` marque inválido MUST pintarse con tonos de peligro, con cursor de no permitido y el mensaje de `getDropMessage` en un tooltip, y soltar ahí MUST NOT avisar movimiento alguno. Soltar en un destino válido y distinto MUST llamar a `onEventDrop` con el servicio, el nuevo inicio y fin (UTC) y el técnico destino si cambió. Los servicios redimensionables (según `isResizable`) MUST mostrar un asa en el borde inferior al pasar el cursor y actualizar su hora de fin en vivo; al soltar MUST llamar a `onEventResize` con el nuevo fin. Sin manejadores de soltado o de redimensionado la interacción MUST estar apagada.
+
+#### Scenario: Hover y clic en un espacio vacío
+
+- GIVEN un espacio vacío de la columna de Marta en la vista de día
+- WHEN el dueño pasa el cursor y pulsa
+- THEN se resalta el tramo de 30 min con su hora y se avisa el día, el inicio del tramo y a Marta
+
+#### Scenario: Selección arrastrada
+
+- GIVEN un espacio vacío
+- WHEN el dueño arrastra de 08:20 a 09:40
+- THEN ve un bloque fantasma "08:15–09:45" y al soltar se avisa ese rango
+
+#### Scenario: Mover un servicio a otro técnico
+
+- GIVEN un servicio de Carlos de 08:00 a 09:30 y la vista de día
+- WHEN el dueño lo arrastra a la columna de Marta
+- THEN el original se atenúa, la vista previa aparece en la columna de Marta con su color y al soltar se avisa el servicio, el nuevo horario y a Marta
+
+#### Scenario: Destino inválido
+
+- GIVEN un destino que la lógica marca inválido con un mensaje
+- WHEN el dueño arrastra el servicio hasta él
+- THEN la vista previa se pinta en tonos de peligro con el mensaje en un tooltip y al soltar no se avisa ningún movimiento
+
+#### Scenario: Estirar un servicio
+
+- GIVEN un servicio de 08:00 a 09:30 redimensionable
+- WHEN el dueño estira el asa inferior 20 min
+- THEN el servicio muestra "08:00–09:45" en vivo y al soltar se avisa el nuevo fin
+
+#### Scenario: Teclado
+
+- GIVEN un servicio arrastrable con el foco
+- WHEN el dueño pulsa Espacio, cuatro veces la flecha abajo y Espacio
+- THEN el servicio se mueve una hora y se avisa; pulsar solo Enter abre el detalle
+
 ### Requirement: Diálogos de cita basados en cupos
 
 La interfaz MUST permitir crear, mover y cancelar servicios únicamente eligiendo entre cupos ofrecidos por el sistema, mostrando el técnico asignado y permitiendo la reasignación manual. Al mover, MUST indicar si cambia el técnico. El diálogo de reasignar MUST listar solo los técnicos libres en el horario exacto del servicio, según la capacidad `technicians-free-at-slot`, en lugar de todos los técnicos activos.
